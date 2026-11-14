@@ -1,0 +1,5 @@
+Station,Temp,Rain,Wind
+,C,mm,km/h
+A,1.5,3,10
+B,2.5,4,12
+C,3.5,5,14

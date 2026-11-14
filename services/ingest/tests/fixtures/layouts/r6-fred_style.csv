@@ -1,0 +1,19 @@
+Title:,Gross Domestic Product
+Series ID:,GDP
+Source:,U.S. Bureau of Economic Analysis
+Units:,Billions of Dollars
+Frequency:,Quarterly
+
+observation_date,GDP
+2010-01-01,15000
+2010-04-01,15050
+2010-07-01,15100
+2010-10-01,15150
+2011-01-01,15200
+2011-04-01,15250
+2011-07-01,15300
+2011-10-01,15350
+2012-01-01,15400
+2012-04-01,15450
+2012-07-01,15500
+2012-10-01,15550

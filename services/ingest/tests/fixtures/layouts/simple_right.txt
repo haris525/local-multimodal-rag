@@ -1,0 +1,184 @@
+# Corpus files on which the simple reader reads right: the right columns and the right number of rows.
+# HAND-LABELLED: each file was checked by reading its cells, not by comparing the two readers. The layout reader
+# must read every file listed here exactly as the simple reader does (tests/test_corpus.py). Add a file only after
+# checking the simple reading by hand; corpus.py --refresh never changes this list.
+#
+# Not listed, on purpose:
+#   r3-transposed_kv.csv: both readers take the first record (Name, Alice) as the header; neither is right.
+#   r1-all_text_survey_long_headers.csv: the simple reader is right, and the layout reader shortens the long question names on
+#     purpose (the full text is kept as each column's header).
+#   r1-single_row.csv, r1-title_only.xlsx: the simple reader drops the only row; the layout reader keeps it as data.
+#   r7-side_by_side_same_rows.csv: two blocks with the same header row and rows are read as one table on purpose
+#     (a blank spacer column inside one table looks the same); both readers give one table.
+#   every other file: the simple reader misreads it (sections, notes, units rows, stacked or side-by-side tables, merged titles,
+#     page-break repeats, preambles without a full row, a numbers-only table).
+
+# Header in row 1 and plain data rows: encodings, delimiters, quoting, BOM, formulas, hidden rows
+r1-csv_bom.csv
+r1-csv_formula_like_cells.csv
+r1-csv_latin1.csv
+r1-csv_quoted_newlines.csv
+r1-csv_tab.csv
+r1-csv_utf16.csv
+r1-csv_semicolon_decimal_comma.csv
+r1-csv_semicolon_thousands.csv
+r6-semicolon_decimal_comma_3dp.csv
+r7-semicolon_decimal_points.csv
+r7-semicolon_decimal_points_three_places.csv
+r7-semicolon_dot_either_way.csv
+r7-semicolon_mixed_marks.csv
+r8-semicolon_thousands_commas_point_file.csv
+r8-semicolon_mixed_locales.csv
+r1-formulas_no_cache.xlsx
+r1-hidden_rows.xlsx
+r1-header_and_one_row.csv
+
+# Header in row 1 with dates, years, codes or big numbers in the data (typing is checked by expected.json)
+r1-csv_iso_dates_first_2000_blank.csv
+r1-date_col_first_2000_blank.xlsx
+r2-xlsx_date_first_2500_blank.xlsx
+r1-excel_serial_dates_general.xlsx
+r1-mixed_datetime_date_na.xlsx
+r1-yyyymmdd_in_date_col.csv
+r1-yyyymmdd_invalid_one.csv
+r3-iso_dates_one_bad.csv
+r3-iso_mixed_zone.csv
+r3-mixed_date_formats.csv
+r6-dmy_dates.csv
+r1-first_data_row_looks_like_years.csv
+r1-start_end_years_then_open.csv
+r3-serial_false_positive.csv
+r4-date_name_rule_csv.csv
+r4-date_name_rule_xlsx.xlsx
+r4-day_of_month_and_month.csv
+r4-shift_hhmm.csv
+r1-csv_leading_zero_zip_no_id_name.csv
+r1-csv_numbers_codes_count.csv
+r3-units_and_zero_codes.csv
+r4-dept_codes_two_digits.csv
+r2-xlsx_bigint_over_2_53.xlsx
+r6-signed_percent.csv
+r6-unicode_minus.csv
+r6-scientific.csv
+r6-percent_format.xlsx
+
+# Header labels that are numbers, years or not-available tokens (10, 2024, X, W, NA), or a blank A1
+r1-numeric_headers_percentiles.csv
+r1-descending_year_headers_fin.csv
+r1-descending_year_headers_blank_a1.csv
+r3-years_header_and_year_values.csv
+r6-xy_coordinates.csv
+r6-standings_w_l.csv
+r6-regions_na.csv
+r8-source_over_two_years.csv
+r8-source_over_two_years_titled.csv
+r8-geography_over_two_years.csv
+r8-geography_over_two_years_titled.csv
+
+# All-text tables, duplicate names, blank or label-only data rows kept as data
+r1-all_text_dup_headers.csv
+r1-all_text_header_value_reappears.csv
+r3-dup_suffix_collision.csv
+r1-label_only_data_row.csv
+r1-long_single_comment_row.csv
+r3-blank_then_text_row.csv
+r3-key_only_caps_code.csv
+r6-single_column_text.csv
+r6-single_column_numbers.csv
+
+# Ragged rows: cells past the header get column_N (in r1-csv_percent_and_parens an unquoted 1,234 is two cells)
+r1-csv_ragged.csv
+r1-csv_percent_and_parens.csv
+
+# Placeholders and suppressed values in the first or every data row (header in row 1)
+first-county_suppressed_first_row.csv
+first-first_row_TBD.csv
+first-first_row_unknown_and_date.csv
+first-first_row_iso_rest_mdy.csv
+first-first_two_rows_text_in_num.csv
+r4-age_band_with_lt10.csv
+r4-answer_col_question_mark.csv
+r4-cases_lt10_first_row.csv
+r4-first_row_pending_status.csv
+r4-heavy_suppression.csv
+r4-question_marks_numeric.csv
+r4-status_all_placeholders.csv
+r4-status_mixed.csv
+r5-question_marks_minimal.csv
+supp-S-0.csv
+supp-S-1.csv
+supp-S-2.csv
+supp-S-3.csv
+supp-S-4.csv
+supp-S-5.csv
+supp-S-6.csv
+supp-S-7.csv
+supp-S-8.csv
+supp-S-9.csv
+supp-lt5-0.csv
+supp-lt5-1.csv
+supp-lt5-2.csv
+supp-lt5-3.csv
+supp-lt5-4.csv
+supp-lt5-5.csv
+supp-lt5-6.csv
+supp-lt5-7.csv
+supp-lt5-8.csv
+supp-lt5-9.csv
+supp-q-0.csv
+supp-q-1.csv
+supp-q-2.csv
+supp-q-3.csv
+supp-q-4.csv
+supp-q-5.csv
+supp-q-6.csv
+supp-q-7.csv
+supp-q-8.csv
+supp-q-9.csv
+supp-star-0.csv
+supp-star-1.csv
+supp-star-2.csv
+supp-star-3.csv
+supp-star-4.csv
+supp-star-5.csv
+supp-star-6.csv
+supp-star-7.csv
+supp-star-8.csv
+supp-star-9.csv
+supp-two_columns.csv
+supp-word-0.csv
+supp-word-1.csv
+supp-word-2.csv
+supp-word-3.csv
+supp-word-4.csv
+supp-word-5.csv
+supp-word-6.csv
+supp-word-7.csv
+supp-word-8.csv
+supp-word-9.csv
+
+# A note, title or two-cell preamble above the header: the first full row is the header
+r2-note_above_header_2col.csv
+r2-note_above_header_3col_colB.csv
+r2-two_notes_above_header_2col.csv
+r6-worldbank_wdi.csv
+r6-source_then_text_header.csv
+r6-source_then_year_header.csv
+r6-source_blank_then_years.csv
+r6-prepared_by_and_as_of.csv
+r6-release_date_then_years.csv
+r6-title_release_date_then_years.csv
+r6-units_then_years.csv
+r6-title_then_years.csv
+r6-title_then_standings.csv
+r7-unknown_key_over_text_header.csv
+
+# A blank spacer column inside one table, left out
+r7-spacer_column_inside_one_table.csv
+r7-spacer_before_a_notes_column.csv
+r8-spacer_sparse_right_block.csv
+
+# Nothing to read
+r1-empty_csv.csv
+r1-empty_sheet.xlsx
+r1-only_blank_lines.csv

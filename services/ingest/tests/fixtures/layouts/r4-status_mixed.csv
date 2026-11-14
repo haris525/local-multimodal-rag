@@ -1,0 +1,6 @@
+Order,Status,Amount
+O1,pending,10
+O2,shipped,20
+O3,unknown,30
+O4,delivered,40
+O5,pending,50

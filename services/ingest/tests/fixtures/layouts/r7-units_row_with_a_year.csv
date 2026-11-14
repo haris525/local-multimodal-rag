@@ -1,0 +1,10 @@
+County,Admissions,Rate,Beds
+,n,per 100k,2023
+County 0,100,1.5,20
+County 1,101,2.5,21
+County 2,102,3.5,22
+County 3,103,4.5,23
+County 4,104,5.5,24
+County 5,105,6.5,25
+County 6,106,7.5,26
+County 7,107,8.5,27

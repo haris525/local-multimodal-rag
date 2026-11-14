@@ -1,0 +1,411 @@
+# Local multimodal RAG. Only the gateway publishes a port (on 127.0.0.1). Networks, none with a route to the
+# internet except frontend (the published port and the one-off model download):
+#   backend  (internal)  gateway, auth, rag, ingest-api, ingest-worker, threads, audit, qdrant, eval
+#   compute  (internal)  rag, ingest-worker, eval, plus llm, models and sql, which handle untrusted input or
+#                        model-written SQL and so can reach nothing on backend (only rag, which needs a signed
+#                        identity for every request)
+#   sandbox  (internal)  rag and sandbox only (profile "sandbox"); fixed subnet SANDBOX_SUBNET, from which rag
+#                        refuses every request
+# See docs/GETTING_STARTED.md and docs/DEPLOYMENT.md.
+name: local-rag
+
+x-gpu: &gpu
+  deploy:
+    resources:
+      reservations:
+        devices:
+          - driver: nvidia
+            count: all
+            capabilities: [gpu]
+
+x-hardened: &hardened          # no privilege escalation, no Linux capabilities
+  security_opt: ["no-new-privileges:true"]
+  cap_drop: [ALL]
+
+x-python-health: &python-health
+  interval: 10s
+  timeout: 5s
+  retries: 6
+
+x-logging: &logging            # rotate container logs (Docker keeps them without limit by default)
+  logging:
+    driver: json-file
+    options: { max-size: "10m", max-file: "5" }
+
+x-env: &env                    # optional .env, passed to every service that reads settings from it
+  env_file: [{ path: .env, required: false }]
+
+services:
+  qdrant:
+    image: qdrant/qdrant:v1.20.0@sha256:9bfc89f9914fc14876a88c05270685921a55b8877b254a98bcc1cc2f0a424cd2
+    <<: *logging
+    environment:
+      QDRANT__TELEMETRY_DISABLED: "true"
+    security_opt: ["no-new-privileges:true"]
+    # service.api_key: every request but the health checks needs the key (ingest-api, ingest-worker, rag)
+    secrets: [{ source: qdrant_config, target: /qdrant/config/local.yaml }]
+    volumes:
+      - qdrant-data:/qdrant/storage
+    networks: [backend]
+    healthcheck:
+      test: ["CMD-SHELL", "bash -c ':> /dev/tcp/127.0.0.1/6333' || exit 1"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+    restart: unless-stopped
+
+  llm:
+    image: ghcr.io/ggml-org/llama.cpp:server-cuda@sha256:17934f68b6efc68671800735f25e209b489f47b610cfbb5c0a5c30965b54023c
+    <<: [*gpu, *logging]
+    security_opt: ["no-new-privileges:true"]
+    command: [
+      "--model", "/models/gguf/${LLM_GGUF:-Qwen3.8-27B-UD-Q4_K_XL.gguf}",
+      "--mmproj", "/models/gguf/${LLM_MMPROJ:-mmproj-BF16.gguf}",
+      "--alias", "${LLM_MODEL:-qwen3.8-27b}",
+      "--n-gpu-layers", "999",
+      "--ctx-size", "${LLM_CTX:-65536}",
+      "--parallel", "2",
+      "--flash-attn", "on",
+      "--cache-type-k", "q8_0",
+      "--cache-type-v", "q8_0",
+      "--image-max-tokens", "1024",
+      "--jinja",
+      "--host", "0.0.0.0",
+      "--port", "8080",
+    ]  # separate tokens: llama-server rewrites '_' to '-' inside --flag=value
+    volumes:
+      - models:/models:ro
+    networks: [compute]
+    healthcheck:
+      test: ["CMD", "curl", "-fsS", "http://127.0.0.1:8080/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 6
+      start_period: 300s
+    restart: unless-stopped
+
+  models:
+    build: { context: ., dockerfile: services/models/Dockerfile }
+    image: local-rag/models:dev
+    <<: [*gpu, *hardened, *logging, *env]
+    volumes:
+      - models:/models:ro
+    networks: [compute]
+    healthcheck:
+      <<: *python-health
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8003/readyz')"]
+      start_period: 300s
+    restart: unless-stopped
+
+  ingest-api:
+    build: { context: ., dockerfile: services/ingest/Dockerfile }
+    image: local-rag/ingest:dev
+    <<: [*hardened, *logging, *env]
+    environment:
+      INGEST_MAX_UPLOAD_MB: ${MAX_UPLOAD_MB:-200}
+    secrets: [identity_public_keys, qdrant_api_key]
+    volumes:
+      - ingest-data:/data
+    networks: [backend]
+    depends_on:
+      qdrant: { condition: service_healthy }
+    healthcheck:
+      <<: *python-health
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8001/healthz')"]
+    restart: unless-stopped
+
+  # Parses untrusted files: separate container, memory cap, no internet, Docling in a killable child process.
+  ingest-worker:
+    image: local-rag/ingest:dev
+    <<: [*hardened, *logging, *env]
+    command: ["ingest-worker"]
+    environment:
+      INGEST_VISION_MODEL: ${LLM_MODEL:-qwen3.8-27b}
+      # the model identity in every LLM cache key: the same files llm loads (the weights' name carries the quantization)
+      INGEST_VISION_MODEL_FILE: ${LLM_GGUF:-Qwen3.8-27B-UD-Q4_K_XL.gguf}
+      INGEST_VISION_MMPROJ: ${LLM_MMPROJ:-mmproj-BF16.gguf}
+    secrets: [qdrant_api_key]
+    volumes:
+      - ingest-data:/data
+      - models:/models:ro
+    networks: [backend, compute]  # qdrant and audit; models and llm
+    mem_limit: ${WORKER_MEM_LIMIT:-12g}
+    stop_grace_period: 30s
+    depends_on:
+      ingest-api: { condition: service_started }
+      models: { condition: service_healthy }
+      llm: { condition: service_healthy }
+    healthcheck:
+      interval: 15s
+      timeout: 5s
+      retries: 4
+      start_period: 60s
+      test: ["CMD", "python", "-c", "import os, sys, time; sys.exit(time.time() - os.path.getmtime('/data/worker.heartbeat') > 60)"]
+    restart: unless-stopped
+
+  # Runs model-written SQL: read-only root and data, capped CPU and memory, no file or network access in DuckDB.
+  # It sees only the tables folder of ingest-data (no registry, uploads or chunks) and only the compute network.
+  sql:
+    build: { context: ., dockerfile: services/sql/Dockerfile }
+    image: local-rag/sql:dev
+    <<: [*hardened, *logging, *env]
+    read_only: true
+    tmpfs: [/tmp]
+    secrets: [identity_public_keys]
+    volumes:
+      - type: volume
+        source: ingest-data
+        target: /data/tables
+        read_only: true
+        volume: { subpath: tables }  # Docker Engine 26 or newer; ingest-api creates the folder at startup
+    networks: [compute]
+    depends_on:
+      ingest-api: { condition: service_healthy }
+    mem_limit: 2g
+    cpus: 2.0
+    healthcheck:
+      <<: *python-health
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8005/healthz')"]
+    restart: unless-stopped
+
+  rag:
+    build: { context: ., dockerfile: services/rag/Dockerfile }
+    image: local-rag/rag:dev
+    <<: [*hardened, *logging, *env]
+    read_only: true
+    tmpfs: [/tmp]
+    environment:
+      RAG_LLM_MODEL: ${LLM_MODEL:-qwen3.8-27b}
+      RAG_LLM_CTX: ${LLM_CTX:-65536}  # prompt budgets: one request slot is LLM_CTX / 2
+      RAG_SANDBOX_SUBNET: ${SANDBOX_SUBNET:-172.31.241.0/24}  # requests from it are refused before anything else
+      # Python is off unless set here, in the shell or in .env (the shell wins): off, request or on, and the address
+      RAG_DEEP_PYTHON: ${RAG_DEEP_PYTHON:-off}
+      RAG_SANDBOX_URL: ${RAG_SANDBOX_URL:-}
+    volumes:  # only the embedding model's folder, for its tokenizer.json: prompt tokens counted as the model does
+      - type: volume
+        source: models
+        target: /models/hf/Qwen3-Embedding-0.6B
+        read_only: true
+        volume: { subpath: hf/Qwen3-Embedding-0.6B }  # Docker Engine 26 or newer, as for sql
+    secrets: [rag_signing_key, identity_public_keys, qdrant_api_key]
+    networks: [backend, compute, sandbox]  # qdrant, ingest-api, threads, audit; models, llm, sql; sandbox
+    # Generous: rag loads no model (the tokenizer only) and holds at most RAG_SANDBOX_TOTAL_INPUT_MB of Python data
+    mem_limit: ${RAG_MEM_LIMIT:-6g}
+    depends_on:
+      qdrant: { condition: service_healthy }
+      ingest-api: { condition: service_healthy }
+      models: { condition: service_healthy }
+      llm: { condition: service_healthy }
+      sql: { condition: service_healthy }
+      threads: { condition: service_healthy }
+    healthcheck:
+      <<: *python-health
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8002/healthz')"]
+    restart: unless-stopped
+
+  # Runs Deep search's model-written Python (run_python). Off unless enabled: it starts only with the profile
+  # "sandbox" (COMPOSE_PROFILES=sandbox), and rag uses it only with RAG_DEEP_PYTHON=request or on and
+  # RAG_SANDBOX_URL=http://sandbox:8008. Only rag reaches it, on the sandbox network, which holds nothing else and
+  # has no route out. No secrets, no volumes, no .env: rag sends the selected documents' data with each run. One
+  # run at a time, as an unprivileged user on a read-only root; each run in a fresh folder on a tmpfs, killed with
+  # every process it started at its time limit, and everything it left (files, /tmp, /dev/shm, processes, SysV
+  # IPC) removed before the next. Limits: DEPLOYMENT section 4.16. Check: scripts/check_sandbox_isolation.py.
+  # rag does not wait for it: a sandbox that is down is a tool error and a notice, not a failed start.
+  sandbox:
+    profiles: [sandbox]
+    build: { context: ., dockerfile: services/sandbox/Dockerfile }
+    image: local-rag/sandbox:dev
+    <<: [*hardened, *logging]  # no *env: nothing from .env reaches the code
+    # No init process: the server is PID 1, not dumpable, so no run can take over a process that outlives it, and
+    # a run cannot kill it (init ignores signals it has no handler for). The server reaps what runs leave.
+    init: false
+    read_only: true
+    ipc: private
+    tmpfs:
+      - /scratch:size=${SANDBOX_SCRATCH_SIZE:-2g},mode=1777,noexec,nosuid,nodev
+      - /tmp:size=${SANDBOX_TMP_SIZE:-512m},mode=1777,noexec,nosuid,nodev
+    shm_size: ${SANDBOX_SHM_SIZE:-64m}
+    # SysV IPC of the container's own namespace (Docker allows these with a private IPC namespace): small caps,
+    # since SysV memory counts toward no tmpfs, and a segment goes once no process is attached, whoever owns it
+    sysctls:
+      kernel.shm_rmid_forced: 1
+      kernel.shmmax: ${SANDBOX_SYSV_SHM_BYTES:-67108864}  # the largest segment
+      kernel.shmall: ${SANDBOX_SYSV_SHM_PAGES:-16384}  # all segments together, in 4 KiB pages (64 MiB)
+      kernel.shmmni: 32
+      kernel.msgmnb: 65536  # bytes in one message queue
+      kernel.msgmni: 16
+      kernel.sem: "250 32000 32 32"
+    environment:
+      SANDBOX_MAX_TIMEOUT_S: ${SANDBOX_MAX_TIMEOUT_S:-600}
+      SANDBOX_QUEUE_WAIT_S: ${SANDBOX_QUEUE_WAIT_S:-300}
+      SANDBOX_CANCEL_WAIT_S: ${SANDBOX_CANCEL_WAIT_S:-30}
+      SANDBOX_MAX_INPUT_MB: ${SANDBOX_MAX_INPUT_MB:-512}
+      SANDBOX_MAX_INPUT_FILES: ${SANDBOX_MAX_INPUT_FILES:-64}
+      SANDBOX_MAX_CODE_KB: ${SANDBOX_MAX_CODE_KB:-256}
+      SANDBOX_MAX_OUTPUT_KB: ${SANDBOX_MAX_OUTPUT_KB:-256}
+      SANDBOX_MAX_FILE_MB: ${SANDBOX_MAX_FILE_MB:-256}
+      SANDBOX_MAX_FILES: ${SANDBOX_MAX_FILES:-50}
+      SANDBOX_MAX_RETURN_FILE_KB: ${SANDBOX_MAX_RETURN_FILE_KB:-64}
+      SANDBOX_MAX_RETURN_KB: ${SANDBOX_MAX_RETURN_KB:-256}
+      SANDBOX_THREADS: ${SANDBOX_THREADS:-4}
+      SANDBOX_MAX_OPEN_FILES: ${SANDBOX_MAX_OPEN_FILES:-1024}
+      SANDBOX_MAX_PROCESSES: ${SANDBOX_MAX_PROCESSES:-128}  # below pids_limit, so the server keeps room
+    networks: [sandbox]
+    mem_limit: ${SANDBOX_MEMORY:-4g}  # the tmpfs mounts count toward it
+    memswap_limit: ${SANDBOX_MEMORY:-4g}  # no swap on top
+    cpus: ${SANDBOX_CPUS:-4}
+    pids_limit: ${SANDBOX_PIDS:-256}
+    ulimits: { core: 0 }
+    healthcheck:
+      <<: *python-health
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8008/healthz')"]
+    restart: unless-stopped
+
+  # Conversations (with running summaries for long chats) and long-term memories.
+  threads:
+    build: { context: ., dockerfile: services/threads/Dockerfile }
+    image: local-rag/threads:dev
+    <<: [*hardened, *logging, *env]
+    read_only: true
+    tmpfs: [/tmp]
+    secrets: [identity_public_keys]
+    volumes:
+      - threads-data:/data
+    networks: [backend]
+    healthcheck:
+      <<: *python-health
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8006/healthz')"]
+    restart: unless-stopped
+
+  audit:
+    build: { context: ., dockerfile: services/audit/Dockerfile }
+    image: local-rag/audit:dev
+    <<: [*hardened, *logging, *env]
+    read_only: true
+    tmpfs: [/tmp]
+    secrets: [identity_public_keys]
+    volumes:
+      - audit-data:/data
+    networks: [backend]
+    healthcheck:
+      <<: *python-health
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8004/healthz')"]
+    restart: unless-stopped
+
+  # Accounts, sessions and API tokens. Checks every /api request for the gateway (auth_request) and signs the
+  # caller's identity for the backends. Credentials stay in their own volume.
+  auth:
+    build: { context: ., dockerfile: services/auth/Dockerfile }
+    image: local-rag/auth:dev
+    <<: [*hardened, *logging, *env]
+    read_only: true
+    tmpfs: [/tmp]
+    environment:
+      AUTH_PUBLIC_ORIGIN: ${PUBLIC_ORIGIN:-http://localhost:${GATEWAY_PORT:-8000}}
+    secrets: [auth_signing_key, identity_public_keys]
+    volumes:
+      - auth-data:/data
+    networks: [backend]
+    mem_limit: 512m
+    cpus: 1.0
+    depends_on:
+      audit: { condition: service_healthy }
+    healthcheck:
+      <<: *python-health
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8007/healthz')"]
+    restart: unless-stopped
+
+  gateway:
+    build: { context: ., dockerfile: services/gateway/Dockerfile }
+    image: local-rag/gateway:dev
+    <<: [*hardened, *logging]
+    environment:
+      GATEWAY_PORT: ${GATEWAY_PORT:-8000}
+      MAX_UPLOAD_MB: ${MAX_UPLOAD_MB:-200}
+      PUBLIC_ORIGIN: ${PUBLIC_ORIGIN:-http://localhost:${GATEWAY_PORT:-8000}}
+      TRUSTED_PROXY_CIDR: ${TRUSTED_PROXY_CIDR:-127.0.0.1/32}
+    ports:
+      - "${GATEWAY_BIND:-127.0.0.1}:${GATEWAY_PORT:-8000}:8000"
+    networks: [frontend, backend]
+    depends_on:
+      auth: { condition: service_healthy }
+      rag: { condition: service_healthy }
+      ingest-api: { condition: service_healthy }
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://127.0.0.1:8000/healthz"]
+      interval: 10s
+      timeout: 3s
+      retries: 5
+    restart: unless-stopped
+
+  # One-off: download (or copy) the models into the `models` volume.
+  #   docker compose --profile setup run --rm fetch-models [--from-dir /seed]
+  fetch-models:
+    profiles: [setup]
+    image: python:3.12-slim-bookworm
+    # --from-dir copies local files only, so it skips the huggingface_hub install (no PyPI needed).
+    entrypoint: ["sh", "-c", "case \" $* \" in *' --from-dir '*) ;; *) pip install --quiet --root-user-action=ignore huggingface_hub==2.4.0 || exit 1 ;; esac; exec python /scripts/fetch_models.py \"$@\"", "--"]
+    volumes:
+      - models:/models
+      - ./scripts:/scripts:ro
+      - ${MODELS_SEED_DIR:-./scripts}:/seed:ro
+    networks: [frontend]
+
+  # Offline evaluation, through the gateway with an API token (user menu > API tokens), also on the compute
+  # network so it reaches llm for judging. Pass the token in the shell, never in .env (sent to every service):
+  #   EVAL_TOKEN=rag_pat_... docker compose --profile eval run --rm eval retrieval
+  eval:
+    profiles: [eval]
+    build: { context: ., dockerfile: eval/Dockerfile }
+    image: local-rag/eval:dev
+    <<: [*hardened, *logging]
+    environment:
+      EVAL_LLM_MODEL: ${LLM_MODEL:-qwen3.8-27b}
+      EVAL_URL: http://gateway:8000/api
+      EVAL_TOKEN: ${EVAL_TOKEN:-}
+    volumes:
+      - ./eval/datasets:/eval/datasets
+      - ./eval/reports:/eval/reports
+    networks: [backend, compute]
+
+networks:
+  backend:
+    internal: true
+  compute:
+    internal: true
+  # rag and sandbox only. A fixed subnet, so rag can refuse every request that comes from it (DEPLOYMENT 4.16);
+  # change SANDBOX_SUBNET if it clashes with a network on this host. Isolated gateway mode (Docker Engine 28 or
+  # newer, internal networks only): the bridge gets no address on the host side, so a run cannot reach a host
+  # service through it; no IPv6.
+  sandbox:
+    internal: true
+    enable_ipv6: false
+    driver_opts:
+      com.docker.network.bridge.gateway_mode_ipv4: isolated
+    ipam:
+      config:
+        - subnet: ${SANDBOX_SUBNET:-172.31.241.0/24}
+  # A fixed subnet, so the address the gateway sees for connections to the published port is known: the
+  # subnet's first address (172.31.240.1 by default). With a TLS proxy on this host, trust it with
+  # TRUSTED_PROXY_CIDR=172.31.240.1/32 (DEPLOYMENT section 5.3). Change FRONTEND_SUBNET if it clashes.
+  frontend:
+    ipam:
+      config:
+        - subnet: ${FRONTEND_SUBNET:-172.31.240.0/24}
+
+volumes:
+  models:
+  qdrant-data:
+  ingest-data:
+  audit-data:
+  threads-data:
+  auth-data:
+
+# Generated by scripts/init_secrets.py into ./secrets (git- and docker-ignored). Never put keys in .env:
+# it is passed to every service.
+secrets:
+  auth_signing_key: { file: ./secrets/auth_signing.key }
+  rag_signing_key: { file: ./secrets/rag_signing.key }
+  identity_public_keys: { file: ./secrets/identity_public.json }
+  qdrant_api_key: { file: ./secrets/qdrant_api.key }
+  qdrant_config: { file: ./secrets/qdrant_local.yaml }

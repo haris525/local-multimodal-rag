@@ -1,0 +1,49 @@
+# Build context: only what the Dockerfiles COPY is needed (libs/, services/, eval/).
+# Secrets and local settings never enter an image or the build context.
+.env
+.env.*
+secrets/
+*.pem
+*.key
+*.crt
+*.p12
+*.pfx
+*.jks
+*.kdbx
+id_rsa*
+id_ed25519*
+compose.override.yaml
+compose.override.yml
+docker-compose.override.yml
+
+# Version control, data, samples, docs
+.git
+.gitignore
+.gitattributes
+data
+samples
+examples
+backups
+docs
+eval/reports
+eval/datasets/golden*.jsonl
+eval/datasets/public
+eval/datasets/bench-*.json
+*.log
+
+# Python and Node caches
+**/.venv
+**/__pycache__
+**/*.pyc
+**/.pytest_cache
+**/.ruff_cache
+**/.mypy_cache
+**/.coverage
+**/htmlcov
+**/node_modules
+
+# Editors and OS files
+.idea
+.vscode
+.DS_Store
+Thumbs.db

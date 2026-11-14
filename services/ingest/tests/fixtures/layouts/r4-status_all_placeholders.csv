@@ -1,0 +1,6 @@
+Order,Status,Amount
+O1,pending,10
+O2,unknown,20
+O3,pending,30
+O4,TBD,40
+O5,unknown,50

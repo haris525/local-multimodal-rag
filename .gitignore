@@ -1,0 +1,129 @@
+# ---------------------------------------------------------------------------
+# Secrets and local configuration: never commit
+# ---------------------------------------------------------------------------
+.env
+.env.*
+!.env.example
+secrets/
+*.pem
+*.key
+*.crt
+*.p12
+*.pfx
+*.jks
+*.kdbx
+id_rsa*
+id_ed25519*
+
+# ---------------------------------------------------------------------------
+# Runtime data, models and generated files (the app keeps these in Docker volumes)
+# ---------------------------------------------------------------------------
+/data/
+/models/
+/backups/
+/samples/
+*.gguf
+*.safetensors
+*.onnx
+*.pt
+*.pth
+*.ckpt
+*.db
+*.db-wal
+*.db-shm
+*.sqlite
+*.sqlite3
+*.duckdb
+*.duckdb.wal
+eval/datasets/golden*.jsonl
+# HotpotQA and MuSiQue copies (python -m rag_eval fetch-public) and the benchmark account's document ids
+eval/datasets/public/
+eval/datasets/bench-*.json
+eval/reports/*
+!eval/reports/.gitkeep
+
+# ---------------------------------------------------------------------------
+# Python
+# ---------------------------------------------------------------------------
+__pycache__/
+*.py[cod]
+*$py.class
+.venv/
+venv/
+*.egg-info/
+*.egg
+.eggs/
+build/
+dist/
+wheels/
+.pytest_cache/
+.ruff_cache/
+.mypy_cache/
+.pyright/
+.pytype/
+.hypothesis/
+.tox/
+.nox/
+.coverage
+.coverage.*
+coverage.xml
+htmlcov/
+*.prof
+.ipynb_checkpoints/
+
+# ---------------------------------------------------------------------------
+# Node (tooling such as mermaid-cli or puppeteer, if ever run inside the repo)
+# ---------------------------------------------------------------------------
+node_modules/
+npm-debug.log*
+yarn-error.log*
+.npm/
+.pnpm-store/
+
+# ---------------------------------------------------------------------------
+# Docker: personal overrides stay local
+# ---------------------------------------------------------------------------
+compose.override.yaml
+compose.override.yml
+docker-compose.override.yml
+
+# ---------------------------------------------------------------------------
+# Logs, temp files, editor backups
+# ---------------------------------------------------------------------------
+*.log
+logs/
+tmp/
+temp/
+*.tmp
+*.bak
+*.orig
+*.rej
+*.swp
+*.swo
+*~
+
+# ---------------------------------------------------------------------------
+# Operating systems
+# ---------------------------------------------------------------------------
+.DS_Store
+._*
+Thumbs.db
+ehthumbs.db
+desktop.ini
+$RECYCLE.BIN/
+*.lnk
+
+# ---------------------------------------------------------------------------
+# Editors and IDEs
+# ---------------------------------------------------------------------------
+.idea/
+*.iml
+.vscode/
+.zed/
+.fleet/
+.history/
+.project
+.settings/
+*.code-workspace
+
+mcp.json

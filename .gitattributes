@@ -1,0 +1,20 @@
+* text=auto eol=lf
+
+# Binary: never touch line endings or diff as text
+*.pdf binary
+*.xlsx binary
+*.xls binary
+*.docx binary
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.webp binary
+*.gif binary
+*.ico binary
+*.gguf binary
+*.safetensors binary
+*.duckdb binary
+*.db binary
+
+# Data files kept byte-for-byte (sample CSVs may use CRLF)
+*.csv -text

@@ -1,0 +1,205 @@
+# Rendered by the nginx image's envsubst step (GATEWAY_PORT, MAX_UPLOAD_MB, PUBLIC_ORIGIN, PUBLIC_HOST,
+# TRUSTED_PROXY_CIDR). PUBLIC_HOST is the host part of PUBLIC_ORIGIN (16-public-host.envsh).
+#
+# Every /api request except sign-in itself is checked by the auth service first (auth_request). A valid session
+# cookie or API token comes back as a short-lived signed X-Identity, which replaces the cookie and token on the
+# way to the backends.
+
+limit_req_zone $binary_remote_addr zone=login:1m rate=10r/m;
+
+# Origins the browser may call the API from. Two maps, so PUBLIC_ORIGIN may equal a local origin.
+map $http_origin $origin_local {
+    default                             0;
+    "http://localhost:${GATEWAY_PORT}"  1;
+    "http://127.0.0.1:${GATEWAY_PORT}"  1;
+}
+map $http_origin $origin_public {
+    default             0;
+    "${PUBLIC_ORIGIN}"  1;
+}
+map "$origin_local$origin_public" $origin_allowed {
+    default  1;
+    "00"     0;
+}
+map $request_method $unsafe { default 1; GET 0; HEAD 0; }
+map $http_authorization $bearer { default 0; "~^Bearer\s+rag_pat_" 1; }
+# Safe methods: our Origin or none. Unsafe methods: our Origin; or no Origin with an API token (scripts, eval).
+map "$unsafe:$origin_allowed:$bearer:$http_origin" $origin_ok {
+    default         0;
+    "~^0:1:"        1;
+    "~^0:0:[01]:$"  1;
+    "~^1:1:"        1;
+    "~^1:0:1:$"     1;
+}
+# The reason auth gave for a 403 (X-Auth-Detail), for the JSON body; fixed strings chosen by the auth service.
+map $auth_detail $forbidden_detail {
+    default  $auth_detail;
+    ""       "forbidden";
+}
+
+log_format json escape=json '{"time":"$time_iso8601","request_id":"$request_id","method":"$request_method",'
+                            '"uri":"$uri","status":$status,"bytes":$body_bytes_sent,"seconds":$request_time}';
+
+# Requests for any other Host are dropped, so a page on another site cannot reach the app through DNS rebinding.
+server {
+    listen 8000 default_server;
+    server_name _;
+    access_log /dev/stdout json;
+    return 444;
+}
+
+server {
+    listen 8000;
+    server_name localhost 127.0.0.1 gateway ${PUBLIC_HOST};
+    access_log /dev/stdout json;
+    root /usr/share/nginx/html;
+    client_max_body_size ${MAX_UPLOAD_MB}m;
+
+    # Client address from a TLS proxy on the host (DEPLOYMENT section 5.3). The default trusts nothing real.
+    set_real_ip_from ${TRUSTED_PROXY_CIDR};
+    real_ip_header X-Forwarded-For;
+    real_ip_recursive on;
+
+    # Docker's DNS, re-resolved every 10 s: a restarted backend gets a new IP and nginx follows it.
+    resolver 127.0.0.11 valid=10s ipv6=off;
+    set $ingest  http://ingest-api:8001;
+    set $rag     http://rag:8002;
+    set $audit   http://audit:8004;
+    set $threads http://threads:8006;
+    set $auth    http://auth:8007;
+
+    add_header X-Content-Type-Options "nosniff" always;
+    add_header Referrer-Policy "no-referrer" always;
+    add_header Content-Security-Policy "default-src 'self'; img-src 'self' data: blob:; style-src 'self'; script-src 'self'; connect-src 'self'; frame-ancestors 'none'; form-action 'self'; base-uri 'none'" always;
+    # Do not use add_header in any location below: that would drop these server-level headers there.
+
+    # Server level, so it runs before any (nested) location: nested locations do not inherit `if`.
+    if ($origin_ok = 0) { return 403; }
+
+    location = /healthz { access_log off; return 200 "ok\n"; }
+    location / { try_files $uri /index.html; }
+
+    # auth_request target: validates the session or API token and returns a signed X-Identity.
+    location = /_auth {
+        internal;
+        proxy_http_version 1.1;
+        proxy_set_header Connection "";
+        proxy_pass_request_body off;
+        proxy_set_header Content-Length "";
+        proxy_set_header Host $host;
+        proxy_set_header X-Request-ID $request_id;
+        proxy_set_header X-Original-Method $request_method;
+        proxy_set_header X-Original-URI $request_uri;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Identity "";
+        proxy_read_timeout 10s;
+        rewrite ^ /internal/verify break;
+        proxy_pass $auth;
+    }
+
+    # Sign-in, session, password and API tokens. The auth service checks the cookie itself.
+    location /api/auth/ {
+        proxy_http_version 1.1;
+        proxy_set_header Connection "";
+        proxy_set_header Host $host;
+        proxy_set_header X-Request-ID $request_id;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Identity "";
+        proxy_read_timeout 30s;
+        client_max_body_size 16k;
+        rewrite ^/api/auth/(.*)$ /v1/auth/$1 break;
+        proxy_pass $auth;
+
+        location = /api/auth/login {
+            limit_req zone=login burst=5 nodelay;
+            limit_req_status 429;
+            rewrite ^ /v1/auth/login break;
+            proxy_pass $auth;
+        }
+    }
+    # Account management (admins only; the auth service checks the role).
+    location /api/admin/ {
+        proxy_http_version 1.1;
+        proxy_set_header Connection "";
+        proxy_set_header Host $host;
+        proxy_set_header X-Request-ID $request_id;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Identity "";
+        # Above auth's AUTH_ADMIN_DELETE_WAIT_S (60 s): an account deletion answers 202 when its purge takes
+        # longer and goes on in auth; the Users panel follows it, so the gateway never times one out.
+        proxy_read_timeout 120s;
+        client_max_body_size 16k;
+        rewrite ^/api/admin/(.*)$ /v1/admin/$1 break;
+        proxy_pass $auth;
+    }
+
+    location /api/ {
+        auth_request /_auth;
+        auth_request_set $identity $upstream_http_x_identity;
+        auth_request_set $auth_detail $upstream_http_x_auth_detail;
+        error_page 401 = @unauthorized;
+        error_page 403 = @forbidden;
+
+        proxy_http_version 1.1;
+        proxy_set_header Connection "";
+        proxy_set_header Host $host;
+        proxy_set_header X-Request-ID $request_id;
+        proxy_set_header X-Identity $identity;     # replaces any client-supplied copy
+        proxy_set_header X-User-Id "";             # never forwarded
+        proxy_set_header X-User-Role "";
+        proxy_set_header Cookie "";                # backends never see session tokens
+        proxy_set_header Authorization "";
+        proxy_read_timeout 900s;
+        proxy_send_timeout 900s;
+        proxy_request_buffering off;
+        # The nested locations must NOT declare proxy_set_header (nginx would then drop all of the above).
+
+        location /api/documents {
+            rewrite ^/api/(.*)$ /v1/$1 break;
+            proxy_pass $ingest;
+        }
+        # Chats and memories. Appending messages and writing summaries is for rag only.
+        location ~ ^/api/threads/[^/]+/(messages|context|summary)$ { return 404; }
+        location /api/threads {
+            rewrite ^/api/(.*)$ /v1/$1 break;
+            proxy_pass $threads;
+        }
+        location /api/memories {
+            rewrite ^/api/(.*)$ /v1/$1 break;
+            proxy_pass $threads;
+        }
+        location = /api/audit {          # read-only: services write over the backend network
+            limit_except GET { deny all; }
+            rewrite ^ /v1/events break;
+            proxy_pass $audit;
+        }
+        location = /api/audit/verify {
+            limit_except GET { deny all; }
+            rewrite ^ /v1/verify break;
+            proxy_pass $audit;
+        }
+        location = /api/search {
+            rewrite ^ /v1/search break;
+            proxy_pass $rag;
+        }
+        location = /api/ready {
+            rewrite ^ /readyz break;
+            proxy_pass $rag;
+        }
+        location = /api/chat {
+            rewrite ^ /v1/chat break;
+            proxy_pass $rag;
+            proxy_buffering off;   # server-sent events
+            proxy_cache off;
+        }
+        return 404;
+    }
+    location @unauthorized {
+        default_type application/json;
+        return 401 '{"detail":"sign in required"}';
+    }
+    location @forbidden {
+        default_type application/json;
+        return 403 '{"detail":"$forbidden_detail"}';
+    }
+}

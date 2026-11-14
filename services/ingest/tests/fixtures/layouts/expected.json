@@ -1,0 +1,5550 @@
+{
+ "corpus": {
+  "first-county_suppressed_first_row.csv": [
+   {
+    "sheet": "first-county_suppressed_first_row",
+    "columns": [
+     "County",
+     "Cases",
+     "Rate"
+    ],
+    "rows": 4,
+    "types": {
+     "County": "VARCHAR",
+     "Cases": "BIGINT",
+     "Rate": "DOUBLE"
+    },
+    "reader": "layout"
+   }
+  ],
+  "first-first_row_iso_rest_mdy.csv": [
+   {
+    "sheet": "first-first_row_iso_rest_mdy",
+    "columns": [
+     "Event",
+     "When",
+     "Qty"
+    ],
+    "rows": 51,
+    "types": {
+     "Event": "VARCHAR",
+     "When": "VARCHAR",
+     "Qty": "BIGINT"
+    },
+    "reader": "layout"
+   }
+  ],
+  "first-first_row_TBD.csv": [
+   {
+    "sheet": "first-first_row_TBD",
+    "columns": [
+     "Name",
+     "Value",
+     "Count"
+    ],
+    "rows": 51,
+    "types": {
+     "Name": "VARCHAR",
+     "Value": "BIGINT",
+     "Count": "BIGINT"
+    },
+    "reader": "layout"
+   }
+  ],
+  "first-first_row_unknown_and_date.csv": [
+   {
+    "sheet": "first-first_row_unknown_and_date",
+    "columns": [
+     "Name",
+     "Shipped",
+     "Qty"
+    ],
+    "rows": 51,
+    "types": {
+     "Name": "VARCHAR",
+     "Shipped": "DATE",
+     "Qty": "BIGINT"
+    },
+    "reader": "layout"
+   }
+  ],
+  "first-first_two_rows_text_in_num.csv": [
+   {
+    "sheet": "first-first_two_rows_text_in_num",
+    "columns": [
+     "Name",
+     "Value",
+     "Count"
+    ],
+    "rows": 52,
+    "types": {
+     "Name": "VARCHAR",
+     "Value": "BIGINT",
+     "Count": "BIGINT"
+    },
+    "reader": "layout"
+   }
+  ],
+  "first-numbered_footnotes_50.csv": [
+   {
+    "sheet": "first-numbered_footnotes_50",
+    "columns": [
+     "State",
+     "Population"
+    ],
+    "rows": 50,
+    "types": {
+     "State": "VARCHAR",
+     "Population": "BIGINT"
+    },
+    "reader": "layout"
+   }
+  ],
+  "r1-all_text_dup_headers.csv": [
+   {
+    "sheet": "r1-all_text_dup_headers",
+    "columns": [
+     "Name",
+     "Comment",
+     "Comment_2"
+    ],
+    "rows": 3,
+    "types": {
+     "Name": "VARCHAR",
+     "Comment": "VARCHAR",
+     "Comment_2": "VARCHAR"
+    },
+    "reader": "layout"
+   }
+  ],
+  "r1-all_text_header_value_reappears.csv": [
+   {
+    "sheet": "r1-all_text_header_value_reappears",
+    "columns": [
+     "Status",
+     "Owner"
+    ],
+    "rows": 3,
+    "types": {
+     "Status": "VARCHAR",
+     "Owner": "VARCHAR"
+    },
+    "reader": "layout"
+   }
+  ],
+  "r1-all_text_survey_long_headers.csv": [
+   {
+    "sheet": "r1-all_text_survey_long_headers",
+    "columns": [
+     "Timestamp",
+     "What is your favourite programming language and",
+     "Which editor do you use most often for your"
+    ],
+    "rows": 3,
+    "types": {
+     "Timestamp": "VARCHAR",
+     "What is your favourite programming language and": "VARCHAR",
+     "Which editor do you use most often for your": "VARCHAR"
+    },
+    "reader": "layout"
+   }
+  ],
+  "r1-csv_bom.csv": [
+   {
+    "sheet": "r1-csv_bom",
+    "columns": [
+     "Name",
+     "Value"
+    ],
+    "rows": 3,
+    "types": {
+     "Name": "VARCHAR",
+     "Value": "BIGINT"
+    },
+    "reader": "layout"
+   }
+  ],
+  "r1-csv_formula_like_cells.csv": [
+   {
+    "sheet": "r1-csv_formula_like_cells",
+    "columns": [
+     "Name",
+     "Value"
+    ],
+    "rows": 3,
+    "types": {
+     "Name": "VARCHAR",
+     "Value": "BIGINT"
+    },
+    "reader": "layout"
+   }
+  ],
+  "r1-csv_header_after_51_notes.csv": [
+   {
+    "sheet": "r1-csv_header_after_51_notes",
+    "columns": [
+     "Name",
+     "Val"
+    ],
+    "rows": 3,
+    "types": {
+     "Name": "VARCHAR",
+     "Val": "BIGINT"
+    },
+    "reader": "layout"
+   }
+  ],
+  "r1-csv_iso_dates_first_2000_blank.csv": [
+   {
+    "sheet": "r1-csv_iso_dates_first_2000_blank",
+    "columns": [
+     "Name",
+     "Shipped date",
+     "Qty"
+    ],
+    "rows": 3000,
+    "types": {
+     "Name": "VARCHAR",
+     "Shipped date": "DATE",
+     "Qty": "BIGINT"
+    },
+    "reader": "layout"
+   }
+  ],
+  "r1-csv_latin1.csv": [
+   {
+    "sheet": "r1-csv_latin1",
+    "columns": [
+     "Name",
+     "Ville"
+    ],
+    "rows": 3,
+    "types": {
+     "Name": "VARCHAR",
+     "Ville": "VARCHAR"
+    },
+    "reader": "layout"
+   }
+  ],
+  "r1-csv_leading_zero_zip_no_id_name.csv": [
+   {
+    "sheet": "r1-csv_leading_zero_zip_no_id_name",
+    "columns": [
+     "Town",
+     "Postal"
+    ],
+    "rows": 3,
+    "types": {
+     "Town": "VARCHAR",
+     "Postal": "VARCHAR"
+    },
+    "reader": "layout"
+   }
+  ],
+  "r1-csv_numbers_codes_count.csv": [
+   {
+    "sheet": "r1-csv_numbers_codes_count",
+    "columns": [
+     "Team",
+     "Codes issued",
+     "Bugs"
+    ],
+    "rows": 3,
+    "types": {
+     "Team": "VARCHAR",
+     "Codes issued": "BIGINT",
+     "Bugs": "BIGINT"
+    },
+    "reader": "layout"
+   }
+  ],
+  "r1-csv_percent_and_parens.csv": [
+   {
+    "sheet": "r1-csv_percent_and_parens",
+    "columns": [
+     "Item",
+     "Change",
+     "column_3"
+    ],
+    "rows": 4,
+    "types": {
+     "Item": "VARCHAR",
+     "Change": "DOUBLE",
+     "column_3": "BIGINT"
+    },
+    "reader": "layout"
+   }
+  ],
+  "r1-csv_quoted_newlines.csv": [
+   {
+    "sheet": "r1-csv_quoted_newlines",
+    "columns": [
+     "Name",
+     "Note"
+    ],
+    "rows": 3,
+    "types": {
+     "Name": "VARCHAR",
+     "Note": "VARCHAR"
+    },
+    "reader": "layout"
+   }
+  ],
+  "r1-csv_ragged.csv": [
+   {
+    "sheet": "r1-csv_ragged",
+    "columns": [
+     "a",
+     "b",
+     "c",
+     "column_4",
+     "column_5"
+    ],
+    "rows": 3,
+    "types": {
+     "a": "BIGINT",
+     "b": "BIGINT",
+     "c": "BIGINT",
+     "column_4": "BIGINT",
+     "column_5": "BIGINT"
+    },
+    "reader": "layout"
+   }
+  ],
+  "r1-csv_semicolon_decimal_comma.csv": [
+   {
+    "sheet": "r1-csv_semicolon_decimal_comma",
+    "columns": [
+     "Name",
+     "Price",
+     "Qty"
+    ],
+    "rows": 3,
+    "types": {
+     "Name": "VARCHAR",
+     "Price": "DOUBLE",
+     "Qty": "BIGINT"
+    },
+    "reader": "layout"
+   }
+  ],
+  "r1-csv_semicolon_thousands.csv": [
+   {
+    "sheet": "r1-csv_semicolon_thousands",
+    "columns": [
+     "Name",
+     "Amount"
+    ],
+    "rows": 3,
+    "types": {
+     "Name": "VARCHAR",
+     "Amount": "DOUBLE"
+    },
+    "reader": "layout"
+   }
+  ],
+  "r1-csv_tab.csv": [
+   {
+    "sheet": "r1-csv_tab",
+    "columns": [
+     "Name",
+     "Value"
+    ],
+    "rows": 3,
+    "types": {
+     "Name": "VARCHAR",
+     "Value": "BIGINT"
+    },
+    "reader": "layout"
+   }
+  ],
+  "r1-csv_two_header_rows_units.csv": [
+   {
+    "sheet": "r1-csv_two_header_rows_units",
+    "columns": [
+     "Station",
+     "Temp",
+     "Rain"
+    ],
+    "rows": 3,
+    "types": {
+     "Station": "VARCHAR",
+     "Temp": "DOUBLE",
+     "Rain": "BIGINT"
+    },
+    "reader": "layout"
+   }
+  ],
+  "r1-csv_utf16.csv": [
+   {
+    "sheet": "r1-csv_utf16",
+    "columns": [
+     "Name",
+     "Value"
+    ],
+    "rows": 2,
+    "types": {
+     "Name": "VARCHAR",
+     "Value": "BIGINT"
+    },
+    "reader": "layout"
+   }
+  ],
+  "r1-date_col_first_2000_blank.xlsx": [
+   {
+    "sheet": "Sheet",
+    "columns": [
+     "Name",
+     "Shipped date",
+     "Qty"
+    ],
+    "rows": 3000,
+    "types": {
+     "Name": "VARCHAR",
+     "Shipped date": "DATE",
+     "Qty": "BIGINT"
+    },
+    "reader": "layout"
+   }
+  ],
+  "r1-descending_year_headers_blank_a1.csv": [
+   {
+    "sheet": "r1-descending_year_headers_blank_a1",
+    "columns": [
+     "column_1",
+     "2024",
+     "2023",
+     "2022"
+    ],
+    "rows": 3,
+    "types": {
+     "column_1": "VARCHAR",
+     "2024": "BIGINT",
+     "2023": "BIGINT",
+     "2022": "BIGINT"
+    },
+    "reader": "layout"
+   }
+  ],
+  "r1-descending_year_headers_fin.csv": [
+   {
+    "sheet": "r1-descending_year_headers_fin",
+    "columns": [
+     "In millions",
+     "2024",
+     "2023",
+     "2022"
+    ],
+    "rows": 4,
+    "types": {
+     "In millions": "VARCHAR",
+     "2024": "BIGINT",
+     "2023": "BIGINT",
+     "2022": "BIGINT"
+    },
+    "reader": "layout"
+   }
+  ],
+  "r1-empty_csv.csv": [],
+  "r1-empty_sheet.xlsx": [],
+  "r1-excel_serial_dates_general.xlsx": [
+   {
+    "sheet": "Sheet",
+    "columns": [
+     "Day",
+     "Value"
+    ],
+    "rows": 10,
+    "types": {
+     "Day": "BIGINT",
+     "Value": "BIGINT"
+    },
+    "reader": "layout"
+   }
+  ],
+  "r1-first_data_row_looks_like_years.csv": [
+   {
+    "sheet": "r1-first_data_row_looks_like_years",
+    "columns": [
+     "Item",
+     "Q1",
+     "Q2",
+     "Q3"
+    ],
+    "rows": 4,
+    "types": {
+     "Item": "VARCHAR",
+     "Q1": "BIGINT",
+     "Q2": "BIGINT",
+     "Q3": "BIGINT"
+    },
+    "reader": "layout"
+   }
+  ],
+  "r1-formulas_no_cache.xlsx": [
+   {
+    "sheet": "Sheet",
+    "columns": [
+     "Name",
+     "A",
+     "B",
+     "Sum"
+    ],
+    "rows": 3,
+    "types": {
+     "Name": "VARCHAR",
+     "A": "BIGINT",
+     "B": "BIGINT",
+     "Sum": "VARCHAR"
+    },
+    "reader": "layout"
+   }
+  ],
+  "r1-header_and_one_row.csv": [
+   {
+    "sheet": "r1-header_and_one_row",
+    "columns": [
+     "Name",
+     "City"
+    ],
+    "rows": 1,
+    "types": {
+     "Name": "VARCHAR",
+     "City": "VARCHAR"
+    },
+    "reader": "layout"
+   }
+  ],
+  "r1-hidden_rows.xlsx": [
+   {
+    "sheet": "Sheet",
+    "columns": [
+     "Name",
+     "Value"
+    ],
+    "rows": 3,
+    "types": {
+     "Name": "VARCHAR",
+     "Value": "BIGINT"
+    },
+    "reader": "layout"
+   }
+  ],
+  "r1-label_only_data_row.csv": [
+   {
+    "sheet": "r1-label_only_data_row",
+    "columns": [
+     "Product",
+     "Q1",
+     "Q2"
+    ],
+    "rows": 5,
+    "types": {
+     "Product": "VARCHAR",
+     "Q1": "BIGINT",
+     "Q2": "BIGINT"
+    },
+    "reader": "layout"
+   }
+  ],
+  "r1-long_single_comment_row.csv": [
+   {
+    "sheet": "r1-long_single_comment_row",
+    "columns": [
+     "Id",
+     "Comment",
+     "Score"
+    ],
+    "rows": 5,
+    "types": {
+     "Id": "VARCHAR",
+     "Comment": "VARCHAR",
+     "Score": "BIGINT"
+    },
+    "reader": "layout"
+   }
+  ],
+  "r1-merged_everywhere.xlsx": [
+   {
+    "sheet": "Sheet",
+    "columns": [
+     "Region",
+     "City",
+     "Sales Q1",
+     "Sales Q2",
+     "Note"
+    ],
+    "rows": 5,
+    "types": {
+     "Region": "VARCHAR",
+     "City": "VARCHAR",
+     "Sales Q1": "BIGINT",
+     "Sales Q2": "BIGINT",
+     "Note": "VARCHAR"
+    },
+    "reader": "layout"
+   }
+  ],
+  "r1-mixed_datetime_date_na.xlsx": [
+   {
+    "sheet": "Sheet",
+    "columns": [
+     "Name",
+     "When"
+    ],
+    "rows": 4,
+    "types": {
+     "Name": "VARCHAR",
+     "When": "TIMESTAMP"
+    },
+    "reader": "layout"
+   }
+  ],
+  "r1-numeric_headers_percentiles.csv": [
+   {
+    "sheet": "r1-numeric_headers_percentiles",
+    "columns": [
+     "Measure",
+     "10",
+     "25",
+     "50",
+     "75",
+     "90"
+    ],
+    "rows": 3,
+    "types": {
+     "Measure": "VARCHAR",
+     "10": "BIGINT",
+     "25": "BIGINT",
+     "50": "BIGINT",
+     "75": "BIGINT",
+     "90": "BIGINT"
+    },
+    "reader": "layout"
+   }
+  ],
+  "r1-only_blank_lines.csv": [],
+  "r1-section_labels_col_a.csv": [
+   {
+    "sheet": "r1-section_labels_col_a",
+    "columns": [
+     "Section",
+     "Region",
+     "Sales",
+     "Units"
+    ],
+    "rows": 4,
+    "types": {
+     "Section": "VARCHAR",
+     "Region": "VARCHAR",
+     "Sales": "BIGINT",
+     "Units": "BIGINT"
+    },
+    "reader": "layout"
+   }
+  ],
+  "r1-single_row.csv": [
+   {
+    "sheet": "r1-single_row",
+    "columns": [
+     "column_1",
+     "column_2",
+     "column_3"
+    ],
+    "rows": 1,
+    "types": {
+     "column_1": "VARCHAR",
+     "column_2": "VARCHAR",
+     "column_3": "VARCHAR"
+    },
+    "reader": "layout"
+   }
+  ],
+  "r1-start_end_years_then_open.csv": [
+   {
+    "sheet": "r1-start_end_years_then_open",
+    "columns": [
+     "Name",
+     "Start",
+     "End"
+    ],
+    "rows": 5,
+    "types": {
+     "Name": "VARCHAR",
+     "Start": "BIGINT",
+     "End": "BIGINT"
+    },
+    "reader": "layout"
+   }
+  ],
+  "r1-title_only.xlsx": [
+   {
+    "sheet": "Sheet",
+    "columns": [
+     "column_1"
+    ],
+    "rows": 1,
+    "types": {
+     "column_1": "VARCHAR"
+    },
+    "reader": "layout"
+   }
+  ],
+  "r1-two_tables_side_by_side.xlsx": [
+   {
+    "sheet": "Sheet",
+    "columns": [
+     "Region",
+     "Q1"
+    ],
+    "rows": 3,
+    "types": {
+     "Region": "VARCHAR",
+     "Q1": "BIGINT"
+    },
+    "reader": "layout"
+   },
+   {
+    "sheet": "Sheet (2)",
+    "columns": [
+     "Team",
+     "People"
+    ],
+    "rows": 2,
+    "types": {
+     "Team": "VARCHAR",
+     "People": "BIGINT"
+    },
+    "reader": "layout"
+   }
+  ],
+  "r1-two_tables_stacked.xlsx": [
+   {
+    "sheet": "Sheet",
+    "columns": [
+     "Region",
+     "Q1",
+     "Q2"
+    ],
+    "rows": 3,
+    "types": {
+     "Region": "VARCHAR",
+     "Q1": "BIGINT",
+     "Q2": "BIGINT"
+    },
+    "reader": "layout"
+   },
+   {
+    "sheet": "Sheet (2)",
+    "columns": [
+     "Team",
+     "People",
+     "Open roles"
+    ],
+    "rows": 2,
+    "types": {
+     "Team": "VARCHAR",
+     "People": "BIGINT",
+     "Open roles": "BIGINT"
+    },
+    "reader": "layout"
+   }
+  ],
+  "r1-yyyymmdd_in_date_col.csv": [
+   {
+    "sheet": "r1-yyyymmdd_in_date_col",
+    "columns": [
+     "Event",
+     "Begin Date",
+     "Count"
+    ],
+    "rows": 3,
+    "types": {
+     "Event": "VARCHAR",
+     "Begin Date": "DATE",
+     "Count": "BIGINT"
+    },
+    "reader": "layout"
+   }
+  ],
+  "r1-yyyymmdd_invalid_one.csv": [
+   {
+    "sheet": "r1-yyyymmdd_invalid_one",
+    "columns": [
+     "Event",
+     "Begin Date",
+     "Count"
+    ],
+    "rows": 3,
+    "types": {
+     "Event": "VARCHAR",
+     "Begin Date": "BIGINT",
+     "Count": "BIGINT"
+    },
+    "reader": "layout"
+   }
+  ],
+  "r2-balance_sheet.csv": [
+   {
+    "sheet": "r2-balance_sheet",
+    "columns": [
+     "Section",
+     "Item",
+     "FY2024",
+     "FY2023"
+    ],
+    "rows": 4,
+    "types": {
+     "Section": "VARCHAR",
+     "Item": "VARCHAR",
+     "FY2024": "BIGINT",
+     "FY2023": "BIGINT"
+    },
+    "reader": "layout"
+   }
+  ],
+  "r2-label_rows_col_a_2col.csv": [
+   {
+    "sheet": "r2-label_rows_col_a_2col",
+    "columns": [
+     "Section",
+     "Region",
+     "Sales"
+    ],
+    "rows": 3,
+    "types": {
+     "Section": "VARCHAR",
+     "Region": "VARCHAR",
+     "Sales": "BIGINT"
+    },
+    "reader": "layout"
+   }
+  ],
+  "r2-note_above_header_2col.csv": [
+   {
+    "sheet": "r2-note_above_header_2col",
+    "columns": [
+     "Name",
+     "Val"
+    ],
+    "rows": 3,
+    "types": {
+     "Name": "VARCHAR",
+     "Val": "BIGINT"
+    },
+    "reader": "layout"
+   }
+  ],
+  "r2-note_above_header_3col_colB.csv": [
+   {
+    "sheet": "r2-note_above_header_3col_colB",
+    "columns": [
+     "Name",
+     "Val",
+     "Other"
+    ],
+    "rows": 3,
+    "types": {
+     "Name": "VARCHAR",
+     "Val": "BIGINT",
+     "Other": "VARCHAR"
+    },
+    "reader": "layout"
+   }
+  ],
+  "r2-two_notes_above_header_2col.csv": [
+   {
+    "sheet": "r2-two_notes_above_header_2col",
+    "columns": [
+     "Name",
+     "Val"
+    ],
+    "rows": 3,
+    "types": {
+     "Name": "VARCHAR",
+     "Val": "BIGINT"
+    },
+    "reader": "layout"
+   }
+  ],
+  "r2-xlsx_bigint_over_2_53.xlsx": [
+   {
+    "sheet": "Sheet",
+    "columns": [
+     "Name",
+     "Big"
+    ],
+    "rows": 5,
+    "types": {
+     "Name": "VARCHAR",
+     "Big": "BIGINT"
+    },
+    "reader": "layout"
+   }
+  ],
+  "r2-xlsx_date_first_2500_blank.xlsx": [
+   {
+    "sheet": "Sheet",
+    "columns": [
+     "Name",
+     "Shipped date",
+     "Qty"
+    ],
+    "rows": 3000,
+    "types": {
+     "Name": "VARCHAR",
+     "Shipped date": "DATE",
+     "Qty": "BIGINT"
+    },
+    "reader": "layout"
+   }
+  ],
+  "r3-balance_sheet_key_only.csv": [
+   {
+    "sheet": "r3-balance_sheet_key_only",
+    "columns": [
+     "Section",
+     "Item",
+     "FY2024",
+     "FY2023"
+    ],
+    "rows": 4,
+    "types": {
+     "Section": "VARCHAR",
+     "Item": "VARCHAR",
+     "FY2024": "BIGINT",
+     "FY2023": "BIGINT"
+    },
+    "reader": "layout"
+   }
+  ],
+  "r3-blank_then_text_row.csv": [
+   {
+    "sheet": "r3-blank_then_text_row",
+    "columns": [
+     "Item",
+     "Amount",
+     "Status"
+    ],
+    "rows": 5,
+    "types": {
+     "Item": "VARCHAR",
+     "Amount": "BIGINT",
+     "Status": "VARCHAR"
+    },
+    "reader": "layout"
+   }
+  ],
+  "r3-dup_suffix_collision.csv": [
+   {
+    "sheet": "r3-dup_suffix_collision",
+    "columns": [
+     "Name",
+     "A",
+     "A_3",
+     "A_2"
+    ],
+    "rows": 3,
+    "types": {
+     "Name": "VARCHAR",
+     "A": "BIGINT",
+     "A_3": "BIGINT",
+     "A_2": "BIGINT"
+    },
+    "reader": "layout"
+   }
+  ],
+  "r3-footnote_numbered.csv": [
+   {
+    "sheet": "r3-footnote_numbered",
+    "columns": [
+     "State",
+     "Population"
+    ],
+    "rows": 3,
+    "types": {
+     "State": "VARCHAR",
+     "Population": "BIGINT"
+    },
+    "reader": "layout"
+   }
+  ],
+  "r3-footnote_two_cells.csv": [
+   {
+    "sheet": "r3-footnote_two_cells",
+    "columns": [
+     "State",
+     "Population",
+     "Area"
+    ],
+    "rows": 3,
+    "types": {
+     "State": "VARCHAR",
+     "Population": "BIGINT",
+     "Area": "BIGINT"
+    },
+    "reader": "layout"
+   }
+  ],
+  "r3-iso_dates_one_bad.csv": [
+   {
+    "sheet": "r3-iso_dates_one_bad",
+    "columns": [
+     "Event",
+     "When"
+    ],
+    "rows": 3,
+    "types": {
+     "Event": "VARCHAR",
+     "When": "VARCHAR"
+    },
+    "reader": "layout"
+   }
+  ],
+  "r3-iso_mixed_zone.csv": [
+   {
+    "sheet": "r3-iso_mixed_zone",
+    "columns": [
+     "Event",
+     "When"
+    ],
+    "rows": 3,
+    "types": {
+     "Event": "VARCHAR",
+     "When": "TIMESTAMP"
+    },
+    "reader": "layout"
+   }
+  ],
+  "r3-key_only_caps_code.csv": [
+   {
+    "sheet": "r3-key_only_caps_code",
+    "columns": [
+     "Product",
+     "Q1",
+     "Q2"
+    ],
+    "rows": 4,
+    "types": {
+     "Product": "VARCHAR",
+     "Q1": "BIGINT",
+     "Q2": "BIGINT"
+    },
+    "reader": "layout"
+   }
+  ],
+  "r3-key_only_colon.csv": [
+   {
+    "sheet": "r3-key_only_colon",
+    "columns": [
+     "Measure",
+     "2023",
+     "2024"
+    ],
+    "rows": 3,
+    "types": {
+     "Measure": "VARCHAR",
+     "2023": "BIGINT",
+     "2024": "BIGINT"
+    },
+    "reader": "layout"
+   }
+  ],
+  "r3-mixed_date_formats.csv": [
+   {
+    "sheet": "r3-mixed_date_formats",
+    "columns": [
+     "Event",
+     "When"
+    ],
+    "rows": 4,
+    "types": {
+     "Event": "VARCHAR",
+     "When": "VARCHAR"
+    },
+    "reader": "layout"
+   }
+  ],
+  "r3-retail_like_key_only.csv": [
+   {
+    "sheet": "r3-retail_like_key_only",
+    "columns": [
+     "Section",
+     "Code",
+     "Business",
+     "Jan",
+     "Feb"
+    ],
+    "rows": 4,
+    "types": {
+     "Section": "VARCHAR",
+     "Code": "VARCHAR",
+     "Business": "VARCHAR",
+     "Jan": "BIGINT",
+     "Feb": "BIGINT"
+    },
+    "reader": "layout"
+   }
+  ],
+  "r3-same_header_repeated_after_blank.csv": [
+   {
+    "sheet": "r3-same_header_repeated_after_blank",
+    "columns": [
+     "Name",
+     "Score"
+    ],
+    "rows": 6,
+    "types": {
+     "Name": "VARCHAR",
+     "Score": "BIGINT"
+    },
+    "reader": "layout"
+   }
+  ],
+  "r3-sections_and_key_only.csv": [
+   {
+    "sheet": "r3-sections_and_key_only",
+    "columns": [
+     "Section",
+     "Region",
+     "Sales",
+     "Units"
+    ],
+    "rows": 4,
+    "types": {
+     "Section": "VARCHAR",
+     "Region": "VARCHAR",
+     "Sales": "BIGINT",
+     "Units": "BIGINT"
+    },
+    "reader": "layout"
+   }
+  ],
+  "r3-serial_false_positive.csv": [
+   {
+    "sheet": "r3-serial_false_positive",
+    "columns": [
+     "Year",
+     "Consolidated revenue",
+     "Candidates",
+     "Holiday sales",
+     "Days on market"
+    ],
+    "rows": 3,
+    "types": {
+     "Year": "BIGINT",
+     "Consolidated revenue": "BIGINT",
+     "Candidates": "BIGINT",
+     "Holiday sales": "BIGINT",
+     "Days on market": "BIGINT"
+    },
+    "reader": "layout"
+   }
+  ],
+  "r3-three_stacked_tables.xlsx": [
+   {
+    "sheet": "Sheet",
+    "columns": [
+     "Region",
+     "Q1",
+     "Q2"
+    ],
+    "rows": 3,
+    "types": {
+     "Region": "VARCHAR",
+     "Q1": "BIGINT",
+     "Q2": "BIGINT"
+    },
+    "reader": "layout"
+   },
+   {
+    "sheet": "Sheet (2)",
+    "columns": [
+     "Team",
+     "People"
+    ],
+    "rows": 3,
+    "types": {
+     "Team": "VARCHAR",
+     "People": "BIGINT"
+    },
+    "reader": "layout"
+   },
+   {
+    "sheet": "Sheet (3)",
+    "columns": [
+     "Year",
+     "Revenue",
+     "Cost",
+     "Profit"
+    ],
+    "rows": 2,
+    "types": {
+     "Year": "BIGINT",
+     "Revenue": "BIGINT",
+     "Cost": "BIGINT",
+     "Profit": "BIGINT"
+    },
+    "reader": "layout"
+   }
+  ],
+  "r3-total_then_notes.csv": [
+   {
+    "sheet": "r3-total_then_notes",
+    "columns": [
+     "Item",
+     "Value"
+    ],
+    "rows": 4,
+    "types": {
+     "Item": "VARCHAR",
+     "Value": "BIGINT"
+    },
+    "reader": "layout"
+   }
+  ],
+  "r3-transposed_kv.csv": [
+   {
+    "sheet": "r3-transposed_kv",
+    "columns": [
+     "Name",
+     "Alice"
+    ],
+    "rows": 3,
+    "types": {
+     "Name": "VARCHAR",
+     "Alice": "VARCHAR"
+    },
+    "reader": "layout"
+   }
+  ],
+  "r3-units_and_zero_codes.csv": [
+   {
+    "sheet": "r3-units_and_zero_codes",
+    "columns": [
+     "Part",
+     "Weight",
+     "Bin"
+    ],
+    "rows": 3,
+    "types": {
+     "Part": "VARCHAR",
+     "Weight": "VARCHAR",
+     "Bin": "VARCHAR"
+    },
+    "reader": "layout"
+   }
+  ],
+  "r3-units_row_plain.csv": [
+   {
+    "sheet": "r3-units_row_plain",
+    "columns": [
+     "Station",
+     "Temp",
+     "Rain",
+     "Wind"
+    ],
+    "rows": 3,
+    "types": {
+     "Station": "VARCHAR",
+     "Temp": "DOUBLE",
+     "Rain": "BIGINT",
+     "Wind": "BIGINT"
+    },
+    "reader": "layout"
+   }
+  ],
+  "r3-wide_200_cols_two_row_header.xlsx": [
+   {
+    "sheet": "Sheet",
+    "columns": [
+     "Name",
+     "Group 0 M0",
+     "Group 0 M1",
+     "Group 0 M2",
+     "Group 0 M3",
+     "Group 0 M4",
+     "Group 0 M5",
+     "Group 0 M6",
+     "Group 0 M7",
+     "Group 0 M8",
+     "Group 0 M9",
+     "Group 1 M10",
+     "Group 1 M11",
+     "Group 1 M12",
+     "Group 1 M13",
+     "Group 1 M14",
+     "Group 1 M15",
+     "Group 1 M16",
+     "Group 1 M17",
+     "Group 1 M18",
+     "Group 1 M19",
+     "Group 2 M20",
+     "Group 2 M21",
+     "Group 2 M22",
+     "Group 2 M23",
+     "Group 2 M24",
+     "Group 2 M25",
+     "Group 2 M26",
+     "Group 2 M27",
+     "Group 2 M28",
+     "Group 2 M29",
+     "Group 3 M30",
+     "Group 3 M31",
+     "Group 3 M32",
+     "Group 3 M33",
+     "Group 3 M34",
+     "Group 3 M35",
+     "Group 3 M36",
+     "Group 3 M37",
+     "Group 3 M38",
+     "Group 3 M39",
+     "Group 4 M40",
+     "Group 4 M41",
+     "Group 4 M42",
+     "Group 4 M43",
+     "Group 4 M44",
+     "Group 4 M45",
+     "Group 4 M46",
+     "Group 4 M47",
+     "Group 4 M48",
+     "Group 4 M49",
+     "Group 5 M50",
+     "Group 5 M51",
+     "Group 5 M52",
+     "Group 5 M53",
+     "Group 5 M54",
+     "Group 5 M55",
+     "Group 5 M56",
+     "Group 5 M57",
+     "Group 5 M58",
+     "Group 5 M59",
+     "Group 6 M60",
+     "Group 6 M61",
+     "Group 6 M62",
+     "Group 6 M63",
+     "Group 6 M64",
+     "Group 6 M65",
+     "Group 6 M66",
+     "Group 6 M67",
+     "Group 6 M68",
+     "Group 6 M69",
+     "Group 7 M70",
+     "Group 7 M71",
+     "Group 7 M72",
+     "Group 7 M73",
+     "Group 7 M74",
+     "Group 7 M75",
+     "Group 7 M76",
+     "Group 7 M77",
+     "Group 7 M78",
+     "Group 7 M79",
+     "Group 8 M80",
+     "Group 8 M81",
+     "Group 8 M82",
+     "Group 8 M83",
+     "Group 8 M84",
+     "Group 8 M85",
+     "Group 8 M86",
+     "Group 8 M87",
+     "Group 8 M88",
+     "Group 8 M89",
+     "Group 9 M90",
+     "Group 9 M91",
+     "Group 9 M92",
+     "Group 9 M93",
+     "Group 9 M94",
+     "Group 9 M95",
+     "Group 9 M96",
+     "Group 9 M97",
+     "Group 9 M98",
+     "Group 9 M99",
+     "Group 10 M100",
+     "Group 10 M101",
+     "Group 10 M102",
+     "Group 10 M103",
+     "Group 10 M104",
+     "Group 10 M105",
+     "Group 10 M106",
+     "Group 10 M107",
+     "Group 10 M108",
+     "Group 10 M109",
+     "Group 11 M110",
+     "Group 11 M111",
+     "Group 11 M112",
+     "Group 11 M113",
+     "Group 11 M114",
+     "Group 11 M115",
+     "Group 11 M116",
+     "Group 11 M117",
+     "Group 11 M118",
+     "Group 11 M119",
+     "Group 12 M120",
+     "Group 12 M121",
+     "Group 12 M122",
+     "Group 12 M123",
+     "Group 12 M124",
+     "Group 12 M125",
+     "Group 12 M126",
+     "Group 12 M127",
+     "Group 12 M128",
+     "Group 12 M129",
+     "Group 13 M130",
+     "Group 13 M131",
+     "Group 13 M132",
+     "Group 13 M133",
+     "Group 13 M134",
+     "Group 13 M135",
+     "Group 13 M136",
+     "Group 13 M137",
+     "Group 13 M138",
+     "Group 13 M139",
+     "Group 14 M140",
+     "Group 14 M141",
+     "Group 14 M142",
+     "Group 14 M143",
+     "Group 14 M144",
+     "Group 14 M145",
+     "Group 14 M146",
+     "Group 14 M147",
+     "Group 14 M148",
+     "Group 14 M149",
+     "Group 15 M150",
+     "Group 15 M151",
+     "Group 15 M152",
+     "Group 15 M153",
+     "Group 15 M154",
+     "Group 15 M155",
+     "Group 15 M156",
+     "Group 15 M157",
+     "Group 15 M158",
+     "Group 15 M159",
+     "Group 16 M160",
+     "Group 16 M161",
+     "Group 16 M162",
+     "Group 16 M163",
+     "Group 16 M164",
+     "Group 16 M165",
+     "Group 16 M166",
+     "Group 16 M167",
+     "Group 16 M168",
+     "Group 16 M169",
+     "Group 17 M170",
+     "Group 17 M171",
+     "Group 17 M172",
+     "Group 17 M173",
+     "Group 17 M174",
+     "Group 17 M175",
+     "Group 17 M176",
+     "Group 17 M177",
+     "Group 17 M178",
+     "Group 17 M179",
+     "Group 18 M180",
+     "Group 18 M181",
+     "Group 18 M182",
+     "Group 18 M183",
+     "Group 18 M184",
+     "Group 18 M185",
+     "Group 18 M186",
+     "Group 18 M187",
+     "Group 18 M188",
+     "Group 18 M189",
+     "Group 19 M190",
+     "Group 19 M191",
+     "Group 19 M192",
+     "Group 19 M193",
+     "Group 19 M194",
+     "Group 19 M195",
+     "Group 19 M196",
+     "Group 19 M197",
+     "Group 19 M198"
+    ],
+    "rows": 30,
+    "types": {
+     "Name": "VARCHAR",
+     "Group 0 M0": "DOUBLE",
+     "Group 0 M1": "DOUBLE",
+     "Group 0 M2": "DOUBLE",
+     "Group 0 M3": "DOUBLE",
+     "Group 0 M4": "DOUBLE",
+     "Group 0 M5": "DOUBLE",
+     "Group 0 M6": "DOUBLE",
+     "Group 0 M7": "DOUBLE",
+     "Group 0 M8": "DOUBLE",
+     "Group 0 M9": "DOUBLE",
+     "Group 1 M10": "DOUBLE",
+     "Group 1 M11": "DOUBLE",
+     "Group 1 M12": "DOUBLE",
+     "Group 1 M13": "DOUBLE",
+     "Group 1 M14": "DOUBLE",
+     "Group 1 M15": "DOUBLE",
+     "Group 1 M16": "DOUBLE",
+     "Group 1 M17": "DOUBLE",
+     "Group 1 M18": "DOUBLE",
+     "Group 1 M19": "DOUBLE",
+     "Group 2 M20": "DOUBLE",
+     "Group 2 M21": "DOUBLE",
+     "Group 2 M22": "DOUBLE",
+     "Group 2 M23": "DOUBLE",
+     "Group 2 M24": "DOUBLE",
+     "Group 2 M25": "DOUBLE",
+     "Group 2 M26": "DOUBLE",
+     "Group 2 M27": "DOUBLE",
+     "Group 2 M28": "DOUBLE",
+     "Group 2 M29": "DOUBLE",
+     "Group 3 M30": "DOUBLE",
+     "Group 3 M31": "DOUBLE",
+     "Group 3 M32": "DOUBLE",
+     "Group 3 M33": "DOUBLE",
+     "Group 3 M34": "DOUBLE",
+     "Group 3 M35": "DOUBLE",
+     "Group 3 M36": "DOUBLE",
+     "Group 3 M37": "DOUBLE",
+     "Group 3 M38": "DOUBLE",
+     "Group 3 M39": "DOUBLE",
+     "Group 4 M40": "DOUBLE",
+     "Group 4 M41": "DOUBLE",
+     "Group 4 M42": "DOUBLE",
+     "Group 4 M43": "DOUBLE",
+     "Group 4 M44": "DOUBLE",
+     "Group 4 M45": "DOUBLE",
+     "Group 4 M46": "DOUBLE",
+     "Group 4 M47": "DOUBLE",
+     "Group 4 M48": "DOUBLE",
+     "Group 4 M49": "DOUBLE",
+     "Group 5 M50": "DOUBLE",
+     "Group 5 M51": "DOUBLE",
+     "Group 5 M52": "DOUBLE",
+     "Group 5 M53": "DOUBLE",
+     "Group 5 M54": "DOUBLE",
+     "Group 5 M55": "DOUBLE",
+     "Group 5 M56": "DOUBLE",
+     "Group 5 M57": "DOUBLE",
+     "Group 5 M58": "DOUBLE",
+     "Group 5 M59": "DOUBLE",
+     "Group 6 M60": "DOUBLE",
+     "Group 6 M61": "DOUBLE",
+     "Group 6 M62": "DOUBLE",
+     "Group 6 M63": "DOUBLE",
+     "Group 6 M64": "DOUBLE",
+     "Group 6 M65": "DOUBLE",
+     "Group 6 M66": "DOUBLE",
+     "Group 6 M67": "DOUBLE",
+     "Group 6 M68": "DOUBLE",
+     "Group 6 M69": "DOUBLE",
+     "Group 7 M70": "DOUBLE",
+     "Group 7 M71": "DOUBLE",
+     "Group 7 M72": "DOUBLE",
+     "Group 7 M73": "DOUBLE",
+     "Group 7 M74": "DOUBLE",
+     "Group 7 M75": "DOUBLE",
+     "Group 7 M76": "DOUBLE",
+     "Group 7 M77": "DOUBLE",
+     "Group 7 M78": "DOUBLE",
+     "Group 7 M79": "DOUBLE",
+     "Group 8 M80": "DOUBLE",
+     "Group 8 M81": "DOUBLE",
+     "Group 8 M82": "DOUBLE",
+     "Group 8 M83": "DOUBLE",
+     "Group 8 M84": "DOUBLE",
+     "Group 8 M85": "DOUBLE",
+     "Group 8 M86": "DOUBLE",
+     "Group 8 M87": "DOUBLE",
+     "Group 8 M88": "DOUBLE",
+     "Group 8 M89": "DOUBLE",
+     "Group 9 M90": "DOUBLE",
+     "Group 9 M91": "DOUBLE",
+     "Group 9 M92": "DOUBLE",
+     "Group 9 M93": "DOUBLE",
+     "Group 9 M94": "DOUBLE",
+     "Group 9 M95": "DOUBLE",
+     "Group 9 M96": "DOUBLE",
+     "Group 9 M97": "DOUBLE",
+     "Group 9 M98": "DOUBLE",
+     "Group 9 M99": "DOUBLE",
+     "Group 10 M100": "DOUBLE",
+     "Group 10 M101": "DOUBLE",
+     "Group 10 M102": "DOUBLE",
+     "Group 10 M103": "DOUBLE",
+     "Group 10 M104": "DOUBLE",
+     "Group 10 M105": "DOUBLE",
+     "Group 10 M106": "DOUBLE",
+     "Group 10 M107": "DOUBLE",
+     "Group 10 M108": "DOUBLE",
+     "Group 10 M109": "DOUBLE",
+     "Group 11 M110": "DOUBLE",
+     "Group 11 M111": "DOUBLE",
+     "Group 11 M112": "DOUBLE",
+     "Group 11 M113": "DOUBLE",
+     "Group 11 M114": "DOUBLE",
+     "Group 11 M115": "DOUBLE",
+     "Group 11 M116": "DOUBLE",
+     "Group 11 M117": "DOUBLE",
+     "Group 11 M118": "DOUBLE",
+     "Group 11 M119": "DOUBLE",
+     "Group 12 M120": "DOUBLE",
+     "Group 12 M121": "DOUBLE",
+     "Group 12 M122": "DOUBLE",
+     "Group 12 M123": "DOUBLE",
+     "Group 12 M124": "DOUBLE",
+     "Group 12 M125": "DOUBLE",
+     "Group 12 M126": "DOUBLE",
+     "Group 12 M127": "DOUBLE",
+     "Group 12 M128": "DOUBLE",
+     "Group 12 M129": "DOUBLE",
+     "Group 13 M130": "DOUBLE",
+     "Group 13 M131": "DOUBLE",
+     "Group 13 M132": "DOUBLE",
+     "Group 13 M133": "DOUBLE",
+     "Group 13 M134": "DOUBLE",
+     "Group 13 M135": "DOUBLE",
+     "Group 13 M136": "DOUBLE",
+     "Group 13 M137": "DOUBLE",
+     "Group 13 M138": "DOUBLE",
+     "Group 13 M139": "DOUBLE",
+     "Group 14 M140": "DOUBLE",
+     "Group 14 M141": "DOUBLE",
+     "Group 14 M142": "DOUBLE",
+     "Group 14 M143": "DOUBLE",
+     "Group 14 M144": "DOUBLE",
+     "Group 14 M145": "DOUBLE",
+     "Group 14 M146": "DOUBLE",
+     "Group 14 M147": "DOUBLE",
+     "Group 14 M148": "DOUBLE",
+     "Group 14 M149": "DOUBLE",
+     "Group 15 M150": "DOUBLE",
+     "Group 15 M151": "DOUBLE",
+     "Group 15 M152": "DOUBLE",
+     "Group 15 M153": "DOUBLE",
+     "Group 15 M154": "DOUBLE",
+     "Group 15 M155": "DOUBLE",
+     "Group 15 M156": "DOUBLE",
+     "Group 15 M157": "DOUBLE",
+     "Group 15 M158": "DOUBLE",
+     "Group 15 M159": "DOUBLE",
+     "Group 16 M160": "DOUBLE",
+     "Group 16 M161": "DOUBLE",
+     "Group 16 M162": "DOUBLE",
+     "Group 16 M163": "DOUBLE",
+     "Group 16 M164": "DOUBLE",
+     "Group 16 M165": "DOUBLE",
+     "Group 16 M166": "DOUBLE",
+     "Group 16 M167": "DOUBLE",
+     "Group 16 M168": "DOUBLE",
+     "Group 16 M169": "DOUBLE",
+     "Group 17 M170": "DOUBLE",
+     "Group 17 M171": "DOUBLE",
+     "Group 17 M172": "DOUBLE",
+     "Group 17 M173": "DOUBLE",
+     "Group 17 M174": "DOUBLE",
+     "Group 17 M175": "DOUBLE",
+     "Group 17 M176": "DOUBLE",
+     "Group 17 M177": "DOUBLE",
+     "Group 17 M178": "DOUBLE",
+     "Group 17 M179": "DOUBLE",
+     "Group 18 M180": "DOUBLE",
+     "Group 18 M181": "DOUBLE",
+     "Group 18 M182": "DOUBLE",
+     "Group 18 M183": "DOUBLE",
+     "Group 18 M184": "DOUBLE",
+     "Group 18 M185": "DOUBLE",
+     "Group 18 M186": "DOUBLE",
+     "Group 18 M187": "DOUBLE",
+     "Group 18 M188": "DOUBLE",
+     "Group 18 M189": "DOUBLE",
+     "Group 19 M190": "DOUBLE",
+     "Group 19 M191": "DOUBLE",
+     "Group 19 M192": "DOUBLE",
+     "Group 19 M193": "DOUBLE",
+     "Group 19 M194": "DOUBLE",
+     "Group 19 M195": "DOUBLE",
+     "Group 19 M196": "DOUBLE",
+     "Group 19 M197": "DOUBLE",
+     "Group 19 M198": "DOUBLE"
+    },
+    "reader": "layout"
+   }
+  ],
+  "r3-years_header_and_year_values.csv": [
+   {
+    "sheet": "r3-years_header_and_year_values",
+    "columns": [
+     "Country",
+     "2019",
+     "2020",
+     "2021"
+    ],
+    "rows": 3,
+    "types": {
+     "Country": "VARCHAR",
+     "2019": "BIGINT",
+     "2020": "BIGINT",
+     "2021": "BIGINT"
+    },
+    "reader": "layout"
+   }
+  ],
+  "r4-age_band_with_lt10.csv": [
+   {
+    "sheet": "r4-age_band_with_lt10",
+    "columns": [
+     "Age band",
+     "People"
+    ],
+    "rows": 4,
+    "types": {
+     "Age band": "VARCHAR",
+     "People": "BIGINT"
+    },
+    "reader": "layout"
+   }
+  ],
+  "r4-answer_col_question_mark.csv": [
+   {
+    "sheet": "r4-answer_col_question_mark",
+    "columns": [
+     "Question",
+     "Answer"
+    ],
+    "rows": 4,
+    "types": {
+     "Question": "VARCHAR",
+     "Answer": "VARCHAR"
+    },
+    "reader": "layout"
+   }
+  ],
+  "r4-banded_fill_sections.xlsx": [
+   {
+    "sheet": "Sheet",
+    "columns": [
+     "Section",
+     "Region",
+     "Sales",
+     "Units"
+    ],
+    "rows": 4,
+    "types": {
+     "Section": "VARCHAR",
+     "Region": "VARCHAR",
+     "Sales": "BIGINT",
+     "Units": "BIGINT"
+    },
+    "reader": "layout"
+   }
+  ],
+  "r4-bold_labels_and_bold_keyonly_row.xlsx": [
+   {
+    "sheet": "Sheet",
+    "columns": [
+     "Section",
+     "Region",
+     "Sales",
+     "Units"
+    ],
+    "rows": 3,
+    "types": {
+     "Section": "VARCHAR",
+     "Region": "VARCHAR",
+     "Sales": "BIGINT",
+     "Units": "BIGINT"
+    },
+    "reader": "layout"
+   }
+  ],
+  "r4-bold_whole_key_column.xlsx": [
+   {
+    "sheet": "Sheet",
+    "columns": [
+     "Section",
+     "Region",
+     "Sales",
+     "Units"
+    ],
+    "rows": 3,
+    "types": {
+     "Section": "VARCHAR",
+     "Region": "VARCHAR",
+     "Sales": "BIGINT",
+     "Units": "BIGINT"
+    },
+    "reader": "layout"
+   }
+  ],
+  "r4-cases_lt10_first_row.csv": [
+   {
+    "sheet": "r4-cases_lt10_first_row",
+    "columns": [
+     "County",
+     "Cases",
+     "Rate"
+    ],
+    "rows": 5,
+    "types": {
+     "County": "VARCHAR",
+     "Cases": "BIGINT",
+     "Rate": "DOUBLE"
+    },
+    "reader": "layout"
+   }
+  ],
+  "r4-date_name_rule_csv.csv": [
+   {
+    "sheet": "r4-date_name_rule_csv",
+    "columns": [
+     "Year",
+     "Visitors per day",
+     "Due date"
+    ],
+    "rows": 3,
+    "types": {
+     "Year": "BIGINT",
+     "Visitors per day": "BIGINT",
+     "Due date": "BIGINT"
+    },
+    "reader": "layout"
+   }
+  ],
+  "r4-date_name_rule_xlsx.xlsx": [
+   {
+    "sheet": "Sheet",
+    "columns": [
+     "Year",
+     "Update",
+     "Mandate",
+     "Today count",
+     "Visitors per day",
+     "Due date",
+     "DT",
+     "Day 1 revenue"
+    ],
+    "rows": 5,
+    "types": {
+     "Year": "BIGINT",
+     "Update": "BIGINT",
+     "Mandate": "BIGINT",
+     "Today count": "BIGINT",
+     "Visitors per day": "BIGINT",
+     "Due date": "BIGINT",
+     "DT": "BIGINT",
+     "Day 1 revenue": "BIGINT"
+    },
+    "reader": "layout"
+   }
+  ],
+  "r4-day_of_month_and_month.csv": [
+   {
+    "sheet": "r4-day_of_month_and_month",
+    "columns": [
+     "Year",
+     "Month",
+     "Day",
+     "Sales"
+    ],
+    "rows": 3,
+    "types": {
+     "Year": "BIGINT",
+     "Month": "BIGINT",
+     "Day": "BIGINT",
+     "Sales": "BIGINT"
+    },
+    "reader": "layout"
+   }
+  ],
+  "r4-dept_codes_two_digits.csv": [
+   {
+    "sheet": "r4-dept_codes_two_digits",
+    "columns": [
+     "Department",
+     "Head",
+     "Budget"
+    ],
+    "rows": 4,
+    "types": {
+     "Department": "BIGINT",
+     "Head": "VARCHAR",
+     "Budget": "BIGINT"
+    },
+    "reader": "layout"
+   }
+  ],
+  "r4-first_row_pending_status.csv": [
+   {
+    "sheet": "r4-first_row_pending_status",
+    "columns": [
+     "Ticket",
+     "State",
+     "Hours"
+    ],
+    "rows": 5,
+    "types": {
+     "Ticket": "VARCHAR",
+     "State": "VARCHAR",
+     "Hours": "BIGINT"
+    },
+    "reader": "layout"
+   }
+  ],
+  "r4-grouped_nonmonotonic_years.xlsx": [
+   {
+    "sheet": "Sheet",
+    "columns": [
+     "Region",
+     "Revenue 2024",
+     "Revenue 2025",
+     "Cost 2024",
+     "Cost 2025"
+    ],
+    "rows": 3,
+    "types": {
+     "Region": "VARCHAR",
+     "Revenue 2024": "BIGINT",
+     "Revenue 2025": "BIGINT",
+     "Cost 2024": "BIGINT",
+     "Cost 2025": "BIGINT"
+    },
+    "reader": "layout"
+   }
+  ],
+  "r4-grouped_years_csv_unmerged.csv": [
+   {
+    "sheet": "r4-grouped_years_csv_unmerged",
+    "columns": [
+     "Region",
+     "Revenue 2024",
+     "Revenue 2025",
+     "Cost 2024",
+     "Cost 2025"
+    ],
+    "rows": 3,
+    "types": {
+     "Region": "VARCHAR",
+     "Revenue 2024": "BIGINT",
+     "Revenue 2025": "BIGINT",
+     "Cost 2024": "BIGINT",
+     "Cost 2025": "BIGINT"
+    },
+    "reader": "layout"
+   }
+  ],
+  "r4-heavy_suppression.csv": [
+   {
+    "sheet": "r4-heavy_suppression",
+    "columns": [
+     "County",
+     "Cases"
+    ],
+    "rows": 30,
+    "types": {
+     "County": "VARCHAR",
+     "Cases": "BIGINT"
+    },
+    "reader": "layout"
+   }
+  ],
+  "r4-indented_line_items_keyonly.xlsx": [
+   {
+    "sheet": "Sheet",
+    "columns": [
+     "Section",
+     "Item",
+     "FY2024",
+     "FY2023"
+    ],
+    "rows": 4,
+    "types": {
+     "Section": "VARCHAR",
+     "Item": "VARCHAR",
+     "FY2024": "BIGINT",
+     "FY2023": "BIGINT"
+    },
+    "reader": "layout"
+   }
+  ],
+  "r4-page_break_repeat_blank_and_case.csv": [
+   {
+    "sheet": "r4-page_break_repeat_blank_and_case",
+    "columns": [
+     "Name",
+     "Score"
+    ],
+    "rows": 4,
+    "types": {
+     "Name": "VARCHAR",
+     "Score": "BIGINT"
+    },
+    "reader": "layout"
+   }
+  ],
+  "r4-page_break_repeat_blank_page_title.csv": [
+   {
+    "sheet": "r4-page_break_repeat_blank_page_title",
+    "columns": [
+     "Name",
+     "Score"
+    ],
+    "rows": 4,
+    "types": {
+     "Name": "VARCHAR",
+     "Score": "BIGINT"
+    },
+    "reader": "layout"
+   }
+  ],
+  "r4-page_break_repeat_cont.csv": [
+   {
+    "sheet": "r4-page_break_repeat_cont",
+    "columns": [
+     "Name",
+     "Score"
+    ],
+    "rows": 4,
+    "types": {
+     "Name": "VARCHAR",
+     "Score": "BIGINT"
+    },
+    "reader": "layout"
+   }
+  ],
+  "r4-page_break_repeat_exact.csv": [
+   {
+    "sheet": "r4-page_break_repeat_exact",
+    "columns": [
+     "Name",
+     "Score"
+    ],
+    "rows": 4,
+    "types": {
+     "Name": "VARCHAR",
+     "Score": "BIGINT"
+    },
+    "reader": "layout"
+   }
+  ],
+  "r4-question_marks_numeric.csv": [
+   {
+    "sheet": "r4-question_marks_numeric",
+    "columns": [
+     "Item",
+     "Qty"
+    ],
+    "rows": 4,
+    "types": {
+     "Item": "VARCHAR",
+     "Qty": "BIGINT"
+    },
+    "reader": "layout"
+   }
+  ],
+  "r4-shift_hhmm.csv": [
+   {
+    "sheet": "r4-shift_hhmm",
+    "columns": [
+     "Employee",
+     "Start hour",
+     "End hour"
+    ],
+    "rows": 3,
+    "types": {
+     "Employee": "VARCHAR",
+     "Start hour": "BIGINT",
+     "End hour": "BIGINT"
+    },
+    "reader": "layout"
+   }
+  ],
+  "r4-status_all_placeholders.csv": [
+   {
+    "sheet": "r4-status_all_placeholders",
+    "columns": [
+     "Order",
+     "Status",
+     "Amount"
+    ],
+    "rows": 5,
+    "types": {
+     "Order": "VARCHAR",
+     "Status": "VARCHAR",
+     "Amount": "BIGINT"
+    },
+    "reader": "layout"
+   }
+  ],
+  "r4-status_mixed.csv": [
+   {
+    "sheet": "r4-status_mixed",
+    "columns": [
+     "Order",
+     "Status",
+     "Amount"
+    ],
+    "rows": 5,
+    "types": {
+     "Order": "VARCHAR",
+     "Status": "VARCHAR",
+     "Amount": "BIGINT"
+    },
+    "reader": "layout"
+   }
+  ],
+  "r5-header_row_with_a_number.csv": [
+   {
+    "sheet": "r5-header_row_with_a_number",
+    "columns": [
+     "Region",
+     "Sales",
+     "Units"
+    ],
+    "rows": 4,
+    "types": {
+     "Region": "VARCHAR",
+     "Sales": "BIGINT",
+     "Units": "BIGINT"
+    },
+    "reader": "layout"
+   }
+  ],
+  "r5-question_marks_minimal.csv": [
+   {
+    "sheet": "r5-question_marks_minimal",
+    "columns": [
+     "Item",
+     "Qty"
+    ],
+    "rows": 4,
+    "types": {
+     "Item": "VARCHAR",
+     "Qty": "BIGINT"
+    },
+    "reader": "layout"
+   }
+  ],
+  "r6-copied_sheet_name.xlsx": [
+   {
+    "sheet": "Sales",
+    "columns": [
+     "Region",
+     "Q1",
+     "Q2"
+    ],
+    "rows": 3,
+    "types": {
+     "Region": "VARCHAR",
+     "Q1": "BIGINT",
+     "Q2": "BIGINT"
+    },
+    "reader": "layout"
+   },
+   {
+    "sheet": "Sales (table 2)",
+    "columns": [
+     "Team",
+     "People",
+     "Open"
+    ],
+    "rows": 2,
+    "types": {
+     "Team": "VARCHAR",
+     "People": "BIGINT",
+     "Open": "BIGINT"
+    },
+    "reader": "layout"
+   },
+   {
+    "sheet": "Sales (2)",
+    "columns": [
+     "Region",
+     "Q1",
+     "Q2"
+    ],
+    "rows": 3,
+    "types": {
+     "Region": "VARCHAR",
+     "Q1": "BIGINT",
+     "Q2": "BIGINT"
+    },
+    "reader": "layout"
+   }
+  ],
+  "r6-dmy_dates.csv": [
+   {
+    "sheet": "r6-dmy_dates",
+    "columns": [
+     "Event",
+     "When"
+    ],
+    "rows": 3,
+    "types": {
+     "Event": "VARCHAR",
+     "When": "VARCHAR"
+    },
+    "reader": "layout"
+   }
+  ],
+  "r6-fred_style.csv": [
+   {
+    "sheet": "r6-fred_style",
+    "columns": [
+     "observation_date",
+     "GDP"
+    ],
+    "rows": 12,
+    "types": {
+     "observation_date": "DATE",
+     "GDP": "BIGINT"
+    },
+    "reader": "layout"
+   }
+  ],
+  "r6-merged_title_release_date.xlsx": [
+   {
+    "sheet": "Sheet",
+    "columns": [
+     "Region",
+     "2020",
+     "2021",
+     "2022",
+     "2023"
+    ],
+    "rows": 12,
+    "types": {
+     "Region": "VARCHAR",
+     "2020": "BIGINT",
+     "2021": "BIGINT",
+     "2022": "BIGINT",
+     "2023": "BIGINT"
+    },
+    "reader": "layout"
+   }
+  ],
+  "r6-merged_title_second_header_row.xlsx": [
+   {
+    "sheet": "Sheet",
+    "columns": [
+     "County",
+     "Admissions n",
+     "Rate per 100k",
+     "Beds 2023"
+    ],
+    "rows": 8,
+    "types": {
+     "County": "VARCHAR",
+     "Admissions n": "BIGINT",
+     "Rate per 100k": "DOUBLE",
+     "Beds 2023": "BIGINT"
+    },
+    "reader": "layout"
+   }
+  ],
+  "r6-merged_title_sparse.xlsx": [
+   {
+    "sheet": "Sheet",
+    "columns": [
+     "Site",
+     "Jan",
+     "Feb",
+     "Mar",
+     "Apr"
+    ],
+    "rows": 12,
+    "types": {
+     "Site": "VARCHAR",
+     "Jan": "BIGINT",
+     "Feb": "BIGINT",
+     "Mar": "BIGINT",
+     "Apr": "BIGINT"
+    },
+    "reader": "layout"
+   }
+  ],
+  "r6-merged_title_table_number.xlsx": [
+   {
+    "sheet": "Sheet",
+    "columns": [
+     "Region",
+     "Pop",
+     "Area",
+     "Density",
+     "Growth"
+    ],
+    "rows": 12,
+    "types": {
+     "Region": "VARCHAR",
+     "Pop": "BIGINT",
+     "Area": "BIGINT",
+     "Density": "BIGINT",
+     "Growth": "BIGINT"
+    },
+    "reader": "layout"
+   }
+  ],
+  "r6-merged_title_units_with_stray_cell.xlsx": [
+   {
+    "sheet": "Sheet",
+    "columns": [
+     "Region",
+     "Sales",
+     "Units"
+    ],
+    "rows": 4,
+    "types": {
+     "Region": "VARCHAR",
+     "Sales": "BIGINT",
+     "Units": "BIGINT"
+    },
+    "reader": "layout"
+   }
+  ],
+  "r6-numbers_only.csv": [
+   {
+    "sheet": "r6-numbers_only",
+    "columns": [
+     "column_1",
+     "column_2",
+     "column_3"
+    ],
+    "rows": 3,
+    "types": {
+     "column_1": "BIGINT",
+     "column_2": "BIGINT",
+     "column_3": "BIGINT"
+    },
+    "reader": "layout"
+   }
+  ],
+  "r6-percent_format.xlsx": [
+   {
+    "sheet": "Sheet",
+    "columns": [
+     "State",
+     "Growth rate (%)"
+    ],
+    "rows": 3,
+    "types": {
+     "State": "VARCHAR",
+     "Growth rate (%)": "DOUBLE"
+    },
+    "reader": "layout"
+   }
+  ],
+  "r6-prepared_by_and_as_of.csv": [
+   {
+    "sheet": "r6-prepared_by_and_as_of",
+    "columns": [
+     "Region",
+     "Revenue",
+     "Cost",
+     "Margin"
+    ],
+    "rows": 10,
+    "types": {
+     "Region": "VARCHAR",
+     "Revenue": "BIGINT",
+     "Cost": "BIGINT",
+     "Margin": "BIGINT"
+    },
+    "reader": "layout"
+   }
+  ],
+  "r6-regions_na.csv": [
+   {
+    "sheet": "r6-regions_na",
+    "columns": [
+     "Product",
+     "NA",
+     "EU",
+     "APAC"
+    ],
+    "rows": 3,
+    "types": {
+     "Product": "VARCHAR",
+     "NA": "BIGINT",
+     "EU": "BIGINT",
+     "APAC": "BIGINT"
+    },
+    "reader": "layout"
+   }
+  ],
+  "r6-release_date_then_years.csv": [
+   {
+    "sheet": "r6-release_date_then_years",
+    "columns": [
+     "State",
+     "2021",
+     "2022",
+     "2023"
+    ],
+    "rows": 10,
+    "types": {
+     "State": "VARCHAR",
+     "2021": "BIGINT",
+     "2022": "BIGINT",
+     "2023": "BIGINT"
+    },
+    "reader": "layout"
+   }
+  ],
+  "r6-scientific.csv": [
+   {
+    "sheet": "r6-scientific",
+    "columns": [
+     "Gene",
+     "p_value"
+    ],
+    "rows": 5,
+    "types": {
+     "Gene": "VARCHAR",
+     "p_value": "DOUBLE"
+    },
+    "reader": "layout"
+   }
+  ],
+  "r6-semicolon_decimal_comma_3dp.csv": [
+   {
+    "sheet": "r6-semicolon_decimal_comma_3dp",
+    "columns": [
+     "Name",
+     "Price",
+     "Qty"
+    ],
+    "rows": 3,
+    "types": {
+     "Name": "VARCHAR",
+     "Price": "DOUBLE",
+     "Qty": "BIGINT"
+    },
+    "reader": "layout"
+   }
+  ],
+  "r6-signed_percent.csv": [
+   {
+    "sheet": "r6-signed_percent",
+    "columns": [
+     "Region",
+     "Change"
+    ],
+    "rows": 5,
+    "types": {
+     "Region": "VARCHAR",
+     "Change": "DOUBLE"
+    },
+    "reader": "layout"
+   }
+  ],
+  "r6-single_column_numbers.csv": [
+   {
+    "sheet": "r6-single_column_numbers",
+    "columns": [
+     "Visitors"
+    ],
+    "rows": 4,
+    "types": {
+     "Visitors": "BIGINT"
+    },
+    "reader": "layout"
+   }
+  ],
+  "r6-single_column_text.csv": [
+   {
+    "sheet": "r6-single_column_text",
+    "columns": [
+     "Name"
+    ],
+    "rows": 4,
+    "types": {
+     "Name": "VARCHAR"
+    },
+    "reader": "layout"
+   }
+  ],
+  "r6-source_blank_then_years.csv": [
+   {
+    "sheet": "r6-source_blank_then_years",
+    "columns": [
+     "State",
+     "2021",
+     "2022",
+     "2023"
+    ],
+    "rows": 10,
+    "types": {
+     "State": "VARCHAR",
+     "2021": "BIGINT",
+     "2022": "BIGINT",
+     "2023": "BIGINT"
+    },
+    "reader": "layout"
+   }
+  ],
+  "r6-source_then_text_header.csv": [
+   {
+    "sheet": "r6-source_then_text_header",
+    "columns": [
+     "State",
+     "Population",
+     "Area",
+     "Density"
+    ],
+    "rows": 10,
+    "types": {
+     "State": "VARCHAR",
+     "Population": "BIGINT",
+     "Area": "BIGINT",
+     "Density": "BIGINT"
+    },
+    "reader": "layout"
+   }
+  ],
+  "r6-source_then_year_header.csv": [
+   {
+    "sheet": "r6-source_then_year_header",
+    "columns": [
+     "State",
+     "2021",
+     "2022",
+     "2023"
+    ],
+    "rows": 10,
+    "types": {
+     "State": "VARCHAR",
+     "2021": "BIGINT",
+     "2022": "BIGINT",
+     "2023": "BIGINT"
+    },
+    "reader": "layout"
+   }
+  ],
+  "r6-standings_w_l.csv": [
+   {
+    "sheet": "r6-standings_w_l",
+    "columns": [
+     "Team",
+     "W",
+     "L",
+     "PCT"
+    ],
+    "rows": 4,
+    "types": {
+     "Team": "VARCHAR",
+     "W": "BIGINT",
+     "L": "BIGINT",
+     "PCT": "DOUBLE"
+    },
+    "reader": "layout"
+   }
+  ],
+  "r6-title_release_date_then_years.csv": [
+   {
+    "sheet": "r6-title_release_date_then_years",
+    "columns": [
+     "State",
+     "2021",
+     "2022",
+     "2023"
+    ],
+    "rows": 10,
+    "types": {
+     "State": "VARCHAR",
+     "2021": "BIGINT",
+     "2022": "BIGINT",
+     "2023": "BIGINT"
+    },
+    "reader": "layout"
+   }
+  ],
+  "r6-title_then_standings.csv": [
+   {
+    "sheet": "r6-title_then_standings",
+    "columns": [
+     "Team",
+     "W",
+     "L"
+    ],
+    "rows": 3,
+    "types": {
+     "Team": "VARCHAR",
+     "W": "BIGINT",
+     "L": "BIGINT"
+    },
+    "reader": "layout"
+   }
+  ],
+  "r6-title_then_years.csv": [
+   {
+    "sheet": "r6-title_then_years",
+    "columns": [
+     "State",
+     "2021",
+     "2022",
+     "2023"
+    ],
+    "rows": 10,
+    "types": {
+     "State": "VARCHAR",
+     "2021": "BIGINT",
+     "2022": "BIGINT",
+     "2023": "BIGINT"
+    },
+    "reader": "layout"
+   }
+  ],
+  "r6-unicode_minus.csv": [
+   {
+    "sheet": "r6-unicode_minus",
+    "columns": [
+     "Region",
+     "Change"
+    ],
+    "rows": 4,
+    "types": {
+     "Region": "VARCHAR",
+     "Change": "DOUBLE"
+    },
+    "reader": "layout"
+   }
+  ],
+  "r6-units_then_years.csv": [
+   {
+    "sheet": "r6-units_then_years",
+    "columns": [
+     "State",
+     "2021",
+     "2022",
+     "2023"
+    ],
+    "rows": 10,
+    "types": {
+     "State": "VARCHAR",
+     "2021": "BIGINT",
+     "2022": "BIGINT",
+     "2023": "BIGINT"
+    },
+    "reader": "layout"
+   }
+  ],
+  "r6-worldbank_wdi.csv": [
+   {
+    "sheet": "r6-worldbank_wdi",
+    "columns": [
+     "Country Name",
+     "Country Code",
+     "Indicator Name",
+     "Indicator Code",
+     "1960",
+     "1961",
+     "1962",
+     "1963",
+     "1964",
+     "1965"
+    ],
+    "rows": 6,
+    "types": {
+     "Country Name": "VARCHAR",
+     "Country Code": "VARCHAR",
+     "Indicator Name": "VARCHAR",
+     "Indicator Code": "VARCHAR",
+     "1960": "BIGINT",
+     "1961": "BIGINT",
+     "1962": "BIGINT",
+     "1963": "BIGINT",
+     "1964": "BIGINT",
+     "1965": "BIGINT"
+    },
+    "reader": "layout"
+   }
+  ],
+  "r6-xy_coordinates.csv": [
+   {
+    "sheet": "r6-xy_coordinates",
+    "columns": [
+     "Point",
+     "X",
+     "Y"
+    ],
+    "rows": 4,
+    "types": {
+     "Point": "VARCHAR",
+     "X": "DOUBLE",
+     "Y": "DOUBLE"
+    },
+    "reader": "layout"
+   }
+  ],
+  "r7-population_over_2020.csv": [
+   {
+    "sheet": "r7-population_over_2020",
+    "columns": [
+     "Region",
+     "Population 2020",
+     "Area sq km",
+     "Density per sq km"
+    ],
+    "rows": 10,
+    "types": {
+     "Region": "VARCHAR",
+     "Population 2020": "BIGINT",
+     "Area sq km": "BIGINT",
+     "Density per sq km": "BIGINT"
+    },
+    "reader": "layout"
+   }
+  ],
+  "r7-release_date_over_three_columns.csv": [
+   {
+    "sheet": "r7-release_date_over_three_columns",
+    "columns": [
+     "State",
+     "2023",
+     "2024"
+    ],
+    "rows": 10,
+    "types": {
+     "State": "VARCHAR",
+     "2023": "BIGINT",
+     "2024": "BIGINT"
+    },
+    "reader": "layout"
+   }
+  ],
+  "r7-semicolon_decimal_points.csv": [
+   {
+    "sheet": "r7-semicolon_decimal_points",
+    "columns": [
+     "Item",
+     "Weight_kg",
+     "Price"
+    ],
+    "rows": 4,
+    "types": {
+     "Item": "VARCHAR",
+     "Weight_kg": "DOUBLE",
+     "Price": "DOUBLE"
+    },
+    "reader": "layout"
+   }
+  ],
+  "r7-semicolon_decimal_points_three_places.csv": [
+   {
+    "sheet": "r7-semicolon_decimal_points_three_places",
+    "columns": [
+     "Item",
+     "Weight_kg"
+    ],
+    "rows": 3,
+    "types": {
+     "Item": "VARCHAR",
+     "Weight_kg": "DOUBLE"
+    },
+    "reader": "layout"
+   }
+  ],
+  "r7-semicolon_dot_either_way.csv": [
+   {
+    "sheet": "r7-semicolon_dot_either_way",
+    "columns": [
+     "Item",
+     "Weight"
+    ],
+    "rows": 3,
+    "types": {
+     "Item": "VARCHAR",
+     "Weight": "DOUBLE"
+    },
+    "reader": "layout"
+   }
+  ],
+  "r7-semicolon_mixed_marks.csv": [
+   {
+    "sheet": "r7-semicolon_mixed_marks",
+    "columns": [
+     "Item",
+     "Weight"
+    ],
+    "rows": 3,
+    "types": {
+     "Item": "VARCHAR",
+     "Weight": "VARCHAR"
+    },
+    "reader": "layout"
+   }
+  ],
+  "r7-side_by_side_same_rows.csv": [
+   {
+    "sheet": "r7-side_by_side_same_rows",
+    "columns": [
+     "Item",
+     "Qty",
+     "Supplier",
+     "City"
+    ],
+    "rows": 5,
+    "types": {
+     "Item": "VARCHAR",
+     "Qty": "BIGINT",
+     "Supplier": "VARCHAR",
+     "City": "VARCHAR"
+    },
+    "reader": "layout"
+   }
+  ],
+  "r7-source_over_three_columns.csv": [
+   {
+    "sheet": "r7-source_over_three_columns",
+    "columns": [
+     "State",
+     "2023",
+     "2024"
+    ],
+    "rows": 10,
+    "types": {
+     "State": "VARCHAR",
+     "2023": "BIGINT",
+     "2024": "BIGINT"
+    },
+    "reader": "layout"
+   }
+  ],
+  "r7-source_over_two_columns.csv": [
+   {
+    "sheet": "r7-source_over_two_columns",
+    "columns": [
+     "Year",
+     "Value"
+    ],
+    "rows": 10,
+    "types": {
+     "Year": "BIGINT",
+     "Value": "DOUBLE"
+    },
+    "reader": "layout"
+   }
+  ],
+  "r7-spacer_before_a_notes_column.csv": [
+   {
+    "sheet": "r7-spacer_before_a_notes_column",
+    "columns": [
+     "Account",
+     "2024",
+     "2023",
+     "Comment"
+    ],
+    "rows": 6,
+    "types": {
+     "Account": "VARCHAR",
+     "2024": "BIGINT",
+     "2023": "BIGINT",
+     "Comment": "VARCHAR"
+    },
+    "reader": "layout"
+   }
+  ],
+  "r7-spacer_column_inside_one_table.csv": [
+   {
+    "sheet": "r7-spacer_column_inside_one_table",
+    "columns": [
+     "Employee",
+     "Score",
+     "Tickets",
+     "Manager",
+     "Status"
+    ],
+    "rows": 8,
+    "types": {
+     "Employee": "VARCHAR",
+     "Score": "BIGINT",
+     "Tickets": "BIGINT",
+     "Manager": "VARCHAR",
+     "Status": "VARCHAR"
+    },
+    "reader": "layout"
+   }
+  ],
+  "r7-table_number_row_over_five_columns.csv": [
+   {
+    "sheet": "r7-table_number_row_over_five_columns",
+    "columns": [
+     "State",
+     "2020",
+     "2021",
+     "2022",
+     "2023"
+    ],
+    "rows": 10,
+    "types": {
+     "State": "VARCHAR",
+     "2020": "BIGINT",
+     "2021": "BIGINT",
+     "2022": "BIGINT",
+     "2023": "BIGINT"
+    },
+    "reader": "layout"
+   }
+  ],
+  "r7-table_number_row_over_four_columns.csv": [
+   {
+    "sheet": "r7-table_number_row_over_four_columns",
+    "columns": [
+     "State",
+     "2021",
+     "2022",
+     "2023"
+    ],
+    "rows": 10,
+    "types": {
+     "State": "VARCHAR",
+     "2021": "BIGINT",
+     "2022": "BIGINT",
+     "2023": "BIGINT"
+    },
+    "reader": "layout"
+   }
+  ],
+  "r7-table_number_row_over_three_columns.csv": [
+   {
+    "sheet": "r7-table_number_row_over_three_columns",
+    "columns": [
+     "State",
+     "2022",
+     "2023"
+    ],
+    "rows": 10,
+    "types": {
+     "State": "VARCHAR",
+     "2022": "BIGINT",
+     "2023": "BIGINT"
+    },
+    "reader": "layout"
+   }
+  ],
+  "r7-units_over_three_columns.csv": [
+   {
+    "sheet": "r7-units_over_three_columns",
+    "columns": [
+     "State",
+     "2023",
+     "2024"
+    ],
+    "rows": 10,
+    "types": {
+     "State": "VARCHAR",
+     "2023": "BIGINT",
+     "2024": "BIGINT"
+    },
+    "reader": "layout"
+   }
+  ],
+  "r7-units_row_with_a_year.csv": [
+   {
+    "sheet": "r7-units_row_with_a_year",
+    "columns": [
+     "County",
+     "Admissions n",
+     "Rate per 100k",
+     "Beds 2023"
+    ],
+    "rows": 8,
+    "types": {
+     "County": "VARCHAR",
+     "Admissions n": "BIGINT",
+     "Rate per 100k": "DOUBLE",
+     "Beds 2023": "BIGINT"
+    },
+    "reader": "layout"
+   }
+  ],
+  "r7-units_row_with_a_year_titled.csv": [
+   {
+    "sheet": "r7-units_row_with_a_year_titled",
+    "columns": [
+     "County",
+     "Admissions n",
+     "Rate per 100k",
+     "Beds 2023"
+    ],
+    "rows": 8,
+    "types": {
+     "County": "VARCHAR",
+     "Admissions n": "BIGINT",
+     "Rate per 100k": "DOUBLE",
+     "Beds 2023": "BIGINT"
+    },
+    "reader": "layout"
+   }
+  ],
+  "r7-unknown_key_over_text_header.csv": [
+   {
+    "sheet": "r7-unknown_key_over_text_header",
+    "columns": [
+     "State",
+     "Workers",
+     "Openings",
+     "Hires"
+    ],
+    "rows": 10,
+    "types": {
+     "State": "VARCHAR",
+     "Workers": "BIGINT",
+     "Openings": "BIGINT",
+     "Hires": "BIGINT"
+    },
+    "reader": "layout"
+   }
+  ],
+  "r8-geography_over_two_years.csv": [
+   {
+    "sheet": "r8-geography_over_two_years",
+    "columns": [
+     "Geography",
+     "2022",
+     "2023"
+    ],
+    "rows": 6,
+    "types": {
+     "Geography": "VARCHAR",
+     "2022": "BIGINT",
+     "2023": "BIGINT"
+    },
+    "reader": "layout"
+   }
+  ],
+  "r8-geography_over_two_years_titled.csv": [
+   {
+    "sheet": "r8-geography_over_two_years_titled",
+    "columns": [
+     "Geography",
+     "2022",
+     "2023"
+    ],
+    "rows": 6,
+    "types": {
+     "Geography": "VARCHAR",
+     "2022": "BIGINT",
+     "2023": "BIGINT"
+    },
+    "reader": "layout"
+   }
+  ],
+  "r8-semicolon_mixed_locales.csv": [
+   {
+    "sheet": "r8-semicolon_mixed_locales",
+    "columns": [
+     "Item",
+     "Price_eur",
+     "Price_usd",
+     "Units"
+    ],
+    "rows": 3,
+    "types": {
+     "Item": "VARCHAR",
+     "Price_eur": "DOUBLE",
+     "Price_usd": "DOUBLE",
+     "Units": "BIGINT"
+    },
+    "reader": "layout"
+   }
+  ],
+  "r8-semicolon_thousands_commas_point_file.csv": [
+   {
+    "sheet": "r8-semicolon_thousands_commas_point_file",
+    "columns": [
+     "Item",
+     "Price",
+     "Units"
+    ],
+    "rows": 3,
+    "types": {
+     "Item": "VARCHAR",
+     "Price": "DOUBLE",
+     "Units": "BIGINT"
+    },
+    "reader": "layout"
+   }
+  ],
+  "r8-source_over_two_years.csv": [
+   {
+    "sheet": "r8-source_over_two_years",
+    "columns": [
+     "Source",
+     "2023",
+     "2024"
+    ],
+    "rows": 5,
+    "types": {
+     "Source": "VARCHAR",
+     "2023": "BIGINT",
+     "2024": "BIGINT"
+    },
+    "reader": "layout"
+   }
+  ],
+  "r8-source_over_two_years_titled.csv": [
+   {
+    "sheet": "r8-source_over_two_years_titled",
+    "columns": [
+     "Source",
+     "2020",
+     "2021"
+    ],
+    "rows": 5,
+    "types": {
+     "Source": "VARCHAR",
+     "2020": "BIGINT",
+     "2021": "BIGINT"
+    },
+    "reader": "layout"
+   }
+  ],
+  "r8-spacer_sparse_right_block.csv": [
+   {
+    "sheet": "r8-spacer_sparse_right_block",
+    "columns": [
+     "Employee",
+     "Score",
+     "Tickets",
+     "Manager",
+     "Status"
+    ],
+    "rows": 8,
+    "types": {
+     "Employee": "VARCHAR",
+     "Score": "BIGINT",
+     "Tickets": "BIGINT",
+     "Manager": "VARCHAR",
+     "Status": "VARCHAR"
+    },
+    "reader": "layout"
+   }
+  ],
+  "supp-lt5-0.csv": [
+   {
+    "sheet": "supp-lt5-0",
+    "columns": [
+     "County",
+     "Cases"
+    ],
+    "rows": 40,
+    "types": {
+     "County": "VARCHAR",
+     "Cases": "BIGINT"
+    },
+    "reader": "layout"
+   }
+  ],
+  "supp-lt5-1.csv": [
+   {
+    "sheet": "supp-lt5-1",
+    "columns": [
+     "County",
+     "Cases"
+    ],
+    "rows": 40,
+    "types": {
+     "County": "VARCHAR",
+     "Cases": "BIGINT"
+    },
+    "reader": "layout"
+   }
+  ],
+  "supp-lt5-2.csv": [
+   {
+    "sheet": "supp-lt5-2",
+    "columns": [
+     "County",
+     "Cases"
+    ],
+    "rows": 40,
+    "types": {
+     "County": "VARCHAR",
+     "Cases": "BIGINT"
+    },
+    "reader": "layout"
+   }
+  ],
+  "supp-lt5-3.csv": [
+   {
+    "sheet": "supp-lt5-3",
+    "columns": [
+     "County",
+     "Cases"
+    ],
+    "rows": 40,
+    "types": {
+     "County": "VARCHAR",
+     "Cases": "BIGINT"
+    },
+    "reader": "layout"
+   }
+  ],
+  "supp-lt5-4.csv": [
+   {
+    "sheet": "supp-lt5-4",
+    "columns": [
+     "County",
+     "Cases"
+    ],
+    "rows": 40,
+    "types": {
+     "County": "VARCHAR",
+     "Cases": "BIGINT"
+    },
+    "reader": "layout"
+   }
+  ],
+  "supp-lt5-5.csv": [
+   {
+    "sheet": "supp-lt5-5",
+    "columns": [
+     "County",
+     "Cases"
+    ],
+    "rows": 40,
+    "types": {
+     "County": "VARCHAR",
+     "Cases": "BIGINT"
+    },
+    "reader": "layout"
+   }
+  ],
+  "supp-lt5-6.csv": [
+   {
+    "sheet": "supp-lt5-6",
+    "columns": [
+     "County",
+     "Cases"
+    ],
+    "rows": 40,
+    "types": {
+     "County": "VARCHAR",
+     "Cases": "BIGINT"
+    },
+    "reader": "layout"
+   }
+  ],
+  "supp-lt5-7.csv": [
+   {
+    "sheet": "supp-lt5-7",
+    "columns": [
+     "County",
+     "Cases"
+    ],
+    "rows": 40,
+    "types": {
+     "County": "VARCHAR",
+     "Cases": "BIGINT"
+    },
+    "reader": "layout"
+   }
+  ],
+  "supp-lt5-8.csv": [
+   {
+    "sheet": "supp-lt5-8",
+    "columns": [
+     "County",
+     "Cases"
+    ],
+    "rows": 40,
+    "types": {
+     "County": "VARCHAR",
+     "Cases": "BIGINT"
+    },
+    "reader": "layout"
+   }
+  ],
+  "supp-lt5-9.csv": [
+   {
+    "sheet": "supp-lt5-9",
+    "columns": [
+     "County",
+     "Cases"
+    ],
+    "rows": 40,
+    "types": {
+     "County": "VARCHAR",
+     "Cases": "BIGINT"
+    },
+    "reader": "layout"
+   }
+  ],
+  "supp-q-0.csv": [
+   {
+    "sheet": "supp-q-0",
+    "columns": [
+     "County",
+     "Cases"
+    ],
+    "rows": 40,
+    "types": {
+     "County": "VARCHAR",
+     "Cases": "BIGINT"
+    },
+    "reader": "layout"
+   }
+  ],
+  "supp-q-1.csv": [
+   {
+    "sheet": "supp-q-1",
+    "columns": [
+     "County",
+     "Cases"
+    ],
+    "rows": 40,
+    "types": {
+     "County": "VARCHAR",
+     "Cases": "BIGINT"
+    },
+    "reader": "layout"
+   }
+  ],
+  "supp-q-2.csv": [
+   {
+    "sheet": "supp-q-2",
+    "columns": [
+     "County",
+     "Cases"
+    ],
+    "rows": 40,
+    "types": {
+     "County": "VARCHAR",
+     "Cases": "BIGINT"
+    },
+    "reader": "layout"
+   }
+  ],
+  "supp-q-3.csv": [
+   {
+    "sheet": "supp-q-3",
+    "columns": [
+     "County",
+     "Cases"
+    ],
+    "rows": 40,
+    "types": {
+     "County": "VARCHAR",
+     "Cases": "BIGINT"
+    },
+    "reader": "layout"
+   }
+  ],
+  "supp-q-4.csv": [
+   {
+    "sheet": "supp-q-4",
+    "columns": [
+     "County",
+     "Cases"
+    ],
+    "rows": 40,
+    "types": {
+     "County": "VARCHAR",
+     "Cases": "BIGINT"
+    },
+    "reader": "layout"
+   }
+  ],
+  "supp-q-5.csv": [
+   {
+    "sheet": "supp-q-5",
+    "columns": [
+     "County",
+     "Cases"
+    ],
+    "rows": 40,
+    "types": {
+     "County": "VARCHAR",
+     "Cases": "BIGINT"
+    },
+    "reader": "layout"
+   }
+  ],
+  "supp-q-6.csv": [
+   {
+    "sheet": "supp-q-6",
+    "columns": [
+     "County",
+     "Cases"
+    ],
+    "rows": 40,
+    "types": {
+     "County": "VARCHAR",
+     "Cases": "BIGINT"
+    },
+    "reader": "layout"
+   }
+  ],
+  "supp-q-7.csv": [
+   {
+    "sheet": "supp-q-7",
+    "columns": [
+     "County",
+     "Cases"
+    ],
+    "rows": 40,
+    "types": {
+     "County": "VARCHAR",
+     "Cases": "BIGINT"
+    },
+    "reader": "layout"
+   }
+  ],
+  "supp-q-8.csv": [
+   {
+    "sheet": "supp-q-8",
+    "columns": [
+     "County",
+     "Cases"
+    ],
+    "rows": 40,
+    "types": {
+     "County": "VARCHAR",
+     "Cases": "BIGINT"
+    },
+    "reader": "layout"
+   }
+  ],
+  "supp-q-9.csv": [
+   {
+    "sheet": "supp-q-9",
+    "columns": [
+     "County",
+     "Cases"
+    ],
+    "rows": 40,
+    "types": {
+     "County": "VARCHAR",
+     "Cases": "BIGINT"
+    },
+    "reader": "layout"
+   }
+  ],
+  "supp-S-0.csv": [
+   {
+    "sheet": "supp-S-0",
+    "columns": [
+     "County",
+     "Cases"
+    ],
+    "rows": 40,
+    "types": {
+     "County": "VARCHAR",
+     "Cases": "BIGINT"
+    },
+    "reader": "layout"
+   }
+  ],
+  "supp-S-1.csv": [
+   {
+    "sheet": "supp-S-1",
+    "columns": [
+     "County",
+     "Cases"
+    ],
+    "rows": 40,
+    "types": {
+     "County": "VARCHAR",
+     "Cases": "BIGINT"
+    },
+    "reader": "layout"
+   }
+  ],
+  "supp-S-2.csv": [
+   {
+    "sheet": "supp-S-2",
+    "columns": [
+     "County",
+     "Cases"
+    ],
+    "rows": 40,
+    "types": {
+     "County": "VARCHAR",
+     "Cases": "BIGINT"
+    },
+    "reader": "layout"
+   }
+  ],
+  "supp-S-3.csv": [
+   {
+    "sheet": "supp-S-3",
+    "columns": [
+     "County",
+     "Cases"
+    ],
+    "rows": 40,
+    "types": {
+     "County": "VARCHAR",
+     "Cases": "BIGINT"
+    },
+    "reader": "layout"
+   }
+  ],
+  "supp-S-4.csv": [
+   {
+    "sheet": "supp-S-4",
+    "columns": [
+     "County",
+     "Cases"
+    ],
+    "rows": 40,
+    "types": {
+     "County": "VARCHAR",
+     "Cases": "BIGINT"
+    },
+    "reader": "layout"
+   }
+  ],
+  "supp-S-5.csv": [
+   {
+    "sheet": "supp-S-5",
+    "columns": [
+     "County",
+     "Cases"
+    ],
+    "rows": 40,
+    "types": {
+     "County": "VARCHAR",
+     "Cases": "BIGINT"
+    },
+    "reader": "layout"
+   }
+  ],
+  "supp-S-6.csv": [
+   {
+    "sheet": "supp-S-6",
+    "columns": [
+     "County",
+     "Cases"
+    ],
+    "rows": 40,
+    "types": {
+     "County": "VARCHAR",
+     "Cases": "BIGINT"
+    },
+    "reader": "layout"
+   }
+  ],
+  "supp-S-7.csv": [
+   {
+    "sheet": "supp-S-7",
+    "columns": [
+     "County",
+     "Cases"
+    ],
+    "rows": 40,
+    "types": {
+     "County": "VARCHAR",
+     "Cases": "BIGINT"
+    },
+    "reader": "layout"
+   }
+  ],
+  "supp-S-8.csv": [
+   {
+    "sheet": "supp-S-8",
+    "columns": [
+     "County",
+     "Cases"
+    ],
+    "rows": 40,
+    "types": {
+     "County": "VARCHAR",
+     "Cases": "BIGINT"
+    },
+    "reader": "layout"
+   }
+  ],
+  "supp-S-9.csv": [
+   {
+    "sheet": "supp-S-9",
+    "columns": [
+     "County",
+     "Cases"
+    ],
+    "rows": 40,
+    "types": {
+     "County": "VARCHAR",
+     "Cases": "BIGINT"
+    },
+    "reader": "layout"
+   }
+  ],
+  "supp-star-0.csv": [
+   {
+    "sheet": "supp-star-0",
+    "columns": [
+     "County",
+     "Cases"
+    ],
+    "rows": 40,
+    "types": {
+     "County": "VARCHAR",
+     "Cases": "BIGINT"
+    },
+    "reader": "layout"
+   }
+  ],
+  "supp-star-1.csv": [
+   {
+    "sheet": "supp-star-1",
+    "columns": [
+     "County",
+     "Cases"
+    ],
+    "rows": 40,
+    "types": {
+     "County": "VARCHAR",
+     "Cases": "BIGINT"
+    },
+    "reader": "layout"
+   }
+  ],
+  "supp-star-2.csv": [
+   {
+    "sheet": "supp-star-2",
+    "columns": [
+     "County",
+     "Cases"
+    ],
+    "rows": 40,
+    "types": {
+     "County": "VARCHAR",
+     "Cases": "BIGINT"
+    },
+    "reader": "layout"
+   }
+  ],
+  "supp-star-3.csv": [
+   {
+    "sheet": "supp-star-3",
+    "columns": [
+     "County",
+     "Cases"
+    ],
+    "rows": 40,
+    "types": {
+     "County": "VARCHAR",
+     "Cases": "BIGINT"
+    },
+    "reader": "layout"
+   }
+  ],
+  "supp-star-4.csv": [
+   {
+    "sheet": "supp-star-4",
+    "columns": [
+     "County",
+     "Cases"
+    ],
+    "rows": 40,
+    "types": {
+     "County": "VARCHAR",
+     "Cases": "BIGINT"
+    },
+    "reader": "layout"
+   }
+  ],
+  "supp-star-5.csv": [
+   {
+    "sheet": "supp-star-5",
+    "columns": [
+     "County",
+     "Cases"
+    ],
+    "rows": 40,
+    "types": {
+     "County": "VARCHAR",
+     "Cases": "BIGINT"
+    },
+    "reader": "layout"
+   }
+  ],
+  "supp-star-6.csv": [
+   {
+    "sheet": "supp-star-6",
+    "columns": [
+     "County",
+     "Cases"
+    ],
+    "rows": 40,
+    "types": {
+     "County": "VARCHAR",
+     "Cases": "BIGINT"
+    },
+    "reader": "layout"
+   }
+  ],
+  "supp-star-7.csv": [
+   {
+    "sheet": "supp-star-7",
+    "columns": [
+     "County",
+     "Cases"
+    ],
+    "rows": 40,
+    "types": {
+     "County": "VARCHAR",
+     "Cases": "BIGINT"
+    },
+    "reader": "layout"
+   }
+  ],
+  "supp-star-8.csv": [
+   {
+    "sheet": "supp-star-8",
+    "columns": [
+     "County",
+     "Cases"
+    ],
+    "rows": 40,
+    "types": {
+     "County": "VARCHAR",
+     "Cases": "BIGINT"
+    },
+    "reader": "layout"
+   }
+  ],
+  "supp-star-9.csv": [
+   {
+    "sheet": "supp-star-9",
+    "columns": [
+     "County",
+     "Cases"
+    ],
+    "rows": 40,
+    "types": {
+     "County": "VARCHAR",
+     "Cases": "BIGINT"
+    },
+    "reader": "layout"
+   }
+  ],
+  "supp-two_columns.csv": [
+   {
+    "sheet": "supp-two_columns",
+    "columns": [
+     "County",
+     "Cases",
+     "Deaths"
+    ],
+    "rows": 40,
+    "types": {
+     "County": "VARCHAR",
+     "Cases": "BIGINT",
+     "Deaths": "BIGINT"
+    },
+    "reader": "layout"
+   }
+  ],
+  "supp-word-0.csv": [
+   {
+    "sheet": "supp-word-0",
+    "columns": [
+     "County",
+     "Cases"
+    ],
+    "rows": 40,
+    "types": {
+     "County": "VARCHAR",
+     "Cases": "BIGINT"
+    },
+    "reader": "layout"
+   }
+  ],
+  "supp-word-1.csv": [
+   {
+    "sheet": "supp-word-1",
+    "columns": [
+     "County",
+     "Cases"
+    ],
+    "rows": 40,
+    "types": {
+     "County": "VARCHAR",
+     "Cases": "BIGINT"
+    },
+    "reader": "layout"
+   }
+  ],
+  "supp-word-2.csv": [
+   {
+    "sheet": "supp-word-2",
+    "columns": [
+     "County",
+     "Cases"
+    ],
+    "rows": 40,
+    "types": {
+     "County": "VARCHAR",
+     "Cases": "BIGINT"
+    },
+    "reader": "layout"
+   }
+  ],
+  "supp-word-3.csv": [
+   {
+    "sheet": "supp-word-3",
+    "columns": [
+     "County",
+     "Cases"
+    ],
+    "rows": 40,
+    "types": {
+     "County": "VARCHAR",
+     "Cases": "BIGINT"
+    },
+    "reader": "layout"
+   }
+  ],
+  "supp-word-4.csv": [
+   {
+    "sheet": "supp-word-4",
+    "columns": [
+     "County",
+     "Cases"
+    ],
+    "rows": 40,
+    "types": {
+     "County": "VARCHAR",
+     "Cases": "BIGINT"
+    },
+    "reader": "layout"
+   }
+  ],
+  "supp-word-5.csv": [
+   {
+    "sheet": "supp-word-5",
+    "columns": [
+     "County",
+     "Cases"
+    ],
+    "rows": 40,
+    "types": {
+     "County": "VARCHAR",
+     "Cases": "BIGINT"
+    },
+    "reader": "layout"
+   }
+  ],
+  "supp-word-6.csv": [
+   {
+    "sheet": "supp-word-6",
+    "columns": [
+     "County",
+     "Cases"
+    ],
+    "rows": 40,
+    "types": {
+     "County": "VARCHAR",
+     "Cases": "BIGINT"
+    },
+    "reader": "layout"
+   }
+  ],
+  "supp-word-7.csv": [
+   {
+    "sheet": "supp-word-7",
+    "columns": [
+     "County",
+     "Cases"
+    ],
+    "rows": 40,
+    "types": {
+     "County": "VARCHAR",
+     "Cases": "BIGINT"
+    },
+    "reader": "layout"
+   }
+  ],
+  "supp-word-8.csv": [
+   {
+    "sheet": "supp-word-8",
+    "columns": [
+     "County",
+     "Cases"
+    ],
+    "rows": 40,
+    "types": {
+     "County": "VARCHAR",
+     "Cases": "BIGINT"
+    },
+    "reader": "layout"
+   }
+  ],
+  "supp-word-9.csv": [
+   {
+    "sheet": "supp-word-9",
+    "columns": [
+     "County",
+     "Cases"
+    ],
+    "rows": 40,
+    "types": {
+     "County": "VARCHAR",
+     "Cases": "BIGINT"
+    },
+    "reader": "layout"
+   }
+  ]
+ },
+ "samples": {
+  "csv/cdc-leading-causes-of-death-us-1999-2017.csv": [
+   {
+    "sheet": "cdc-leading-causes-of-death-us-1999-2017",
+    "columns": [
+     "Year",
+     "113 Cause Name",
+     "Cause Name",
+     "State",
+     "Deaths",
+     "Age-adjusted Death Rate"
+    ],
+    "rows": 10868,
+    "types": {
+     "Year": "BIGINT",
+     "113 Cause Name": "VARCHAR",
+     "Cause Name": "VARCHAR",
+     "State": "VARCHAR",
+     "Deaths": "BIGINT",
+     "Age-adjusted Death Rate": "DOUBLE"
+    },
+    "reader": "layout"
+   }
+  ],
+  "csv/noaa-us-billion-dollar-disasters-1980-2024.csv": [
+   {
+    "sheet": "noaa-us-billion-dollar-disasters-1980-2024",
+    "columns": [
+     "Name",
+     "Disaster",
+     "Begin Date",
+     "End Date",
+     "CPI-Adjusted Cost (USD millions; 2024 dollars)",
+     "Unadjusted Cost (USD millions)",
+     "Deaths"
+    ],
+    "rows": 403,
+    "types": {
+     "Name": "VARCHAR",
+     "Disaster": "VARCHAR",
+     "Begin Date": "DATE",
+     "End Date": "DATE",
+     "CPI-Adjusted Cost (USD millions; 2024 dollars)": "DOUBLE",
+     "Unadjusted Cost (USD millions)": "DOUBLE",
+     "Deaths": "BIGINT"
+    },
+    "reader": "layout"
+   }
+  ],
+  "csv/usgs-earthquakes-m5-plus-2025.csv": [
+   {
+    "sheet": "usgs-earthquakes-m5-plus-2025",
+    "columns": [
+     "time",
+     "latitude",
+     "longitude",
+     "depth",
+     "mag",
+     "magType",
+     "nst",
+     "gap",
+     "dmin",
+     "rms",
+     "net",
+     "id",
+     "updated",
+     "place",
+     "type",
+     "horizontalError",
+     "depthError",
+     "magError",
+     "magNst",
+     "status",
+     "locationSource",
+     "magSource"
+    ],
+    "rows": 2130,
+    "types": {
+     "time": "TIMESTAMP",
+     "latitude": "DOUBLE",
+     "longitude": "DOUBLE",
+     "depth": "DOUBLE",
+     "mag": "DOUBLE",
+     "magType": "VARCHAR",
+     "nst": "BIGINT",
+     "gap": "DOUBLE",
+     "dmin": "DOUBLE",
+     "rms": "DOUBLE",
+     "net": "VARCHAR",
+     "id": "VARCHAR",
+     "updated": "TIMESTAMP",
+     "place": "VARCHAR",
+     "type": "VARCHAR",
+     "horizontalError": "DOUBLE",
+     "depthError": "DOUBLE",
+     "magError": "DOUBLE",
+     "magNst": "BIGINT",
+     "status": "VARCHAR",
+     "locationSource": "VARCHAR",
+     "magSource": "VARCHAR"
+    },
+    "reader": "layout"
+   }
+  ],
+  "csv/world-bank-gdp-per-capita-internet-use-2000-2024.csv": [
+   {
+    "sheet": "world-bank-gdp-per-capita-internet-use-2000-2024",
+    "columns": [
+     "country",
+     "iso3_code",
+     "region",
+     "income_group",
+     "year",
+     "gdp_per_capita_current_usd",
+     "internet_users_pct_of_population"
+    ],
+    "rows": 5292,
+    "types": {
+     "country": "VARCHAR",
+     "iso3_code": "VARCHAR",
+     "region": "VARCHAR",
+     "income_group": "VARCHAR",
+     "year": "BIGINT",
+     "gdp_per_capita_current_usd": "DOUBLE",
+     "internet_users_pct_of_population": "DOUBLE"
+    },
+    "reader": "layout"
+   }
+  ],
+  "excel/census-monthly-retail-sales-1992-2026.xlsx": [
+   {
+    "sheet": "2026",
+    "columns": [
+     "Section",
+     "NAICS Code",
+     "Kind of Business",
+     "Jan. 2026",
+     "Feb. 2026",
+     "Mar. 2026",
+     "Apr. 2026",
+     "May 2026",
+     "Jun. 2026",
+     "Jul. 2026",
+     "Aug. 2026(p)",
+     "CY CUM",
+     "PY CUM"
+    ],
+    "rows": 102,
+    "types": {
+     "Section": "VARCHAR",
+     "NAICS Code": "VARCHAR",
+     "Kind of Business": "VARCHAR",
+     "Jan. 2026": "BIGINT",
+     "Feb. 2026": "BIGINT",
+     "Mar. 2026": "BIGINT",
+     "Apr. 2026": "BIGINT",
+     "May 2026": "BIGINT",
+     "Jun. 2026": "BIGINT",
+     "Jul. 2026": "BIGINT",
+     "Aug. 2026(p)": "BIGINT",
+     "CY CUM": "BIGINT",
+     "PY CUM": "BIGINT"
+    },
+    "reader": "layout"
+   },
+   {
+    "sheet": "2025",
+    "columns": [
+     "Section",
+     "NAICS Code",
+     "Kind of Business",
+     "Jan. 2025",
+     "Feb. 2025",
+     "Mar. 2025",
+     "Apr. 2025",
+     "May 2025",
+     "Jun. 2025",
+     "Jul. 2025",
+     "Aug. 2025",
+     "Sep. 2025",
+     "Oct. 2025",
+     "Nov. 2025",
+     "Dec. 2025",
+     "TOTAL"
+    ],
+    "rows": 102,
+    "types": {
+     "Section": "VARCHAR",
+     "NAICS Code": "VARCHAR",
+     "Kind of Business": "VARCHAR",
+     "Jan. 2025": "BIGINT",
+     "Feb. 2025": "BIGINT",
+     "Mar. 2025": "BIGINT",
+     "Apr. 2025": "BIGINT",
+     "May 2025": "BIGINT",
+     "Jun. 2025": "BIGINT",
+     "Jul. 2025": "BIGINT",
+     "Aug. 2025": "BIGINT",
+     "Sep. 2025": "BIGINT",
+     "Oct. 2025": "BIGINT",
+     "Nov. 2025": "BIGINT",
+     "Dec. 2025": "BIGINT",
+     "TOTAL": "BIGINT"
+    },
+    "reader": "layout"
+   },
+   {
+    "sheet": "2024",
+    "columns": [
+     "Section",
+     "NAICS Code",
+     "Kind of Business",
+     "Jan. 2024",
+     "Feb. 2024",
+     "Mar. 2024",
+     "Apr. 2024",
+     "May 2024",
+     "Jun. 2024",
+     "Jul. 2024",
+     "Aug. 2024",
+     "Sep. 2024",
+     "Oct. 2024",
+     "Nov. 2024",
+     "Dec. 2024",
+     "TOTAL"
+    ],
+    "rows": 102,
+    "types": {
+     "Section": "VARCHAR",
+     "NAICS Code": "VARCHAR",
+     "Kind of Business": "VARCHAR",
+     "Jan. 2024": "BIGINT",
+     "Feb. 2024": "BIGINT",
+     "Mar. 2024": "BIGINT",
+     "Apr. 2024": "BIGINT",
+     "May 2024": "BIGINT",
+     "Jun. 2024": "BIGINT",
+     "Jul. 2024": "BIGINT",
+     "Aug. 2024": "BIGINT",
+     "Sep. 2024": "BIGINT",
+     "Oct. 2024": "BIGINT",
+     "Nov. 2024": "BIGINT",
+     "Dec. 2024": "BIGINT",
+     "TOTAL": "BIGINT"
+    },
+    "reader": "layout"
+   },
+   {
+    "sheet": "2023",
+    "columns": [
+     "Section",
+     "NAICS Code",
+     "Kind of Business",
+     "Jan. 2023",
+     "Feb. 2023",
+     "Mar. 2023",
+     "Apr. 2023",
+     "May 2023",
+     "Jun. 2023",
+     "Jul. 2023",
+     "Aug. 2023",
+     "Sep. 2023",
+     "Oct. 2023",
+     "Nov. 2023",
+     "Dec. 2023",
+     "TOTAL"
+    ],
+    "rows": 102,
+    "types": {
+     "Section": "VARCHAR",
+     "NAICS Code": "VARCHAR",
+     "Kind of Business": "VARCHAR",
+     "Jan. 2023": "BIGINT",
+     "Feb. 2023": "BIGINT",
+     "Mar. 2023": "BIGINT",
+     "Apr. 2023": "BIGINT",
+     "May 2023": "BIGINT",
+     "Jun. 2023": "BIGINT",
+     "Jul. 2023": "BIGINT",
+     "Aug. 2023": "BIGINT",
+     "Sep. 2023": "BIGINT",
+     "Oct. 2023": "BIGINT",
+     "Nov. 2023": "BIGINT",
+     "Dec. 2023": "BIGINT",
+     "TOTAL": "BIGINT"
+    },
+    "reader": "layout"
+   },
+   {
+    "sheet": "2022",
+    "columns": [
+     "Section",
+     "NAICS Code",
+     "Kind of Business",
+     "Jan. 2022",
+     "Feb. 2022",
+     "Mar. 2022",
+     "Apr. 2022",
+     "May 2022",
+     "Jun. 2022",
+     "Jul. 2022",
+     "Aug. 2022",
+     "Sep. 2022",
+     "Oct. 2022",
+     "Nov. 2022",
+     "Dec. 2022",
+     "TOTAL"
+    ],
+    "rows": 102,
+    "types": {
+     "Section": "VARCHAR",
+     "NAICS Code": "VARCHAR",
+     "Kind of Business": "VARCHAR",
+     "Jan. 2022": "BIGINT",
+     "Feb. 2022": "BIGINT",
+     "Mar. 2022": "BIGINT",
+     "Apr. 2022": "BIGINT",
+     "May 2022": "BIGINT",
+     "Jun. 2022": "BIGINT",
+     "Jul. 2022": "BIGINT",
+     "Aug. 2022": "BIGINT",
+     "Sep. 2022": "BIGINT",
+     "Oct. 2022": "BIGINT",
+     "Nov. 2022": "BIGINT",
+     "Dec. 2022": "BIGINT",
+     "TOTAL": "BIGINT"
+    },
+    "reader": "layout"
+   },
+   {
+    "sheet": "2021",
+    "columns": [
+     "Section",
+     "NAICS Code",
+     "Kind of Business",
+     "Jan. 2021",
+     "Feb. 2021",
+     "Mar. 2021",
+     "Apr. 2021",
+     "May 2021",
+     "Jun. 2021",
+     "Jul. 2021",
+     "Aug. 2021",
+     "Sep. 2021",
+     "Oct. 2021",
+     "Nov. 2021",
+     "Dec. 2021",
+     "TOTAL"
+    ],
+    "rows": 102,
+    "types": {
+     "Section": "VARCHAR",
+     "NAICS Code": "VARCHAR",
+     "Kind of Business": "VARCHAR",
+     "Jan. 2021": "BIGINT",
+     "Feb. 2021": "BIGINT",
+     "Mar. 2021": "BIGINT",
+     "Apr. 2021": "BIGINT",
+     "May 2021": "BIGINT",
+     "Jun. 2021": "BIGINT",
+     "Jul. 2021": "BIGINT",
+     "Aug. 2021": "BIGINT",
+     "Sep. 2021": "BIGINT",
+     "Oct. 2021": "BIGINT",
+     "Nov. 2021": "BIGINT",
+     "Dec. 2021": "BIGINT",
+     "TOTAL": "BIGINT"
+    },
+    "reader": "layout"
+   },
+   {
+    "sheet": "2020",
+    "columns": [
+     "Section",
+     "NAICS Code",
+     "Kind of Business",
+     "Jan. 2020",
+     "Feb. 2020",
+     "Mar. 2020",
+     "Apr. 2020",
+     "May 2020",
+     "Jun. 2020",
+     "Jul. 2020",
+     "Aug. 2020",
+     "Sep. 2020",
+     "Oct. 2020",
+     "Nov. 2020",
+     "Dec. 2020",
+     "TOTAL"
+    ],
+    "rows": 102,
+    "types": {
+     "Section": "VARCHAR",
+     "NAICS Code": "VARCHAR",
+     "Kind of Business": "VARCHAR",
+     "Jan. 2020": "BIGINT",
+     "Feb. 2020": "BIGINT",
+     "Mar. 2020": "BIGINT",
+     "Apr. 2020": "BIGINT",
+     "May 2020": "BIGINT",
+     "Jun. 2020": "BIGINT",
+     "Jul. 2020": "BIGINT",
+     "Aug. 2020": "BIGINT",
+     "Sep. 2020": "BIGINT",
+     "Oct. 2020": "BIGINT",
+     "Nov. 2020": "BIGINT",
+     "Dec. 2020": "BIGINT",
+     "TOTAL": "BIGINT"
+    },
+    "reader": "layout"
+   },
+   {
+    "sheet": "2019",
+    "columns": [
+     "Section",
+     "NAICS Code",
+     "Kind of Business",
+     "Jan. 2019",
+     "Feb. 2019",
+     "Mar. 2019",
+     "Apr. 2019",
+     "May 2019",
+     "Jun. 2019",
+     "Jul. 2019",
+     "Aug. 2019",
+     "Sep. 2019",
+     "Oct. 2019",
+     "Nov. 2019",
+     "Dec. 2019",
+     "TOTAL"
+    ],
+    "rows": 102,
+    "types": {
+     "Section": "VARCHAR",
+     "NAICS Code": "VARCHAR",
+     "Kind of Business": "VARCHAR",
+     "Jan. 2019": "BIGINT",
+     "Feb. 2019": "BIGINT",
+     "Mar. 2019": "BIGINT",
+     "Apr. 2019": "BIGINT",
+     "May 2019": "BIGINT",
+     "Jun. 2019": "BIGINT",
+     "Jul. 2019": "BIGINT",
+     "Aug. 2019": "BIGINT",
+     "Sep. 2019": "BIGINT",
+     "Oct. 2019": "BIGINT",
+     "Nov. 2019": "BIGINT",
+     "Dec. 2019": "BIGINT",
+     "TOTAL": "BIGINT"
+    },
+    "reader": "layout"
+   },
+   {
+    "sheet": "2018",
+    "columns": [
+     "Section",
+     "NAICS Code",
+     "Kind of Business",
+     "Jan. 2018",
+     "Feb. 2018",
+     "Mar. 2018",
+     "Apr. 2018",
+     "May 2018",
+     "Jun. 2018",
+     "Jul. 2018",
+     "Aug. 2018",
+     "Sep. 2018",
+     "Oct. 2018",
+     "Nov. 2018",
+     "Dec. 2018",
+     "TOTAL"
+    ],
+    "rows": 102,
+    "types": {
+     "Section": "VARCHAR",
+     "NAICS Code": "VARCHAR",
+     "Kind of Business": "VARCHAR",
+     "Jan. 2018": "BIGINT",
+     "Feb. 2018": "BIGINT",
+     "Mar. 2018": "BIGINT",
+     "Apr. 2018": "BIGINT",
+     "May 2018": "BIGINT",
+     "Jun. 2018": "BIGINT",
+     "Jul. 2018": "BIGINT",
+     "Aug. 2018": "BIGINT",
+     "Sep. 2018": "BIGINT",
+     "Oct. 2018": "BIGINT",
+     "Nov. 2018": "BIGINT",
+     "Dec. 2018": "BIGINT",
+     "TOTAL": "BIGINT"
+    },
+    "reader": "layout"
+   },
+   {
+    "sheet": "2017",
+    "columns": [
+     "Section",
+     "NAICS Code",
+     "Kind of Business",
+     "Jan. 2017",
+     "Feb. 2017",
+     "Mar. 2017",
+     "Apr. 2017",
+     "May 2017",
+     "Jun. 2017",
+     "Jul. 2017",
+     "Aug. 2017",
+     "Sep. 2017",
+     "Oct. 2017",
+     "Nov. 2017",
+     "Dec. 2017",
+     "TOTAL"
+    ],
+    "rows": 102,
+    "types": {
+     "Section": "VARCHAR",
+     "NAICS Code": "VARCHAR",
+     "Kind of Business": "VARCHAR",
+     "Jan. 2017": "BIGINT",
+     "Feb. 2017": "BIGINT",
+     "Mar. 2017": "BIGINT",
+     "Apr. 2017": "BIGINT",
+     "May 2017": "BIGINT",
+     "Jun. 2017": "BIGINT",
+     "Jul. 2017": "BIGINT",
+     "Aug. 2017": "BIGINT",
+     "Sep. 2017": "BIGINT",
+     "Oct. 2017": "BIGINT",
+     "Nov. 2017": "BIGINT",
+     "Dec. 2017": "BIGINT",
+     "TOTAL": "BIGINT"
+    },
+    "reader": "layout"
+   },
+   {
+    "sheet": "2016",
+    "columns": [
+     "Section",
+     "NAICS Code",
+     "Kind of Business",
+     "Jan. 2016",
+     "Feb. 2016",
+     "Mar. 2016",
+     "Apr. 2016",
+     "May 2016",
+     "Jun. 2016",
+     "Jul. 2016",
+     "Aug. 2016",
+     "Sep. 2016",
+     "Oct. 2016",
+     "Nov. 2016",
+     "Dec. 2016",
+     "TOTAL"
+    ],
+    "rows": 102,
+    "types": {
+     "Section": "VARCHAR",
+     "NAICS Code": "VARCHAR",
+     "Kind of Business": "VARCHAR",
+     "Jan. 2016": "BIGINT",
+     "Feb. 2016": "BIGINT",
+     "Mar. 2016": "BIGINT",
+     "Apr. 2016": "BIGINT",
+     "May 2016": "BIGINT",
+     "Jun. 2016": "BIGINT",
+     "Jul. 2016": "BIGINT",
+     "Aug. 2016": "BIGINT",
+     "Sep. 2016": "BIGINT",
+     "Oct. 2016": "BIGINT",
+     "Nov. 2016": "BIGINT",
+     "Dec. 2016": "BIGINT",
+     "TOTAL": "BIGINT"
+    },
+    "reader": "layout"
+   },
+   {
+    "sheet": "2015",
+    "columns": [
+     "Section",
+     "NAICS Code",
+     "Kind of Business",
+     "Jan. 2015",
+     "Feb. 2015",
+     "Mar. 2015",
+     "Apr. 2015",
+     "May 2015",
+     "Jun. 2015",
+     "Jul. 2015",
+     "Aug. 2015",
+     "Sep. 2015",
+     "Oct. 2015",
+     "Nov. 2015",
+     "Dec. 2015",
+     "TOTAL"
+    ],
+    "rows": 102,
+    "types": {
+     "Section": "VARCHAR",
+     "NAICS Code": "VARCHAR",
+     "Kind of Business": "VARCHAR",
+     "Jan. 2015": "BIGINT",
+     "Feb. 2015": "BIGINT",
+     "Mar. 2015": "BIGINT",
+     "Apr. 2015": "BIGINT",
+     "May 2015": "BIGINT",
+     "Jun. 2015": "BIGINT",
+     "Jul. 2015": "BIGINT",
+     "Aug. 2015": "BIGINT",
+     "Sep. 2015": "BIGINT",
+     "Oct. 2015": "BIGINT",
+     "Nov. 2015": "BIGINT",
+     "Dec. 2015": "BIGINT",
+     "TOTAL": "BIGINT"
+    },
+    "reader": "layout"
+   },
+   {
+    "sheet": "2014",
+    "columns": [
+     "Section",
+     "NAICS Code",
+     "Kind of Business",
+     "Jan. 2014",
+     "Feb. 2014",
+     "Mar. 2014",
+     "Apr. 2014",
+     "May 2014",
+     "Jun. 2014",
+     "Jul. 2014",
+     "Aug. 2014",
+     "Sep. 2014",
+     "Oct. 2014",
+     "Nov. 2014",
+     "Dec. 2014",
+     "TOTAL"
+    ],
+    "rows": 102,
+    "types": {
+     "Section": "VARCHAR",
+     "NAICS Code": "VARCHAR",
+     "Kind of Business": "VARCHAR",
+     "Jan. 2014": "BIGINT",
+     "Feb. 2014": "BIGINT",
+     "Mar. 2014": "BIGINT",
+     "Apr. 2014": "BIGINT",
+     "May 2014": "BIGINT",
+     "Jun. 2014": "BIGINT",
+     "Jul. 2014": "BIGINT",
+     "Aug. 2014": "BIGINT",
+     "Sep. 2014": "BIGINT",
+     "Oct. 2014": "BIGINT",
+     "Nov. 2014": "BIGINT",
+     "Dec. 2014": "BIGINT",
+     "TOTAL": "BIGINT"
+    },
+    "reader": "layout"
+   },
+   {
+    "sheet": "2013",
+    "columns": [
+     "Section",
+     "NAICS Code",
+     "Kind of Business",
+     "Jan. 2013",
+     "Feb. 2013",
+     "Mar. 2013",
+     "Apr. 2013",
+     "May 2013",
+     "Jun. 2013",
+     "Jul. 2013",
+     "Aug. 2013",
+     "Sep. 2013",
+     "Oct. 2013",
+     "Nov. 2013",
+     "Dec. 2013",
+     "TOTAL"
+    ],
+    "rows": 102,
+    "types": {
+     "Section": "VARCHAR",
+     "NAICS Code": "VARCHAR",
+     "Kind of Business": "VARCHAR",
+     "Jan. 2013": "BIGINT",
+     "Feb. 2013": "BIGINT",
+     "Mar. 2013": "BIGINT",
+     "Apr. 2013": "BIGINT",
+     "May 2013": "BIGINT",
+     "Jun. 2013": "BIGINT",
+     "Jul. 2013": "BIGINT",
+     "Aug. 2013": "BIGINT",
+     "Sep. 2013": "BIGINT",
+     "Oct. 2013": "BIGINT",
+     "Nov. 2013": "BIGINT",
+     "Dec. 2013": "BIGINT",
+     "TOTAL": "BIGINT"
+    },
+    "reader": "layout"
+   },
+   {
+    "sheet": "2012",
+    "columns": [
+     "Section",
+     "NAICS Code",
+     "Kind of Business",
+     "Jan. 2012",
+     "Feb. 2012",
+     "Mar. 2012",
+     "Apr. 2012",
+     "May 2012",
+     "Jun. 2012",
+     "Jul. 2012",
+     "Aug. 2012",
+     "Sep. 2012",
+     "Oct. 2012",
+     "Nov. 2012",
+     "Dec. 2012",
+     "TOTAL"
+    ],
+    "rows": 102,
+    "types": {
+     "Section": "VARCHAR",
+     "NAICS Code": "VARCHAR",
+     "Kind of Business": "VARCHAR",
+     "Jan. 2012": "BIGINT",
+     "Feb. 2012": "BIGINT",
+     "Mar. 2012": "BIGINT",
+     "Apr. 2012": "BIGINT",
+     "May 2012": "BIGINT",
+     "Jun. 2012": "BIGINT",
+     "Jul. 2012": "BIGINT",
+     "Aug. 2012": "BIGINT",
+     "Sep. 2012": "BIGINT",
+     "Oct. 2012": "BIGINT",
+     "Nov. 2012": "BIGINT",
+     "Dec. 2012": "BIGINT",
+     "TOTAL": "BIGINT"
+    },
+    "reader": "layout"
+   },
+   {
+    "sheet": "2011",
+    "columns": [
+     "Section",
+     "NAICS Code",
+     "Kind of Business",
+     "Jan. 2011",
+     "Feb. 2011",
+     "Mar. 2011",
+     "Apr. 2011",
+     "May 2011",
+     "Jun. 2011",
+     "Jul. 2011",
+     "Aug. 2011",
+     "Sep. 2011",
+     "Oct. 2011",
+     "Nov. 2011",
+     "Dec. 2011",
+     "TOTAL"
+    ],
+    "rows": 102,
+    "types": {
+     "Section": "VARCHAR",
+     "NAICS Code": "VARCHAR",
+     "Kind of Business": "VARCHAR",
+     "Jan. 2011": "BIGINT",
+     "Feb. 2011": "BIGINT",
+     "Mar. 2011": "BIGINT",
+     "Apr. 2011": "BIGINT",
+     "May 2011": "BIGINT",
+     "Jun. 2011": "BIGINT",
+     "Jul. 2011": "BIGINT",
+     "Aug. 2011": "BIGINT",
+     "Sep. 2011": "BIGINT",
+     "Oct. 2011": "BIGINT",
+     "Nov. 2011": "BIGINT",
+     "Dec. 2011": "BIGINT",
+     "TOTAL": "BIGINT"
+    },
+    "reader": "layout"
+   },
+   {
+    "sheet": "2010",
+    "columns": [
+     "Section",
+     "NAICS Code",
+     "Kind of Business",
+     "Jan. 2010",
+     "Feb. 2010",
+     "Mar. 2010",
+     "Apr. 2010",
+     "May 2010",
+     "Jun. 2010",
+     "Jul. 2010",
+     "Aug. 2010",
+     "Sep. 2010",
+     "Oct. 2010",
+     "Nov. 2010",
+     "Dec. 2010",
+     "TOTAL"
+    ],
+    "rows": 102,
+    "types": {
+     "Section": "VARCHAR",
+     "NAICS Code": "VARCHAR",
+     "Kind of Business": "VARCHAR",
+     "Jan. 2010": "BIGINT",
+     "Feb. 2010": "BIGINT",
+     "Mar. 2010": "BIGINT",
+     "Apr. 2010": "BIGINT",
+     "May 2010": "BIGINT",
+     "Jun. 2010": "BIGINT",
+     "Jul. 2010": "BIGINT",
+     "Aug. 2010": "BIGINT",
+     "Sep. 2010": "BIGINT",
+     "Oct. 2010": "BIGINT",
+     "Nov. 2010": "BIGINT",
+     "Dec. 2010": "BIGINT",
+     "TOTAL": "BIGINT"
+    },
+    "reader": "layout"
+   },
+   {
+    "sheet": "2009",
+    "columns": [
+     "Section",
+     "NAICS Code",
+     "Kind of Business",
+     "Jan. 2009",
+     "Feb. 2009",
+     "Mar. 2009",
+     "Apr. 2009",
+     "May 2009",
+     "Jun. 2009",
+     "Jul. 2009",
+     "Aug. 2009",
+     "Sep. 2009",
+     "Oct. 2009",
+     "Nov. 2009",
+     "Dec. 2009",
+     "TOTAL"
+    ],
+    "rows": 102,
+    "types": {
+     "Section": "VARCHAR",
+     "NAICS Code": "VARCHAR",
+     "Kind of Business": "VARCHAR",
+     "Jan. 2009": "BIGINT",
+     "Feb. 2009": "BIGINT",
+     "Mar. 2009": "BIGINT",
+     "Apr. 2009": "BIGINT",
+     "May 2009": "BIGINT",
+     "Jun. 2009": "BIGINT",
+     "Jul. 2009": "BIGINT",
+     "Aug. 2009": "BIGINT",
+     "Sep. 2009": "BIGINT",
+     "Oct. 2009": "BIGINT",
+     "Nov. 2009": "BIGINT",
+     "Dec. 2009": "BIGINT",
+     "TOTAL": "BIGINT"
+    },
+    "reader": "layout"
+   },
+   {
+    "sheet": "2008",
+    "columns": [
+     "Section",
+     "NAICS Code",
+     "Kind of Business",
+     "Jan. 2008",
+     "Feb. 2008",
+     "Mar. 2008",
+     "Apr. 2008",
+     "May 2008",
+     "Jun. 2008",
+     "Jul. 2008",
+     "Aug. 2008",
+     "Sep. 2008",
+     "Oct. 2008",
+     "Nov. 2008",
+     "Dec. 2008",
+     "TOTAL"
+    ],
+    "rows": 102,
+    "types": {
+     "Section": "VARCHAR",
+     "NAICS Code": "VARCHAR",
+     "Kind of Business": "VARCHAR",
+     "Jan. 2008": "BIGINT",
+     "Feb. 2008": "BIGINT",
+     "Mar. 2008": "BIGINT",
+     "Apr. 2008": "BIGINT",
+     "May 2008": "BIGINT",
+     "Jun. 2008": "BIGINT",
+     "Jul. 2008": "BIGINT",
+     "Aug. 2008": "BIGINT",
+     "Sep. 2008": "BIGINT",
+     "Oct. 2008": "BIGINT",
+     "Nov. 2008": "BIGINT",
+     "Dec. 2008": "BIGINT",
+     "TOTAL": "BIGINT"
+    },
+    "reader": "layout"
+   },
+   {
+    "sheet": "2007",
+    "columns": [
+     "Section",
+     "NAICS Code",
+     "Kind of Business",
+     "Jan. 2007",
+     "Feb. 2007",
+     "Mar. 2007",
+     "Apr. 2007",
+     "May 2007",
+     "Jun. 2007",
+     "Jul. 2007",
+     "Aug. 2007",
+     "Sep. 2007",
+     "Oct. 2007",
+     "Nov. 2007",
+     "Dec. 2007",
+     "TOTAL"
+    ],
+    "rows": 102,
+    "types": {
+     "Section": "VARCHAR",
+     "NAICS Code": "VARCHAR",
+     "Kind of Business": "VARCHAR",
+     "Jan. 2007": "BIGINT",
+     "Feb. 2007": "BIGINT",
+     "Mar. 2007": "BIGINT",
+     "Apr. 2007": "BIGINT",
+     "May 2007": "BIGINT",
+     "Jun. 2007": "BIGINT",
+     "Jul. 2007": "BIGINT",
+     "Aug. 2007": "BIGINT",
+     "Sep. 2007": "BIGINT",
+     "Oct. 2007": "BIGINT",
+     "Nov. 2007": "BIGINT",
+     "Dec. 2007": "BIGINT",
+     "TOTAL": "BIGINT"
+    },
+    "reader": "layout"
+   },
+   {
+    "sheet": "2006",
+    "columns": [
+     "Section",
+     "NAICS Code",
+     "Kind of Business",
+     "Jan. 2006",
+     "Feb. 2006",
+     "Mar. 2006",
+     "Apr. 2006",
+     "May 2006",
+     "Jun. 2006",
+     "Jul. 2006",
+     "Aug. 2006",
+     "Sep. 2006",
+     "Oct. 2006",
+     "Nov. 2006",
+     "Dec. 2006",
+     "TOTAL"
+    ],
+    "rows": 102,
+    "types": {
+     "Section": "VARCHAR",
+     "NAICS Code": "VARCHAR",
+     "Kind of Business": "VARCHAR",
+     "Jan. 2006": "BIGINT",
+     "Feb. 2006": "BIGINT",
+     "Mar. 2006": "BIGINT",
+     "Apr. 2006": "BIGINT",
+     "May 2006": "BIGINT",
+     "Jun. 2006": "BIGINT",
+     "Jul. 2006": "BIGINT",
+     "Aug. 2006": "BIGINT",
+     "Sep. 2006": "BIGINT",
+     "Oct. 2006": "BIGINT",
+     "Nov. 2006": "BIGINT",
+     "Dec. 2006": "BIGINT",
+     "TOTAL": "BIGINT"
+    },
+    "reader": "layout"
+   },
+   {
+    "sheet": "2005",
+    "columns": [
+     "Section",
+     "NAICS Code",
+     "Kind of Business",
+     "Jan. 2005",
+     "Feb. 2005",
+     "Mar. 2005",
+     "Apr. 2005",
+     "May 2005",
+     "Jun. 2005",
+     "Jul. 2005",
+     "Aug. 2005",
+     "Sep. 2005",
+     "Oct. 2005",
+     "Nov. 2005",
+     "Dec. 2005",
+     "TOTAL"
+    ],
+    "rows": 102,
+    "types": {
+     "Section": "VARCHAR",
+     "NAICS Code": "VARCHAR",
+     "Kind of Business": "VARCHAR",
+     "Jan. 2005": "BIGINT",
+     "Feb. 2005": "BIGINT",
+     "Mar. 2005": "BIGINT",
+     "Apr. 2005": "BIGINT",
+     "May 2005": "BIGINT",
+     "Jun. 2005": "BIGINT",
+     "Jul. 2005": "BIGINT",
+     "Aug. 2005": "BIGINT",
+     "Sep. 2005": "BIGINT",
+     "Oct. 2005": "BIGINT",
+     "Nov. 2005": "BIGINT",
+     "Dec. 2005": "BIGINT",
+     "TOTAL": "BIGINT"
+    },
+    "reader": "layout"
+   },
+   {
+    "sheet": "2004",
+    "columns": [
+     "Section",
+     "NAICS Code",
+     "Kind of Business",
+     "Jan. 2004",
+     "Feb. 2004",
+     "Mar. 2004",
+     "Apr. 2004",
+     "May 2004",
+     "Jun. 2004",
+     "Jul. 2004",
+     "Aug. 2004",
+     "Sep. 2004",
+     "Oct. 2004",
+     "Nov. 2004",
+     "Dec. 2004",
+     "TOTAL"
+    ],
+    "rows": 102,
+    "types": {
+     "Section": "VARCHAR",
+     "NAICS Code": "VARCHAR",
+     "Kind of Business": "VARCHAR",
+     "Jan. 2004": "BIGINT",
+     "Feb. 2004": "BIGINT",
+     "Mar. 2004": "BIGINT",
+     "Apr. 2004": "BIGINT",
+     "May 2004": "BIGINT",
+     "Jun. 2004": "BIGINT",
+     "Jul. 2004": "BIGINT",
+     "Aug. 2004": "BIGINT",
+     "Sep. 2004": "BIGINT",
+     "Oct. 2004": "BIGINT",
+     "Nov. 2004": "BIGINT",
+     "Dec. 2004": "BIGINT",
+     "TOTAL": "BIGINT"
+    },
+    "reader": "layout"
+   },
+   {
+    "sheet": "2003",
+    "columns": [
+     "Section",
+     "NAICS Code",
+     "Kind of Business",
+     "Jan. 2003",
+     "Feb. 2003",
+     "Mar. 2003",
+     "Apr. 2003",
+     "May 2003",
+     "Jun. 2003",
+     "Jul. 2003",
+     "Aug. 2003",
+     "Sep. 2003",
+     "Oct. 2003",
+     "Nov. 2003",
+     "Dec. 2003",
+     "TOTAL"
+    ],
+    "rows": 102,
+    "types": {
+     "Section": "VARCHAR",
+     "NAICS Code": "VARCHAR",
+     "Kind of Business": "VARCHAR",
+     "Jan. 2003": "BIGINT",
+     "Feb. 2003": "BIGINT",
+     "Mar. 2003": "BIGINT",
+     "Apr. 2003": "BIGINT",
+     "May 2003": "BIGINT",
+     "Jun. 2003": "BIGINT",
+     "Jul. 2003": "BIGINT",
+     "Aug. 2003": "BIGINT",
+     "Sep. 2003": "BIGINT",
+     "Oct. 2003": "BIGINT",
+     "Nov. 2003": "BIGINT",
+     "Dec. 2003": "BIGINT",
+     "TOTAL": "BIGINT"
+    },
+    "reader": "layout"
+   },
+   {
+    "sheet": "2002",
+    "columns": [
+     "Section",
+     "NAICS Code",
+     "Kind of Business",
+     "Jan. 2002",
+     "Feb. 2002",
+     "Mar. 2002",
+     "Apr. 2002",
+     "May 2002",
+     "Jun. 2002",
+     "Jul. 2002",
+     "Aug. 2002",
+     "Sep. 2002",
+     "Oct. 2002",
+     "Nov. 2002",
+     "Dec. 2002",
+     "TOTAL"
+    ],
+    "rows": 102,
+    "types": {
+     "Section": "VARCHAR",
+     "NAICS Code": "VARCHAR",
+     "Kind of Business": "VARCHAR",
+     "Jan. 2002": "BIGINT",
+     "Feb. 2002": "BIGINT",
+     "Mar. 2002": "BIGINT",
+     "Apr. 2002": "BIGINT",
+     "May 2002": "BIGINT",
+     "Jun. 2002": "BIGINT",
+     "Jul. 2002": "BIGINT",
+     "Aug. 2002": "BIGINT",
+     "Sep. 2002": "BIGINT",
+     "Oct. 2002": "BIGINT",
+     "Nov. 2002": "BIGINT",
+     "Dec. 2002": "BIGINT",
+     "TOTAL": "BIGINT"
+    },
+    "reader": "layout"
+   },
+   {
+    "sheet": "2001",
+    "columns": [
+     "Section",
+     "NAICS Code",
+     "Kind of Business",
+     "Jan. 2001",
+     "Feb. 2001",
+     "Mar. 2001",
+     "Apr. 2001",
+     "May 2001",
+     "Jun. 2001",
+     "Jul. 2001",
+     "Aug. 2001",
+     "Sep. 2001",
+     "Oct. 2001",
+     "Nov. 2001",
+     "Dec. 2001",
+     "TOTAL"
+    ],
+    "rows": 102,
+    "types": {
+     "Section": "VARCHAR",
+     "NAICS Code": "VARCHAR",
+     "Kind of Business": "VARCHAR",
+     "Jan. 2001": "BIGINT",
+     "Feb. 2001": "BIGINT",
+     "Mar. 2001": "BIGINT",
+     "Apr. 2001": "BIGINT",
+     "May 2001": "BIGINT",
+     "Jun. 2001": "BIGINT",
+     "Jul. 2001": "BIGINT",
+     "Aug. 2001": "BIGINT",
+     "Sep. 2001": "BIGINT",
+     "Oct. 2001": "BIGINT",
+     "Nov. 2001": "BIGINT",
+     "Dec. 2001": "BIGINT",
+     "TOTAL": "BIGINT"
+    },
+    "reader": "layout"
+   },
+   {
+    "sheet": "2000",
+    "columns": [
+     "Section",
+     "NAICS Code",
+     "Kind of Business",
+     "Jan. 2000",
+     "Feb. 2000",
+     "Mar. 2000",
+     "Apr. 2000",
+     "May 2000",
+     "Jun. 2000",
+     "Jul. 2000",
+     "Aug. 2000",
+     "Sep. 2000",
+     "Oct. 2000",
+     "Nov. 2000",
+     "Dec. 2000",
+     "TOTAL"
+    ],
+    "rows": 102,
+    "types": {
+     "Section": "VARCHAR",
+     "NAICS Code": "VARCHAR",
+     "Kind of Business": "VARCHAR",
+     "Jan. 2000": "BIGINT",
+     "Feb. 2000": "BIGINT",
+     "Mar. 2000": "BIGINT",
+     "Apr. 2000": "BIGINT",
+     "May 2000": "BIGINT",
+     "Jun. 2000": "BIGINT",
+     "Jul. 2000": "BIGINT",
+     "Aug. 2000": "BIGINT",
+     "Sep. 2000": "BIGINT",
+     "Oct. 2000": "BIGINT",
+     "Nov. 2000": "BIGINT",
+     "Dec. 2000": "BIGINT",
+     "TOTAL": "BIGINT"
+    },
+    "reader": "layout"
+   },
+   {
+    "sheet": "1999",
+    "columns": [
+     "Section",
+     "NAICS Code",
+     "Kind of Business",
+     "Jan. 1999",
+     "Feb. 1999",
+     "Mar. 1999",
+     "Apr. 1999",
+     "May 1999",
+     "Jun. 1999",
+     "Jul. 1999",
+     "Aug. 1999",
+     "Sep. 1999",
+     "Oct. 1999",
+     "Nov. 1999",
+     "Dec. 1999",
+     "TOTAL"
+    ],
+    "rows": 102,
+    "types": {
+     "Section": "VARCHAR",
+     "NAICS Code": "VARCHAR",
+     "Kind of Business": "VARCHAR",
+     "Jan. 1999": "BIGINT",
+     "Feb. 1999": "BIGINT",
+     "Mar. 1999": "BIGINT",
+     "Apr. 1999": "BIGINT",
+     "May 1999": "BIGINT",
+     "Jun. 1999": "BIGINT",
+     "Jul. 1999": "BIGINT",
+     "Aug. 1999": "BIGINT",
+     "Sep. 1999": "BIGINT",
+     "Oct. 1999": "BIGINT",
+     "Nov. 1999": "BIGINT",
+     "Dec. 1999": "BIGINT",
+     "TOTAL": "BIGINT"
+    },
+    "reader": "layout"
+   },
+   {
+    "sheet": "1998",
+    "columns": [
+     "Section",
+     "NAICS Code",
+     "Kind of Business",
+     "Jan. 1998",
+     "Feb. 1998",
+     "Mar. 1998",
+     "Apr. 1998",
+     "May 1998",
+     "Jun. 1998",
+     "Jul. 1998",
+     "Aug. 1998",
+     "Sep. 1998",
+     "Oct. 1998",
+     "Nov. 1998",
+     "Dec. 1998",
+     "TOTAL"
+    ],
+    "rows": 102,
+    "types": {
+     "Section": "VARCHAR",
+     "NAICS Code": "VARCHAR",
+     "Kind of Business": "VARCHAR",
+     "Jan. 1998": "BIGINT",
+     "Feb. 1998": "BIGINT",
+     "Mar. 1998": "BIGINT",
+     "Apr. 1998": "BIGINT",
+     "May 1998": "BIGINT",
+     "Jun. 1998": "BIGINT",
+     "Jul. 1998": "BIGINT",
+     "Aug. 1998": "BIGINT",
+     "Sep. 1998": "BIGINT",
+     "Oct. 1998": "BIGINT",
+     "Nov. 1998": "BIGINT",
+     "Dec. 1998": "BIGINT",
+     "TOTAL": "BIGINT"
+    },
+    "reader": "layout"
+   },
+   {
+    "sheet": "1997",
+    "columns": [
+     "Section",
+     "NAICS Code",
+     "Kind of Business",
+     "Jan. 1997",
+     "Feb. 1997",
+     "Mar. 1997",
+     "Apr. 1997",
+     "May 1997",
+     "Jun. 1997",
+     "Jul. 1997",
+     "Aug. 1997",
+     "Sep. 1997",
+     "Oct. 1997",
+     "Nov. 1997",
+     "Dec. 1997",
+     "TOTAL"
+    ],
+    "rows": 102,
+    "types": {
+     "Section": "VARCHAR",
+     "NAICS Code": "VARCHAR",
+     "Kind of Business": "VARCHAR",
+     "Jan. 1997": "BIGINT",
+     "Feb. 1997": "BIGINT",
+     "Mar. 1997": "BIGINT",
+     "Apr. 1997": "BIGINT",
+     "May 1997": "BIGINT",
+     "Jun. 1997": "BIGINT",
+     "Jul. 1997": "BIGINT",
+     "Aug. 1997": "BIGINT",
+     "Sep. 1997": "BIGINT",
+     "Oct. 1997": "BIGINT",
+     "Nov. 1997": "BIGINT",
+     "Dec. 1997": "BIGINT",
+     "TOTAL": "BIGINT"
+    },
+    "reader": "layout"
+   },
+   {
+    "sheet": "1996",
+    "columns": [
+     "Section",
+     "NAICS Code",
+     "Kind of Business",
+     "Jan. 1996",
+     "Feb. 1996",
+     "Mar. 1996",
+     "Apr. 1996",
+     "May 1996",
+     "Jun. 1996",
+     "Jul. 1996",
+     "Aug. 1996",
+     "Sep. 1996",
+     "Oct. 1996",
+     "Nov. 1996",
+     "Dec. 1996",
+     "TOTAL"
+    ],
+    "rows": 102,
+    "types": {
+     "Section": "VARCHAR",
+     "NAICS Code": "VARCHAR",
+     "Kind of Business": "VARCHAR",
+     "Jan. 1996": "BIGINT",
+     "Feb. 1996": "BIGINT",
+     "Mar. 1996": "BIGINT",
+     "Apr. 1996": "BIGINT",
+     "May 1996": "BIGINT",
+     "Jun. 1996": "BIGINT",
+     "Jul. 1996": "BIGINT",
+     "Aug. 1996": "BIGINT",
+     "Sep. 1996": "BIGINT",
+     "Oct. 1996": "BIGINT",
+     "Nov. 1996": "BIGINT",
+     "Dec. 1996": "BIGINT",
+     "TOTAL": "BIGINT"
+    },
+    "reader": "layout"
+   },
+   {
+    "sheet": "1995",
+    "columns": [
+     "Section",
+     "NAICS Code",
+     "Kind of Business",
+     "Jan. 1995",
+     "Feb. 1995",
+     "Mar. 1995",
+     "Apr. 1995",
+     "May 1995",
+     "Jun. 1995",
+     "Jul. 1995",
+     "Aug. 1995",
+     "Sep. 1995",
+     "Oct. 1995",
+     "Nov. 1995",
+     "Dec. 1995",
+     "TOTAL"
+    ],
+    "rows": 102,
+    "types": {
+     "Section": "VARCHAR",
+     "NAICS Code": "VARCHAR",
+     "Kind of Business": "VARCHAR",
+     "Jan. 1995": "BIGINT",
+     "Feb. 1995": "BIGINT",
+     "Mar. 1995": "BIGINT",
+     "Apr. 1995": "BIGINT",
+     "May 1995": "BIGINT",
+     "Jun. 1995": "BIGINT",
+     "Jul. 1995": "BIGINT",
+     "Aug. 1995": "BIGINT",
+     "Sep. 1995": "BIGINT",
+     "Oct. 1995": "BIGINT",
+     "Nov. 1995": "BIGINT",
+     "Dec. 1995": "BIGINT",
+     "TOTAL": "BIGINT"
+    },
+    "reader": "layout"
+   },
+   {
+    "sheet": "1994",
+    "columns": [
+     "Section",
+     "NAICS Code",
+     "Kind of Business",
+     "Jan. 1994",
+     "Feb. 1994",
+     "Mar. 1994",
+     "Apr. 1994",
+     "May 1994",
+     "Jun. 1994",
+     "Jul. 1994",
+     "Aug. 1994",
+     "Sep. 1994",
+     "Oct. 1994",
+     "Nov. 1994",
+     "Dec. 1994",
+     "TOTAL"
+    ],
+    "rows": 102,
+    "types": {
+     "Section": "VARCHAR",
+     "NAICS Code": "VARCHAR",
+     "Kind of Business": "VARCHAR",
+     "Jan. 1994": "BIGINT",
+     "Feb. 1994": "BIGINT",
+     "Mar. 1994": "BIGINT",
+     "Apr. 1994": "BIGINT",
+     "May 1994": "BIGINT",
+     "Jun. 1994": "BIGINT",
+     "Jul. 1994": "BIGINT",
+     "Aug. 1994": "BIGINT",
+     "Sep. 1994": "BIGINT",
+     "Oct. 1994": "BIGINT",
+     "Nov. 1994": "BIGINT",
+     "Dec. 1994": "BIGINT",
+     "TOTAL": "BIGINT"
+    },
+    "reader": "layout"
+   },
+   {
+    "sheet": "1993",
+    "columns": [
+     "Section",
+     "NAICS Code",
+     "Kind of Business",
+     "Jan. 1993",
+     "Feb. 1993",
+     "Mar. 1993",
+     "Apr. 1993",
+     "May 1993",
+     "Jun. 1993",
+     "Jul. 1993",
+     "Aug. 1993",
+     "Sep. 1993",
+     "Oct. 1993",
+     "Nov. 1993",
+     "Dec. 1993",
+     "TOTAL"
+    ],
+    "rows": 102,
+    "types": {
+     "Section": "VARCHAR",
+     "NAICS Code": "VARCHAR",
+     "Kind of Business": "VARCHAR",
+     "Jan. 1993": "BIGINT",
+     "Feb. 1993": "BIGINT",
+     "Mar. 1993": "BIGINT",
+     "Apr. 1993": "BIGINT",
+     "May 1993": "BIGINT",
+     "Jun. 1993": "BIGINT",
+     "Jul. 1993": "BIGINT",
+     "Aug. 1993": "BIGINT",
+     "Sep. 1993": "BIGINT",
+     "Oct. 1993": "BIGINT",
+     "Nov. 1993": "BIGINT",
+     "Dec. 1993": "BIGINT",
+     "TOTAL": "BIGINT"
+    },
+    "reader": "layout"
+   },
+   {
+    "sheet": "1992",
+    "columns": [
+     "Section",
+     "NAICS Code",
+     "Kind of Business",
+     "Jan. 1992",
+     "Feb. 1992",
+     "Mar. 1992",
+     "Apr. 1992",
+     "May 1992",
+     "Jun. 1992",
+     "Jul. 1992",
+     "Aug. 1992",
+     "Sep. 1992",
+     "Oct. 1992",
+     "Nov. 1992",
+     "Dec. 1992",
+     "TOTAL"
+    ],
+    "rows": 102,
+    "types": {
+     "Section": "VARCHAR",
+     "NAICS Code": "VARCHAR",
+     "Kind of Business": "VARCHAR",
+     "Jan. 1992": "BIGINT",
+     "Feb. 1992": "BIGINT",
+     "Mar. 1992": "BIGINT",
+     "Apr. 1992": "BIGINT",
+     "May 1992": "BIGINT",
+     "Jun. 1992": "BIGINT",
+     "Jul. 1992": "BIGINT",
+     "Aug. 1992": "BIGINT",
+     "Sep. 1992": "BIGINT",
+     "Oct. 1992": "BIGINT",
+     "Nov. 1992": "BIGINT",
+     "Dec. 1992": "BIGINT",
+     "TOTAL": "BIGINT"
+    },
+    "reader": "layout"
+   }
+  ],
+  "excel/census-state-population-estimates-2020-2025.xlsx": [
+   {
+    "sheet": "NST-EST2025-POP",
+    "columns": [
+     "Geographic Area",
+     "April 1, 2020 Estimates Base",
+     "Population Estimate (as of July 1) 2020",
+     "Population Estimate (as of July 1) 2021",
+     "Population Estimate (as of July 1) 2022",
+     "Population Estimate (as of July 1) 2023",
+     "Population Estimate (as of July 1) 2024",
+     "Population Estimate (as of July 1) 2025"
+    ],
+    "rows": 57,
+    "types": {
+     "Geographic Area": "VARCHAR",
+     "April 1, 2020 Estimates Base": "BIGINT",
+     "Population Estimate (as of July 1) 2020": "BIGINT",
+     "Population Estimate (as of July 1) 2021": "BIGINT",
+     "Population Estimate (as of July 1) 2022": "BIGINT",
+     "Population Estimate (as of July 1) 2023": "BIGINT",
+     "Population Estimate (as of July 1) 2024": "BIGINT",
+     "Population Estimate (as of July 1) 2025": "BIGINT"
+    },
+    "reader": "layout"
+   }
+  ],
+  "excel/eia-us-electricity-generation-by-source-1949-2026.xlsx": [
+   {
+    "sheet": "Monthly Data",
+    "columns": [
+     "Month",
+     "Coal",
+     "Petroleum",
+     "Natural Gas",
+     "Other Fossil Gases",
+     "Nuclear Electric Power",
+     "Hydroelectric Pumped Storage",
+     "Conventional Hydroelectric Power",
+     "Wood",
+     "Waste",
+     "Geothermal",
+     "Solar",
+     "Wind",
+     "Total (including from sources not shown)"
+    ],
+    "rows": 643,
+    "types": {
+     "Month": "DATE",
+     "Coal": "DOUBLE",
+     "Petroleum": "DOUBLE",
+     "Natural Gas": "DOUBLE",
+     "Other Fossil Gases": "DOUBLE",
+     "Nuclear Electric Power": "DOUBLE",
+     "Hydroelectric Pumped Storage": "DOUBLE",
+     "Conventional Hydroelectric Power": "DOUBLE",
+     "Wood": "DOUBLE",
+     "Waste": "DOUBLE",
+     "Geothermal": "DOUBLE",
+     "Solar": "DOUBLE",
+     "Wind": "DOUBLE",
+     "Total (including from sources not shown)": "DOUBLE"
+    },
+    "reader": "layout"
+   },
+   {
+    "sheet": "Annual Data",
+    "columns": [
+     "Annual Total",
+     "Coal",
+     "Petroleum",
+     "Natural Gas",
+     "Other Fossil Gases",
+     "Nuclear Electric Power",
+     "Hydroelectric Pumped Storage",
+     "Conventional Hydroelectric Power",
+     "Wood",
+     "Waste",
+     "Geothermal",
+     "Solar",
+     "Wind",
+     "Total (including from sources not shown)"
+    ],
+    "rows": 77,
+    "types": {
+     "Annual Total": "BIGINT",
+     "Coal": "DOUBLE",
+     "Petroleum": "DOUBLE",
+     "Natural Gas": "DOUBLE",
+     "Other Fossil Gases": "DOUBLE",
+     "Nuclear Electric Power": "DOUBLE",
+     "Hydroelectric Pumped Storage": "DOUBLE",
+     "Conventional Hydroelectric Power": "DOUBLE",
+     "Wood": "DOUBLE",
+     "Waste": "DOUBLE",
+     "Geothermal": "DOUBLE",
+     "Solar": "DOUBLE",
+     "Wind": "DOUBLE",
+     "Total (including from sources not shown)": "DOUBLE"
+    },
+    "reader": "layout"
+   }
+  ]
+ }
+}

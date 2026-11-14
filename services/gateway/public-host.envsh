@@ -1,0 +1,17 @@
+#!/bin/sh
+# Sourced by the nginx image entrypoint (as /docker-entrypoint.d/16-public-host.envsh) before the templates are
+# rendered. PUBLIC_HOST is the host part of PUBLIC_ORIGIN, added to server_name so the gateway answers for its
+# public name as well as localhost, 127.0.0.1 and gateway. It is always exported (empty when already listed or
+# unusable), so the template never keeps a literal ${PUBLIC_HOST}.
+_public_host=${PUBLIC_ORIGIN#*://}
+_public_host=${_public_host%%/*}
+case "$_public_host" in
+    \[*) _public_host="${_public_host%%]*}]" ;;
+    *) _public_host=${_public_host%%:*} ;;
+esac
+case "$_public_host" in
+    ""|localhost|127.0.0.1|gateway|*[!A-Za-z0-9.:\[\]-]*) PUBLIC_HOST="" ;;
+    *) PUBLIC_HOST=$_public_host ;;
+esac
+export PUBLIC_HOST
+unset _public_host

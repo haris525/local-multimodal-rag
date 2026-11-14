@@ -1,0 +1,28 @@
+[project]
+name = "auth"
+version = "0.1.0"
+description = "Accounts, sessions and API tokens; signs the identity the gateway forwards to every service"
+requires-python = ">=3.12,<3.13"
+dependencies = [
+    "argon2-cffi>=23.1",
+    "rag-common",
+]
+
+[project.scripts]
+auth-admin = "auth.cli:main"
+
+[dependency-groups]
+dev = ["pytest>=8.4"]
+
+[tool.uv.sources]
+rag-common = { path = "../../libs/common", editable = true }
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/auth"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]

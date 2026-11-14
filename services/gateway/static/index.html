@@ -1,0 +1,90 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Local RAG</title>
+  <script src="theme.js"></script>
+  <link rel="stylesheet" href="styles.css">
+  <script src="vendor/marked.umd.js" defer></script>
+  <script src="vendor/purify.min.js" defer></script>
+  <script src="app.js" defer></script>
+  <script src="account.js" defer></script>
+  <script src="admin.js" defer></script>
+</head>
+<body>
+  <header class="topbar">
+    <div class="brand">Local RAG <span class="brand-sub">private, on this machine</span></div>
+    <div class="top-actions">
+      <button id="memory-open" type="button" class="link">Memory</button>
+      <button id="audit-open" type="button" class="link">Audit log</button>
+      <details id="user-menu" class="user-menu">
+        <summary id="user-name" class="link"></summary>
+        <div class="menu-list" role="menu">
+          <button id="password-open" type="button" role="menuitem">Change password</button>
+          <button id="tokens-open" type="button" role="menuitem">API tokens</button>
+          <button id="users-open" type="button" role="menuitem" hidden>Users</button>
+          <button id="signout" type="button" role="menuitem">Sign out</button>
+        </div>
+      </details>
+      <button id="theme-toggle" type="button" class="icon-btn" data-icon="theme" aria-label="Dark mode" aria-pressed="false"></button>
+      <div id="status" class="status" title="Service status">
+        <span class="dot"></span><span id="status-text">checking services...</span>
+      </div>
+    </div>
+  </header>
+
+  <main class="layout">
+    <aside class="library" aria-label="Documents and chats">
+      <div class="tabs" role="tablist">
+        <button id="tab-chats" type="button" class="tab" role="tab">Chats</button>
+        <button id="tab-docs" type="button" class="tab active" role="tab">Documents</button>
+      </div>
+      <div id="chats-pane" class="pane" hidden>
+        <button id="chat-new" type="button" class="primary">+ New chat</button>
+        <ul id="threads" class="docs"></ul>
+      </div>
+      <div id="docs-pane" class="pane">
+      <label id="drop" class="drop">
+        <input id="file" type="file" multiple accept=".pdf,.txt,.md,.xlsx,.csv,.png,.jpg,.jpeg,.webp">
+        <strong>Add documents</strong>
+        <span>Drop files here or click to browse</span>
+        <small>PDF, TXT, MD, XLSX, CSV, PNG, JPG, WEBP</small>
+      </label>
+      <div id="upload-msg" class="upload-msg" role="status"></div>
+      <div class="library-head">
+        <span>Documents</span>
+        <span id="sel-count" class="muted">0 of 10 selected</span>
+        <button id="sel-clear" type="button" class="link">Clear</button>
+      </div>
+      <ul id="docs" class="docs"></ul>
+      </div>
+    </aside>
+
+    <section class="chat" aria-label="Chat">
+      <div id="notice" class="notice" role="alert" hidden></div>
+      <div id="messages" class="messages">
+        <div class="empty">Select up to 10 documents on the left and ask a question, or tell me something to remember.</div>
+      </div>
+      <form id="composer" class="composer">
+        <textarea id="question" rows="2" placeholder="Ask about the selected documents..." required></textarea>
+        <div class="composer-bar">
+          <label class="toggle" title="Let the model reason before answering (slower)"><input id="think" type="checkbox"> Think</label>
+          <label class="toggle" title="The model searches step by step with tools (slower, thorough)"><input id="deep" type="checkbox"> Deep search</label>
+          <label class="toggle" title="Reads every section of the selected documents before answering (slowest; for questions about the documents as a whole, such as listing every item or counting mentions)"><input id="exhaustive" type="checkbox"> Read all</label>
+          <button id="new-chat" type="button" class="link">New chat</button>
+          <button id="send" type="submit" class="primary">Send</button>
+        </div>
+      </form>
+    </section>
+
+    <aside id="sources" class="sources" aria-label="Sources" hidden>
+      <div class="sources-head">
+        <span id="panel-title">Sources</span>
+        <button id="sources-close" type="button" class="link">Close</button>
+      </div>
+      <div id="sources-list" class="sources-list"></div>
+    </aside>
+  </main>
+</body>
+</html>

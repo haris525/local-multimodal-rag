@@ -1,0 +1,47 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Sign in - Local RAG</title>
+  <script src="theme.js"></script>
+  <link rel="stylesheet" href="styles.css">
+  <script src="login.js" defer></script>
+</head>
+<body class="login-page">
+  <main class="login-card">
+    <h1>Local RAG <span class="brand-sub">private, on this machine</span></h1>
+
+    <form id="login-form" hidden>
+      <label class="acct-field">Username
+        <input id="login-user" class="mem-input" name="username" autocomplete="username" autocapitalize="none" spellcheck="false" maxlength="64" required>
+      </label>
+      <label class="acct-field">Password
+        <input id="login-pass" class="mem-input" name="password" type="password" autocomplete="current-password" maxlength="1024" required>
+      </label>
+      <button type="submit" class="primary">Sign in</button>
+    </form>
+
+    <form id="change-form" hidden>
+      <p id="pw-notice" class="login-note"></p>
+      <label id="pw-current-field" class="acct-field">Current password
+        <input id="pw-current" class="mem-input" type="password" autocomplete="current-password" maxlength="1024" required>
+      </label>
+      <label class="acct-field">New password (at least 12 characters)
+        <input id="pw-new" class="mem-input" type="password" autocomplete="new-password" maxlength="256" required>
+      </label>
+      <label class="acct-field">Repeat the new password
+        <input id="pw-confirm" class="mem-input" type="password" autocomplete="new-password" maxlength="256" required>
+      </label>
+      <button type="submit" class="primary">Change password</button>
+    </form>
+
+    <div id="setup" class="login-note" hidden>
+      No accounts exist yet. On the server run:
+      <code>docker compose run --rm auth auth-admin create-admin --username &lt;name&gt;</code>
+    </div>
+
+    <div id="login-msg" class="login-msg" role="alert"></div>
+  </main>
+</body>
+</html>

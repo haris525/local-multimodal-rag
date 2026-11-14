@@ -1,0 +1,5 @@
+Station,Temp,Rain
+(id),(C),(mm)
+A,1.5,3
+B,2.5,4
+C,3.5,5
