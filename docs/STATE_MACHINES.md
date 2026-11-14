@@ -1076,7 +1076,7 @@ recursion limit is computed from those budgets (6 steps a call, 166 by default).
 
 ```mermaid
 stateDiagram-v2
-    [*] --> model : question (plan: write_todos)
+    [*] --> model : question (plans with write_todos)
     model --> tools : calls
     tools --> model : results
     model --> verify : no tool calls
@@ -1655,8 +1655,8 @@ stateDiagram-v2
     Reading --> Running : files written to a fresh folder
     Reading --> Cleaning : files do not fit the scratch space (507)
     Running --> Collecting : the code ended (any exit code)
-    Running --> Collecting : time limit: the process group is killed
-    Running --> Collecting : cancel from rag (POST /v1/runs/id/cancel): the process group is killed
+    Running --> Collecting : time limit, the process group is killed
+    Running --> Collecting : cancel from rag (POST /v1/runs/id/cancel), the process group is killed
     Reading --> Released : cancelled before it started (409)
     Collecting --> Cleaning
     Cleaning --> Released : nothing left (reply 200)

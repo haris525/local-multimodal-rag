@@ -112,7 +112,7 @@ vision-language model and turns every image into searchable text, and `Qwen3-VL-
 official multimodal embedder) lets text queries search image pixels directly.
 
 **KV cache.** Only the $L_f = 16$ full-attention layers keep a KV cache. With $h_{kv} = 4$ KV heads,
-head size $d_h = 256$ and $\beta$ bytes per element, it costs $2 L_f h_{kv} d_h \beta = 32{,}768\,\beta$
+head size $d_h = 256$ and $\beta$ bytes per element, it costs $`2 L_f h_{kv} d_h \beta = 32{,}768\,\beta`$
 bytes per token. A q8_0 cache ($\beta = 34/32$) is 34 KiB per token, so 2 slots x 32,768 tokens need
 2.1 GiB. The linear-attention layers keep a fixed-size recurrent state instead.
 
@@ -730,7 +730,7 @@ services refuse to start on a mismatch.
 | Index `doc_id` | keyword, `is_tenant=true` |
 | Index `search_text` | full text: word tokenizer, lowercase, English Snowball stemmer, English stop words, `scoring=true` (native BM25) |
 
-**Filtering.** Every read carries the owner: Qdrant applies $\text{user\_id} = u \wedge \text{doc\_id} \in D$
+**Filtering.** Every read carries the owner: Qdrant applies $`\text{user\_id} = u \wedge \text{doc\_id} \in D`$
 (narrowed further on the planner's `filter` route, with the owner condition outside that part) during
 the search and plans from payload-index cardinality:
 small filtered sets are scanned exactly through the index; large ones use HNSW graphs with extra
@@ -743,10 +743,10 @@ its `api_key`.
 **BM25.** For query terms $t$, document $d$ of length $|d|$, average length $\overline{|d|}$, term
 frequency $f(t,d)$, collection size $N$ and document frequency $n_t$:
 
-$$
+```math
 \mathrm{BM25}(q,d)=\sum_{t\in q}\ln\!\Big(1+\frac{N-n_t+0.5}{n_t+0.5}\Big)\,
 \frac{f(t,d)\,(k_1+1)}{f(t,d)+k_1\big(1-b+b\,|d|/\overline{|d|}\big)},\qquad k_1=1.2,\ b=0.75 .
-$$
+```
 
 Statistics come from the whole collection (only ranks reach fusion); stemming is English only. The
 collection holds every user's chunks, so other users' uploads shift $N$, $n_t$ and $\overline{|d|}$
@@ -800,10 +800,12 @@ The top 30 fused candidates plus the per-document candidates go to the reranker.
    reranker trained to find answers scores broad questions ("what are these documents about?") low
    for every passage; a single 0.05 threshold would silently drop whole documents.
 4. **MMR fill**: remaining slots, among candidates with $s(d) \ge \tau$, go to
-   $$d^{*}=\arg\max_{d\notin S}\Big[\lambda\,s(d)-(1-\lambda)\max_{d'\in S}\cos(\mathbf{e}_d,\mathbf{e}_{d'})\Big],\qquad \lambda=0.7,$$
+   ```math
+   d^{*}=\arg\max_{d\notin S}\Big[\lambda\,s(d)-(1-\lambda)\max_{d'\in S}\cos(\mathbf{e}_d,\mathbf{e}_{d'})\Big],\qquad \lambda=0.7,
+   ```
    where $S$ is the selected set and $\mathbf{e}$ the stored text embeddings (Carbonell & Goldstein,
    1998). Relevance is traded against redundancy, which spreads chunks across documents and topics.
-   The threshold adapts to the best score: $\tau = \max\big(0.005,\ \min(0.05,\ 0.25\,\max_d s(d))\big)$.
+   The threshold adapts to the best score: $`\tau = \max\big(0.005,\ \min(0.05,\ 0.25\,\max_d s(d))\big)`$.
    When the top passage scores 0.99 the bar stays at 0.05; when nothing literally answers the question
    (overviews, "key findings") the bar drops, so the context holds more than one or two chunks.
 5. Optional cap `RAG_MAX_PER_DOC` (0 = MMR decides); at least 2 chunks kept so the model can say what
@@ -1366,14 +1368,14 @@ deep answers do not change.
 ```mermaid
 flowchart LR
   classDef step fill:#dcfce7,stroke:#14532d,color:#052e16,stroke-width:1.5px
-  classDef call fill:#fef3c7,stroke:#92400e,color:#3b1d02,stroke-width:1.5px
+  classDef llm fill:#fef3c7,stroke:#92400e,color:#3b1d02,stroke-width:1.5px
   R["read: every chunk of the selected documents<br/>(owner and document filter), reading order;<br/>sheet rows and the document summary skipped"]:::step
   S["sections: runs under one heading;<br/>passages numbered [1] to [N]"]:::step
   P["plan: pack sections into groups of<br/>RAG_EXHAUSTIVE_GROUP_TOKENS; stop at<br/>RAG_EXHAUSTIVE_MAX_SECTIONS / _MAX_INPUT_TOKENS"]:::step
-  M["map: one model call per group,<br/>RAG_EXHAUSTIVE_CONCURRENCY at once;<br/>notes that cite their passages"]:::call
+  M["map: one model call per group,<br/>RAG_EXHAUSTIVE_CONCURRENCY at once;<br/>notes that cite their passages"]:::llm
   F{"notes fit the<br/>answer prompt?"}
-  G["reduce: merge in batches<br/>(at most RAG_EXHAUSTIVE_REDUCE_ROUNDS),<br/>then cut evenly with a notice"]:::call
-  A["answer: rules + notes + coverage,<br/>streamed by stream_reply, [n] checked"]:::call
+  G["reduce: merge in batches<br/>(at most RAG_EXHAUSTIVE_REDUCE_ROUNDS),<br/>then cut evenly with a notice"]:::llm
+  A["answer: rules + notes + coverage,<br/>streamed by stream_reply, [n] checked"]:::llm
   R --> S --> P --> M --> F
   F -- "no" --> G --> A
   F -- "yes" --> A
@@ -1460,9 +1462,9 @@ sequenceDiagram
   R->>Q: first call of the request: tables file and passages of each selected document (signed as the caller)
   Q-->>R: only the caller's own documents (404 for anything else)
   R->>S: frame: code, time limit, data/ files (no identity)
-  S->>S: wait for the turn; fresh folder; child process with limits
+  S->>S: wait for the turn, fresh folder, child process with limits
   S-->>R: exit code, stdout, stderr, files (capped)
-  S->>S: kill the process group and every leftover process; empty scratch, /tmp, /dev/shm, SysV IPC
+  S->>S: kill the process group and every leftover process, empty scratch, /tmp, /dev/shm, SysV IPC
   R-->>M: [n] Python run ... or a tool error
 ```
 
@@ -1732,10 +1734,10 @@ when given.
   removed, single spaces) applied after the `[n]` markers are removed, $p$ the reply and $G$ the gold answers and
   their aliases:
 
-$$
+```math
 \mathrm{EM}=\max_{g\in G}\mathbb{1}[\mathrm{norm}(p)=\mathrm{norm}(g)],\qquad
 \mathrm{F1}=\max_{g\in G}\frac{2\,P_g R_g}{P_g+R_g},
-$$
+```
 
   where $P_g$ and $R_g$ are the shares of the reply's and the gold's tokens in their common multiset (a yes/no gold
   scores only on an exact match, as in HotpotQA's script). `contains`: some $\mathrm{norm}(g)$ appears as whole
@@ -1811,7 +1813,7 @@ $$
 ## 10. Audit log
 
 The `audit` service keeps an append-only SQLite table. Each event stores
-$h_n = \mathrm{SHA256}(h_{n-1} \,\|\, \mathrm{canonical\_json}(e_n))$ with $h_0 = 0^{64}$; triggers reject
+$`h_n = \mathrm{SHA256}(h_{n-1} \,\|\, \mathrm{canonical\_json}(e_n))`$ with $h_0 = 0^{64}$; triggers reject
 `UPDATE` and `DELETE`, and `/v1/verify` recomputes the chain and reports the first altered event.
 Events: `document.uploaded | rejected | deleted | reindex_requested | ready | failed | superseded`, and
 `thread.deleted`, `memory.added | updated | deleted`, and
