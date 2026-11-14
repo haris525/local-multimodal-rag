@@ -1625,7 +1625,7 @@ shows the format) covers multi-document synthesis. Aim for at least 100 queries.
 
 **Retrieval metrics** on fixed-length lists (`top_k = 10`, threshold off), answerable queries only.
 With $\mathrm{rank}_i$ the position of the first relevant chunk for query $i$ ($\infty$ if absent),
-$\mathrm{Rel}_i$ its relevant set, $\mathrm{Top}_k(i)$ the first $k$ results and $d_{ij}$ the $j$-th:
+$`\mathrm{Rel}_i`$ its relevant set, $`\mathrm{Top}_k(i)`$ the first $`k`$ results and $`d_{ij}`$ the $`j`$-th:
 
 $$
 \mathrm{MRR@10}=\frac{1}{|Q|}\sum_{i\in Q}\frac{\mathbb{1}[\mathrm{rank}_i\le 10]}{\mathrm{rank}_i},\qquad
