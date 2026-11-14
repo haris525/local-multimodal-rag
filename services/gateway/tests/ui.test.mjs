@@ -453,3 +453,24 @@ test("the upload message says when the content is already there, and when a file
   assert.equal(replacing.className, "upload-status");  // dropped once the file is ready, like any status line
   assert.equal(line({ name: "x.csv", error: "file is empty" }).className, "err");
 });
+
+test("a new version's upload line stays until that version is ready, though the old one of its name is ready", async () => {
+  // followed by name, the old version of the name (ready already) would settle the line at once
+  let calls = 0;
+  let list = [csv(v1, "ready")];
+  const b = browser({ "/documents": () => (++calls === 1  // the upload (POST), then the list (GET)
+    ? [0, [{ name: "sales.csv", document: csv(v2, "queued"), existing: false, replaces: true }]] : [0, list]) });
+  b.run(`var FormData = class { append() {} toString() { return "null"; } };
+    state.me = { user_id: "u1" }; state.docs = ${JSON.stringify(list)}`);
+  await b.run("upload([{ name: 'sales.csv' }])");
+  await b.wait(20);
+  assert.match(text(b.$("#upload-msg")), /sales\.csv: queued, replaces the current version when ready/);
+  assert.equal(b.run("state.lastUpload?.size"), 1);  // not settled: the old version's "ready" is not this upload's
+  list = [csv(v2, "processing"), csv(v1, "ready")];
+  await b.run("refreshDocs()");
+  assert.equal(b.run("state.lastUpload?.size"), 1);
+  list = [csv(v2, "ready")];
+  await b.run("refreshDocs()");
+  assert.equal(b.run("state.lastUpload"), null);  // settled once the new version itself is ready
+  b.run("clearTimeout(state.pollTimer)");
+});

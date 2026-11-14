@@ -235,7 +235,7 @@ async function upload(files) {
     form.append("files", file);
     try {
       const [r] = await api("/documents", { method: "POST", body: form });
-      if (!r.error && !r.existing) uploaded.add(r.name);
+      if (!r.error && !r.existing) uploaded.add(r.document.doc_id);
       lines.push(uploadLine(r));
     } catch (err) {
       lines.push(h("div", { class: "err" }, `${file.name}: ${err.message}`));
@@ -260,11 +260,13 @@ function uploadLine(r) {
 }
 
 // Once every file of the last upload is ready or failed, the list shows its status: drop the "queued" lines.
-// The lines about errors and content already uploaded stay until the next upload.
+// The lines about errors and content already uploaded stay until the next upload. Uploads are followed by
+// document id, not name: a new version shares its name with the old one, which is ready already, and the list
+// may not have the new one yet.
 function settleUploadMsg() {
   if (!state.lastUpload?.size) return;
-  const status = new Map([...state.docs].reverse().map((d) => [d.name, d.status]));  // a name's newest upload wins
-  if ([...state.lastUpload].some((name) => !status.has(name) || ["queued", "processing"].includes(status.get(name)))) return;
+  const status = new Map(state.docs.map((d) => [d.doc_id, d.status]));
+  if ([...state.lastUpload].some((id) => !status.has(id) || ["queued", "processing"].includes(status.get(id)))) return;
   state.lastUpload = null;
   $("#upload-msg").querySelectorAll("div.upload-status").forEach((line) => line.remove());
 }
