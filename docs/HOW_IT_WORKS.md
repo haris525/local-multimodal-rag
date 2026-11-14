@@ -67,7 +67,7 @@ flowchart LR
 | Where | What you see |
 |---|---|
 | Top bar | The app's name, the *Memory* and *Audit log* buttons, your username (a menu with *Change password*, *API tokens*, *Users* for admins, and *Sign out*), the dark-mode toggle (dark is the default; your choice is remembered in this browser), and a status dot that turns green with *all services ready* |
-| Left | Two tabs. *Documents*: drag files in, watch them process, tick up to 10 to search. *Chats*: your saved conversations |
+| Left | Two tabs. *Documents*: drag files in, watch them process, tick up to 10 to search; a document's warnings show under its name, a long one in two lines with *More* (hover for the full text). *Chats*: your saved conversations |
 | Centre | The chat. Under the question box are the *Think*, *Deep search* and *Read all* toggles ([section 5](#5-think-deep-search-and-read-all)) |
 | Right | A panel that opens when needed: the sources behind an answer, your memories, or the audit log |
 
@@ -282,7 +282,11 @@ flowchart LR
 
 **Ready.** The document can now be ticked and searched. If you upload a file with the same name but new
 content, the new version replaces your old one only once it is ready, and the old one stays searchable
-until then; the moment the new one is ready, the old one leaves the list. Another user's file with the
+until then; the moment the new one is ready, the old one leaves the list. If the old one was ticked, the tick
+moves to the new one, and a saved chat or a *Retry* that used the old one uses the new one. While the new
+version is waiting or being processed, the old one says so and its Reindex waits (re-processing the old one
+then would leave both listed). Uploading the same content again, under any name, changes nothing: the
+message says which document already has it. Another user's file with the
 same name is never touched. The Reindex button (circular arrow) re-processes a ready or failed document;
 it stays usable meanwhile. A failed document shows its reason and a *Retry* button, which does the same.
 When the vision or embedding model is busy, the worker waits a few seconds and tries once more before it
@@ -665,7 +669,7 @@ when containers are stopped or rebuilt.
 | `auth-data` | `auth.db`: accounts, password hashes (never the passwords), sessions and API tokens | `auth` |
 
 Deleting a document removes it from `ingest-data` and `qdrant-data`. Saved chats keep the answers and
-source previews they showed, and the audit log keeps its records, because it is append-only by design.
+source previews they showed (a figure of a deleted document shows a note instead), and the audit log keeps its records, because it is append-only by design.
 `docker compose down -v` deletes every volume, including all documents, accounts and the downloaded
 models (see [GETTING_STARTED.md](GETTING_STARTED.md), section 9). The keys the services use to trust
 each other live outside the volumes, in the `secrets/` folder next to the code.

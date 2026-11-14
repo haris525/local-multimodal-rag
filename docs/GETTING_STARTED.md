@@ -174,7 +174,8 @@ Good to know:
   `run_python`, and each result is a source you can open to read the code and its output. Charts are not shown
   ([DEPLOYMENT.md, section 4.16](DEPLOYMENT.md#416-update-python-for-deep-search-in-a-locked-down-sandbox)).
 - **Updated a file?** Upload it again with the same name. The new version replaces the old one as soon
-  as it is ready, and the old one stays searchable until then.
+  as it is ready, and the old one stays searchable until then. A ticked file stays ticked on its new
+  version. A file with another name is a separate document, so delete the old one yourself.
 - **Reindex** (the circular-arrow button next to a document) re-processes it after a settings change.
   The document stays usable meanwhile. The trash-can button deletes a document.
 - **Other people.** As an admin, open *Users* from your account menu and create an account for each

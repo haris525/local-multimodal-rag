@@ -16,7 +16,7 @@ from ingest import paths
 from ingest.config import Settings
 from ingest.elements import Element, ParsedDocument
 from ingest.pipeline import Pipeline, RunLost, delete_document
-from ingest.registry import NEXT, SCHEMA_VERSION, Registry, StillDeleting
+from ingest.registry import NEXT, SCHEMA_VERSION, NewerVersion, Registry, StillDeleting
 from ingest.worker import process_until_stopped, run_job, sweep, sweeper
 
 A = new_user_id()
@@ -493,6 +493,79 @@ def test_reindex_is_refused_for_a_queued_or_processing_document(api):
     assert r.status_code == 409 and r.json()["detail"] == "document is already queued"
     claim(api.registry, doc_id)
     assert client.post(f"/v1/documents/{doc_id}/reindex", headers=h).json()["detail"] == "document is being processed"
+
+
+# --- new versions: an older version waits for the newer upload; the same content again is the same document --
+
+
+def test_an_older_version_is_not_reindexed_while_a_newer_upload_is_pending(tmp_path):
+    """Without the check, reindexing v1 while v2 is processing would leave both ready and listed: v2's
+    supersede only reaches versions in ready or failed, and v1's own only reaches versions uploaded before it."""
+    reg = Registry(tmp_path / "r.db")
+    v1, v2, other = "1" * 32, "2" * 32, "3" * 32
+    reg.add(v1, A, "sales.csv", DocType.SPREADSHEET, ".csv", 1)
+    make_ready(reg, v1, supersede=True)
+    reg.add(other, new_user_id(), "sales.csv", DocType.SPREADSHEET, ".csv", 1)  # another user's: no effect
+    assert reg.requeue(v1, A)
+    make_ready(reg, v1, supersede=True)
+    reg.add(v2, A, "sales.csv", DocType.SPREADSHEET, ".csv", 2)
+    with pytest.raises(NewerVersion):  # v2 queued
+        reg.requeue(v1, A)
+    run = run_of(reg, v2)
+    with pytest.raises(NewerVersion):  # v2 processing
+        reg.requeue(v1, A)
+    assert reg.get(v1, A).status == DocStatus.READY  # untouched, still searchable
+    done = reg.complete(v2, run, 1, 0, [], [], supersede=True)
+    assert [d.doc_id for d in done.superseded] == [v1]
+    assert [(d.doc_id, d.status) for d in reg.all(A)] == [(v2, DocStatus.READY)]
+
+
+def test_an_older_version_can_be_reindexed_when_the_newer_upload_failed(tmp_path):
+    reg = Registry(tmp_path / "r.db")
+    v1, v2 = "1" * 32, "2" * 32
+    reg.add(v1, A, "sales.csv", DocType.SPREADSHEET, ".csv", 1)
+    make_ready(reg, v1, supersede=True)
+    reg.add(v2, A, "sales.csv", DocType.SPREADSHEET, ".csv", 2)
+    assert reg.fail(v2, run_of(reg, v2), "parse error")
+    assert reg.requeue(v1, A)  # the user keeps the old version; v2 stays failed until retried or deleted
+    assert reg.requeue(v2, A)  # and the newer one can be retried: it supersedes v1 when it is ready
+
+
+def test_reindex_of_an_older_version_says_a_newer_one_is_coming(api):
+    a = new_user_id()
+    client, h = TestClient(api.app), KEYS.headers(a)
+    v1 = post(client, a, "sales.csv", b"Region,Amount\nNorth,1\n" + a.encode())["document"]["doc_id"]
+    make_ready(api.registry, v1)
+    v2 = post(client, a, "sales.csv", b"Region,Amount\nNorth,1\nSouth,2\n" + a.encode())
+    assert v2["replaces"] is True and v2["existing"] is False
+    r = client.post(f"/v1/documents/{v1}/reindex", headers=h)
+    assert r.status_code == 409 and r.json()["detail"] == api.NEWER_VERSION
+    other = post(client, a, "regions.csv", b"Region\nEast\n" + a.encode())  # another name: a new document
+    assert other["replaces"] is False
+
+
+def test_with_versions_off_an_older_document_of_the_name_can_be_reindexed(api, monkeypatch):
+    monkeypatch.setattr(api.settings, "replace_same_name", False)
+    a = new_user_id()
+    client, h = TestClient(api.app), KEYS.headers(a)
+    v1 = post(client, a, "notes.txt", b"one " + a.encode())["document"]["doc_id"]
+    make_ready(api.registry, v1)
+    assert post(client, a, "notes.txt", b"two " + a.encode())["replaces"] is False  # both stay
+    assert client.post(f"/v1/documents/{v1}/reindex", headers=h).status_code == 202
+
+
+def test_the_same_content_again_is_the_document_already_there(api):
+    """Ids come from the content: the same bytes again, under any name, answer with the document there, marked
+    existing so the UI can say so instead of showing the new name's status."""
+    a = new_user_id()
+    client = TestClient(api.app)
+    data = b"Region,Amount\nNorth,1\n" + a.encode()
+    first = post(client, a, "sales.csv", data)
+    assert first["existing"] is False and first["replaces"] is False and first["document"]["status"] == "queued"
+    again = post(client, a, "sales-copy.csv", data)
+    assert again["existing"] is True and again["name"] == "sales-copy.csv"
+    assert again["document"]["doc_id"] == first["document"]["doc_id"] and again["document"]["name"] == "sales.csv"
+    assert len(api.registry.all(a)) == 1
 
 
 # --- threads of a cancelled run, claims during a slow clean-up, a restarted worker --------------------

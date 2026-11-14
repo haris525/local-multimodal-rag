@@ -158,6 +158,9 @@ input[type="checkbox"]:disabled { opacity: 0.4; cursor: not-allowed; }
 .pill.failed { color: var(--bad); }
 .doc-note { font-size: 12px; color: var(--muted); margin-top: 4px; }
 .doc-note.err { color: var(--bad); }
+.doc-note.clamp { display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2; line-clamp: 2;
+  overflow: hidden; overflow-wrap: anywhere; }
+.note-more { font-size: 12px; margin-top: 2px; }
 .doc-actions { display: flex; gap: 2px; }
 @media (hover: hover) {
   .doc-actions, .thread .icon-btn { opacity: 0; transition: opacity 0.15s; }

@@ -181,9 +181,9 @@ Every route in this section acts for the user in `X-Identity` (section 4.2); ano
 answers 404, like a missing one.
 
 `ingest-api`
-- `POST /v1/documents`: multipart, one or more files; returns per file `{name, document | error}`. Identical bytes from the same user return the existing document; the id is `sha256(owner_id:content_sha256)[:32]`, so the same file from another user is a separate document.
+- `POST /v1/documents`: multipart, one or more files; returns per file `{name, document | error, existing, replaces}`. Identical bytes from the same user return the existing document (`existing: true`; its name may differ from the upload's); a new upload whose name matches an older document of the owner has `replaces: true` (with `INGEST_REPLACE_SAME_NAME`); the id is `sha256(owner_id:content_sha256)[:32]`, so the same file from another user is a separate document.
 - `GET /v1/documents`, `GET /v1/documents/{id}`, `POST /v1/documents/status` (`{doc_ids}`): status, progress, counts, warnings, table schema cards.
-- `DELETE /v1/documents/{id}` (hidden at once; index points and files first, the registry row last; 204 when all is gone, 202 when ingest-worker finishes it: a document being processed, or a failed clean-up), `POST /v1/documents/{id}/reindex` (ready or failed documents; 409 otherwise), `GET /v1/documents/{id}/assets/{name}`, `GET /v1/documents/{id}/chunks`.
+- `DELETE /v1/documents/{id}` (hidden at once; index points and files first, the registry row last; 204 when all is gone, 202 when ingest-worker finishes it: a document being processed, or a failed clean-up), `POST /v1/documents/{id}/reindex` (ready or failed documents; 409 otherwise, and 409 for an older version while a newer upload of its name is queued or processing), `GET /v1/documents/{id}/assets/{name}`, `GET /v1/documents/{id}/chunks`.
 - `POST /v1/grep`: `{doc_ids, terms, limit}` returns chunks ranked by distinct terms matched, then occurrences; 404 unless every document is the caller's.
 
 `sql`: `POST /v1/query` `{doc_id, sql, max_rows <= 5000}` returns `{columns, rows, truncated}`; 400 for a
@@ -402,7 +402,11 @@ full transition table: [STATE_MACHINES.md, M5 and M6](STATE_MACHINES.md#m5-docum
   versions (uploaded before it and `ready` or `failed`) to `deleting`, and a `document.superseded` audit
   event is written (`INGEST_REPLACE_SAME_NAME`, default on). Their points, files and rows are removed
   afterwards in a separate step: if that fails, the new version stays ready and the sweep finishes the
-  old ones. An older upload that finishes late never deletes a newer one.
+  old ones. An older upload that finishes late never deletes a newer one. Because supersede only reaches
+  versions that are `ready` or `failed` when the new one completes, `requeue` refuses an older version
+  while a newer upload of its name is queued or processing (`NewerVersion`, 409), in the same transaction
+  as the move; otherwise the re-indexed old version would finish after the new one and both would stay
+  listed. The UI moves a ticked document to its new version by name once the old id leaves the list.
 - **Deleting.** A delete moves the row to `deleting`: the document is gone for its owner at once, and the
   row stays until its points and files are removed (points first, then files, then the row), by
   whoever holds it: ingest-api for an idle document; for a document being processed, ingest-api removes
@@ -1951,7 +1955,8 @@ identity changes the key, owners never share an entry, cut, failed, empty and re
 stored, purges with the document, the account and the sweep, eviction, a corrupt entry, a busy, full or
 damaged file, another schema version, two workers on one file, and a reindex through the pipeline with no
 model call), embedding retries, storage (upload
-validation, registry claim and recovery, grep ranking, supersede only older versions, delete order,
+validation, registry claim and recovery, grep ranking, supersede only older versions, no reindex of an older
+version while a newer upload of its name is pending, the same content again marked existing, delete order,
 stop without losing an attempt), the document lifecycle (every (from, to) pair of the transition table,
 the CHECK and the v2 to v3 rebuild, run ids against stale runs, leases against a second worker, deletes
 during processing with a dying worker, a failed supersede clean-up, the API's 202 and "still being
@@ -2046,8 +2051,9 @@ kind handled and every route labelled in the UI; the shared reader (cut streams,
 order) in `libs/common`, eval and the scripts. The GPU gate holds a cancelled caller's job. The web UI's
 guards (a slow panel or chat load, New chat while streaming), the Users panel's server-given actions,
 notices under an answer (live and saved), Retry on a failed or interrupted answer and on a failed
-document, and the pages' markup (only files that exist, no inline script or style, every top-bar control) run
-in Node: `node --test services/gateway/tests/ui.test.mjs`.
+document, a selection, saved chat and Retry that follow a replaced file to its new version, the upload
+messages for content already there and for a new version, and the pages' markup (only files that exist, no
+inline script or style, every top-bar control) run in Node: `node --test services/gateway/tests/ui.test.mjs`.
 `scripts/multiuser_smoke.py` runs the live isolation matrix with two temporary accounts (DEPLOYMENT
 section 9.7).
 `scripts/memory_smoke.py` runs 23 live memory and routing checks with real messages, typos included,

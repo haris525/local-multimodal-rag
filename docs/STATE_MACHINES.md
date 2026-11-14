@@ -88,6 +88,7 @@ against it; the machine's section says how.
 | low | Account deletion through the UI could exceed the gateway's 120 s timeout while auth keeps purging | M2, M16, M21 | code | handled |
 | low | Stale async results in the UI (a new chat while streaming, panel loaders overwriting each other) | M17, M19 | code | handled |
 | low | A second ingest worker could requeue a job that is still running | M6 | P4 | handled |
+| low | Reindexing an older version while a newer upload of its name is queued or processing would leave both versions ready and listed (supersede reaches only ready or failed versions) | M5 | test | handled: `requeue` raises `NewerVersion` (409) |
 
 Places where a new status value meets a default branch:
 
@@ -511,7 +512,7 @@ Transitions:
 | Processing | Queued | SIGTERM: `release`, `attempts - 1` | this run | [ingest/worker.py:70-94](../services/ingest/src/ingest/worker.py#L70-L94), [ingest/registry.py:515-520](../services/ingest/src/ingest/registry.py#L515-L520) |
 | Processing | Queued or Failed | `recover`, at worker start and in every sweep | lease ran out; `attempts < max_attempts` (2) or not | [ingest/registry.py:522-544](../services/ingest/src/ingest/registry.py#L522-L544) |
 | Ready | Queued | worker start: `requeue_stale`, `attempts = 0`, for a document an older index version built (`index_version` below `pipeline.INDEX_VERSION`, raised by a parsing or chunking fix) | owner set and live; queued, processing, failed and deleting rows are left alone | [ingest/registry.py:357-372](../services/ingest/src/ingest/registry.py#L357-L372), [ingest/worker.py:209-211](../services/ingest/src/ingest/worker.py#L209-L211) |
-| Ready, Failed | Queued | reindex: `requeue`, `attempts = 0` | owner; a queued or processing document gets 409 | [ingest/api.py:246-253](../services/ingest/src/ingest/api.py#L246-L253), [ingest/registry.py:351-355](../services/ingest/src/ingest/registry.py#L351-L355) |
+| Ready, Failed | Queued | reindex: `requeue`, `attempts = 0` | owner; a queued or processing document gets 409; so does an older version while a newer upload of its name is queued or processing (`NewerVersion`, with `INGEST_REPLACE_SAME_NAME`) | [ingest/api.py:250-262](../services/ingest/src/ingest/api.py#L250-L262), [ingest/registry.py:357-377](../services/ingest/src/ingest/registry.py#L357-L377) |
 | Queued, Ready, Failed | Deleting, held by ingest-api | user delete | owner | [ingest/registry.py:374-396](../services/ingest/src/ingest/registry.py#L374-L396), [ingest/api.py:226-243](../services/ingest/src/ingest/api.py#L226-L243) |
 | Processing | Deleting, held by its run | user delete; ingest-api removes the points at once, the run the files and the row | owner | same |
 | Ready, Failed (older, same name, same owner) | Deleting, held by the worker | superseded, inside `complete` | inserted earlier (rowid) | [ingest/registry.py:497-507](../services/ingest/src/ingest/registry.py#L497-L507) |

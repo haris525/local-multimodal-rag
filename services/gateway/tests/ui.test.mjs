@@ -337,3 +337,119 @@ test("a citation resolves by source number, also when the numbers skip (Read all
   for (const c of cites) c.listeners.click[0]();
   assert.deepEqual([...b.run("opened")], [1, 3, 15]);
 });
+
+test("a long document warning shows two lines until More opens it; an error always shows in full", () => {
+  const b = browser();
+  const long = "Table p11_table11, column Fact Check: mostly numbers stored as text; ".repeat(4);
+  b.run(`state.docs = [
+    { doc_id: "d1", name: "a.pdf", doc_type: "pdf", status: "ready", n_chunks: 3, tables: [], warnings: [${JSON.stringify(long)}] },
+    { doc_id: "d2", name: "b.pdf", doc_type: "pdf", status: "ready", n_chunks: 3, tables: [], warnings: ["short note"] },
+    { doc_id: "d3", name: "c.pdf", doc_type: "pdf", status: "failed", n_chunks: 0, tables: [], warnings: [], error: ${JSON.stringify(long)} },
+  ]; renderDocs();`);
+  const walk = (el, out = []) => { if (el instanceof Object && el.children) { out.push(el); el.children.forEach((c) => walk(c, out)); } return out; };
+  const notes = () => walk(b.$("#docs")).filter((el) => /(^| )doc-note( |$)/.test(el.className));
+  const more = () => walk(b.$("#docs")).filter((el) => el.className === "link note-more");
+  let [n1, n2, n3] = notes();
+  assert.equal(n1.className, "doc-note clamp");
+  assert.equal(n1.attrs.title, long);
+  assert.equal(n2.className, "doc-note");
+  assert.equal(n3.className, "doc-note err");
+  assert.deepEqual(more().map((x) => x.textContent), ["More"]);
+  more()[0].listeners.click[0]();
+  [n1] = notes();
+  assert.equal(n1.className, "doc-note");
+  assert.equal(n1.attrs.title, undefined);
+  assert.deepEqual(more().map((x) => [x.textContent, x.attrs["aria-expanded"]]), [["Less", "true"]]);
+  more()[0].listeners.click[0]();
+  assert.equal(notes()[0].className, "doc-note clamp");
+});
+
+// New versions: a re-upload of a file (same name, new content) replaces the old document once it is ready.
+const v1 = "1".repeat(32), v2 = "2".repeat(32), other = "3".repeat(32);
+const csv = (doc_id, status, name = "sales.csv") => ({ doc_id, name, doc_type: "spreadsheet", status,
+  n_chunks: status === "ready" ? 4 : 0, tables: [], warnings: [], progress: "", error: status === "failed" ? "parse error" : null });
+
+test("a ticked file stays on its old version while the new one is processed, then follows it", async () => {
+  const lists = [[csv(v1, "ready"), csv(other, "ready", "regions.csv")],
+    [csv(v2, "processing"), csv(v1, "ready"), csv(other, "ready", "regions.csv")],
+    [csv(v2, "ready"), csv(other, "ready", "regions.csv")]];
+  let n = 0;
+  const b = browser({ "/documents": () => [0, lists[Math.min(n++, 2)]] });
+  b.run("state.me = { user_id: 'u1' }");
+  await b.run("refreshDocs()");
+  b.run(`toggleSelect("${v1}", true); toggleSelect("${other}", true)`);
+  await b.run("refreshDocs()");
+  assert.deepEqual([...b.run("state.selected")], [v1, other]);  // the old version answers meanwhile
+  const old = b.$("#docs").children[1];
+  assert.match(text(old), /A newer upload of this file is being processed\. This version is used until it is ready\./);
+  const reindex = old.children[2].children[0];
+  assert.ok(reindex.attrs.disabled !== undefined);
+  assert.equal(reindex.attrs.title, "Waits for the newer upload of this file");
+  await b.run("refreshDocs()");
+  assert.deepEqual([...b.run("state.selected")], [v2, other]);
+  b.run("clearTimeout(state.pollTimer)");
+});
+
+test("a failed old version offers no Retry while a newer upload of it is processed", () => {
+  const b = browser();
+  b.run(`state.docs = [${JSON.stringify(csv(v2, "queued"))}, ${JSON.stringify(csv(v1, "failed"))}]; renderDocs()`);
+  const old = b.$("#docs").children[1];
+  assert.equal(find(old, (el) => el.tagName === "button" && text(el) === "Retry"), undefined);
+  assert.match(text(old), /A newer upload of this file is being processed\.$/);
+});
+
+test("a ticked file deleted elsewhere is not followed to a new upload of its name that is not ready", async () => {
+  const b = browser({ "/documents": [0, [csv(v2, "processing")]] });
+  b.run(`state.me = { user_id: 'u1' }; state.docs = [${JSON.stringify(csv(v1, "ready"))}]; rememberNames([["${v1}", "sales.csv"]]);
+    state.selected = new Set(["${v1}"])`);
+  await b.run("refreshDocs()");  // v1 deleted elsewhere while v2 is not ready: nothing usable of that name
+  assert.deepEqual([...b.run("state.selected")], []);
+  b.run("clearTimeout(state.pollTimer)");
+});
+
+test("a saved chat and Retry restore a replaced file as its new version", async () => {
+  const thread = "a".repeat(32);
+  const detail = { thread: { thread_id: thread, doc_ids: [v1, other] }, messages: [
+    { role: "user", content: "total?" },
+    { role: "assistant", content: "42 [1]", meta: { sources: [{ n: 1, doc_id: v1, doc_name: "sales.csv", kind: "table", text: "x" }],
+      doc_ids: [v1, other], mode: "fast", error: "llm: busy" } }] };
+  const b = browser({ [`/threads/${thread}`]: [0, detail], "/threads": [0, []], "/chat": [0, events(["sources", { route: "sql", sources: [] }],
+    ["done", { citations: [], invalid_citations: [], timings: {} }])] });
+  b.run(`state.docs = [${JSON.stringify(csv(v2, "ready"))}, ${JSON.stringify(csv(other, "failed", "regions.csv"))}]`);
+  await b.run(`openThread("${thread}")`);
+  assert.deepEqual([...b.run("state.selected")], [v2]);  // regions.csv is listed but failed: left out
+  b.run("state.selected = new Set()");
+  find(b.$("#messages"), (el) => el.tagName === "button" && text(el) === "Retry").listeners.click[0]();
+  await b.wait(20);
+  assert.deepEqual(b.requests.find((r) => r.url.endsWith("/chat")).body.doc_ids, [v2]);
+});
+
+test("a question about a document replaced meanwhile says so, and its Retry uses the new version", async () => {
+  let chats = 0;
+  const b = browser({ "/documents": [0, [csv(v2, "ready")]], "/threads": [0, []],
+    "/chat": () => (++chats === 1 ? [0, { detail: `unknown documents: ${v1}` }, 404]
+      : [0, events(["sources", { route: "sql", sources: [] }], ["done", { citations: [], invalid_citations: [], timings: {} }])]) });
+  b.run(`state.me = { user_id: 'u1' }; state.threadId = "a".repeat(32); state.docs = [${JSON.stringify(csv(v1, "ready"))}];
+    rememberNames([["${v1}", "sales.csv"]]); state.selected = new Set(["${v1}"])`);
+  await b.run("ask('total?')");
+  assert.match(text(b.$("#messages")), /a selected document was deleted or replaced by a new version meanwhile/);
+  assert.deepEqual([...b.run("state.selected")], [v2]);
+  find(b.$("#messages"), (el) => el.tagName === "button" && text(el) === "Retry").listeners.click[0]();
+  await b.wait(20);
+  assert.deepEqual(b.requests.filter((r) => r.url.endsWith("/chat")).map((r) => r.body.doc_ids), [[v1], [v2]]);
+  b.run("clearTimeout(state.pollTimer)");
+});
+
+test("the upload message says when the content is already there, and when a file replaces its older version", () => {
+  const b = browser();
+  const doc = (name, status) => ({ doc_id: v1, name, status });
+  const line = (r) => b.run(`uploadLine(${JSON.stringify(r)})`);
+  assert.equal(text(line({ name: "sales.csv", document: doc("sales.csv", "ready"), existing: true })),
+    "sales.csv: already uploaded, unchanged (ready)");
+  assert.equal(text(line({ name: "copy.csv", document: doc("sales.csv", "ready"), existing: true })),
+    "copy.csv: the same content is already uploaded as sales.csv");
+  const replacing = line({ name: "sales.csv", document: doc("sales.csv", "queued"), replaces: true });
+  assert.equal(text(replacing), "sales.csv: queued, replaces the current version when ready");
+  assert.equal(replacing.className, "upload-status");  // dropped once the file is ready, like any status line
+  assert.equal(line({ name: "x.csv", error: "file is empty" }).className, "err");
+});

@@ -32,7 +32,7 @@ from ingest.config import get_settings
 from ingest.indexer import delete_points, delete_user_points
 from ingest.llmcache import LlmCache
 from ingest.pipeline import delete_document
-from ingest.registry import SCHEMA_VERSION, OwnerDeleted, Registry, StillDeleting
+from ingest.registry import SCHEMA_VERSION, NewerVersion, OwnerDeleted, Registry, StillDeleting
 from ingest.validation import InvalidUpload, safe_name, validate
 
 settings = get_settings()
@@ -45,6 +45,7 @@ _CHUNK = 1 << 20
 ASSET_CACHE = "private, max-age=300"  # short: a signed-out browser must not keep serving a user's figures
 ACCOUNT_DELETED = "this account has been deleted"
 STILL_DELETING = "this file is still being deleted; upload it again in a minute"
+NEWER_VERSION = "a newer version of this file is being processed; it replaces this one when it is ready"
 
 
 async def _drop_points(owner_id: str, doc_id: str) -> None:
@@ -55,6 +56,8 @@ class UploadResult(BaseModel):
     name: str
     document: DocumentInfo | None = None
     error: str | None = None
+    existing: bool = False  # the same content was uploaded before: document is that one (its name may differ)
+    replaces: bool = False  # a new version: it replaces the owner's older document of this name once ready
 
 
 @asynccontextmanager
@@ -157,7 +160,7 @@ async def _store(upload: UploadFile, owner_id: str) -> UploadResult:
         async with _one_placement(doc_id):
             existing = registry.get(doc_id, owner_id)
             if existing:
-                return UploadResult(name=name, document=existing)
+                return UploadResult(name=name, document=existing, existing=True)
             if not await _finish_earlier_deletion(doc_id, owner_id):
                 return UploadResult(name=name, error=STILL_DELETING)
             target = paths.source_path(settings, owner_id, doc_id, ext)
@@ -171,7 +174,8 @@ async def _store(upload: UploadFile, owner_id: str) -> UploadResult:
             except StillDeleting:  # a deletion of the same file holds the row: the file placed here is not wanted
                 target.unlink(missing_ok=True)
                 return UploadResult(name=name, error=STILL_DELETING)
-            return UploadResult(name=name, document=info)
+            replaces = settings.replace_same_name and registry.has_older_version(doc_id, owner_id)
+            return UploadResult(name=name, document=info, replaces=replaces)
     finally:
         tmp.unlink(missing_ok=True)
 
@@ -246,7 +250,11 @@ async def delete(doc_id: DocIdPath, user: Identity = Depends(require_user)) -> R
 @app.post("/v1/documents/{doc_id}/reindex", status_code=202)
 async def reindex(doc_id: DocIdPath, user: Identity = Depends(require_user)) -> DocumentInfo:
     doc = _get(doc_id, user)
-    if not registry.requeue(doc_id, user.user_id):
+    try:
+        requeued = registry.requeue(doc_id, user.user_id, versions=settings.replace_same_name)
+    except NewerVersion:
+        raise HTTPException(409, NEWER_VERSION) from None
+    if not requeued:
         raise HTTPException(409, "document is being processed" if doc.status == DocStatus.PROCESSING
                             else f"document is already {doc.status.value}")
     await audit.record("document.reindex_requested", doc_id, user_id=user.user_id, name=doc.name)

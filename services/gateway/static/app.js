@@ -2,6 +2,7 @@
 
 const MAX_SELECTED = 10;
 const TYPE_LABEL = { pdf: "PDF", spreadsheet: "SHEET", text: "TEXT", image: "IMAGE" };
+const NOTE_SHORT = 140;  // characters of a document warning shown without More (two lines in the list)
 const ROUTE_LABEL = {
   sql: "SQL", filter: "SQL filter + search", search: "hybrid search", deep: "deep search", exhaustive: "read every section",
   memory_save: "saved to memory", memory_recall: "from memory", memory_forget: "memory updated",
@@ -22,6 +23,8 @@ const state = {
   view: 0,  // which chat the page shows; a chat that loads after another was opened is dropped
   pollTimer: null,
   reindexing: new Set(),  // documents whose reindex request is on its way: their Retry and Reindex wait
+  notesOpen: new Set(),  // documents whose long warning the user opened with More
+  names: new Map(),  // document id -> name, from the lists, saved chats and the saved selection (usableIds)
 };
 
 function load(key, fallback) {
@@ -114,8 +117,8 @@ async function refreshDocs() {
   clearTimeout(state.pollTimer);
   try {
     state.docs = await api("/documents");
-    const known = new Set(state.docs.filter(usable).map((d) => d.doc_id));
-    for (const id of [...state.selected]) if (!known.has(id)) state.selected.delete(id);
+    rememberNames(state.docs.map((d) => [d.doc_id, d.name]));
+    state.selected = new Set(usableIds([...state.selected]));
     renderDocs();
     settleUploadMsg();
   } catch (err) {
@@ -125,17 +128,43 @@ async function refreshDocs() {
   state.pollTimer = setTimeout(refreshDocs, pending ? 2000 : 15000);
 }
 
+function rememberNames(pairs) {
+  for (const [id, name] of pairs) if (typeof id === "string" && id && typeof name === "string" && name) state.names.set(id, name);
+}
+
+// The usable documents among these ids (at most MAX_SELECTED). An id whose document has left the list stands
+// for the usable document of the same name: a new upload of a file replaces the old version once it is ready,
+// so a ticked box, a saved chat and a Retry follow the file to its new version. A document still listed but not
+// usable (queued, failed) is left out, as before.
+function usableIds(ids) {
+  const ready = state.docs.filter(usable);
+  const listed = new Set(state.docs.map((d) => d.doc_id));
+  const out = [];
+  for (const id of ids || []) {
+    const now = ready.some((d) => d.doc_id === id) ? id
+      : listed.has(id) ? null : ready.find((d) => d.name === state.names.get(id))?.doc_id;  // the list is newest first
+    if (now && !out.includes(now)) out.push(now);
+  }
+  return out.slice(0, MAX_SELECTED);
+}
+
 function renderDocs() {
   const list = $("#docs");
   list.replaceChildren();
   if (!state.docs.length) {
     list.append(h("li", { class: "muted" }, "No documents yet."));
   }
-  for (const doc of state.docs) {
+  for (const [i, doc] of state.docs.entries()) {
     const ready = usable(doc);
     const selected = state.selected.has(doc.doc_id);
     const full = state.selected.size >= MAX_SELECTED && !selected;
+    // A newer upload of the same name is waiting or being processed (the list is newest first): this version is
+    // used until that one is ready, and is not reindexed meanwhile (ingest refuses it).
+    const replacing = !busyDoc(doc) && state.docs.slice(0, i).some((d) => d.name === doc.name && busyDoc(d));
     const note = doc.status === "failed" ? doc.error : doc.status === "processing" ? doc.progress : doc.warnings.join("; ");
+    // A long warning shows two lines (its full text on hover) until More opens it; an error always shows in full.
+    const long = doc.status !== "failed" && (note || "").length > NOTE_SHORT;
+    const open = state.notesOpen.has(doc.doc_id);
     list.append(
       h("li", { class: `doc${selected ? " selected" : ""}` },
         h("input", {
@@ -149,19 +178,31 @@ function renderDocs() {
             h("span", { class: "badge" }, TYPE_LABEL[doc.doc_type] || doc.doc_type),
             h("span", { class: `pill ${doc.status}` }, doc.status),
             ready ? h("span", {}, `${doc.n_chunks} chunks${doc.tables.length ? `, ${doc.tables.length} tables` : ""}${doc.status !== "ready" ? " (previous index)" : ""}`) : null),
-          note ? h("div", { class: `doc-note${doc.status === "failed" ? " err" : ""}` }, note,
-            doc.status === "failed" ? h("button", { class: "link retry", type: "button", onclick: () => reindex(doc),
-              disabled: state.reindexing.has(doc.doc_id), title: "Process this document again" }, "Retry") : null) : null),
+          note ? h("div", { class: `doc-note${doc.status === "failed" ? " err" : ""}${long && !open ? " clamp" : ""}`,
+            title: long && !open ? note : null }, note,
+            doc.status === "failed" && !replacing ? h("button", { class: "link retry", type: "button", onclick: () => reindex(doc),
+              disabled: state.reindexing.has(doc.doc_id), title: "Process this document again" }, "Retry") : null) : null,
+          long ? h("button", { class: "link note-more", type: "button", "aria-expanded": open ? "true" : "false",
+            onclick: () => toggleNote(doc.doc_id) }, open ? "Less" : "More") : null,
+          replacing ? h("div", { class: "doc-note version-note" },
+            ready ? "A newer upload of this file is being processed. This version is used until it is ready."
+              : "A newer upload of this file is being processed.") : null),
         h("div", { class: "doc-actions" },
           h("button", { class: "icon-btn", type: "button", "data-icon": "refresh", onclick: () => reindex(doc),
-            disabled: busyDoc(doc) || state.reindexing.has(doc.doc_id),
-            title: busyDoc(doc) ? "Reindex is available once processing has finished" : "Reindex",
+            disabled: busyDoc(doc) || replacing || state.reindexing.has(doc.doc_id),
+            title: busyDoc(doc) ? "Reindex is available once processing has finished"
+              : replacing ? "Waits for the newer upload of this file" : "Reindex",
             "aria-label": "Reindex" }),
           h("button", { class: "icon-btn danger", type: "button", title: "Delete", "aria-label": "Delete", "data-icon": "trash", onclick: () => removeDoc(doc) }))));
   }
   $("#sel-count").textContent = `${state.selected.size} of ${MAX_SELECTED} selected`;
-  if (state.me) save(selKey(), [...state.selected]);
+  if (state.me) save(selKey(), [...state.selected].map((id) => [id, state.names.get(id) || ""]));  // names: usableIds
   updateSend();
+}
+
+function toggleNote(docId) {
+  if (state.notesOpen.has(docId)) state.notesOpen.delete(docId); else state.notesOpen.add(docId);
+  renderDocs();
 }
 
 // Waiting or being processed: a reindex is refused (409) until it is ready or failed.
@@ -194,8 +235,8 @@ async function upload(files) {
     form.append("files", file);
     try {
       const [r] = await api("/documents", { method: "POST", body: form });
-      if (!r.error) uploaded.add(r.name);
-      lines.push(r.error ? h("div", { class: "err" }, `${r.name}: ${r.error}`) : h("div", {}, `${r.name}: ${r.document.status}`));
+      if (!r.error && !r.existing) uploaded.add(r.name);
+      lines.push(uploadLine(r));
     } catch (err) {
       lines.push(h("div", { class: "err" }, `${file.name}: ${err.message}`));
     }
@@ -206,13 +247,26 @@ async function upload(files) {
   settleUploadMsg();
 }
 
+// One line per file. The same content again is the document already there (ingest's ids come from the content),
+// whose name may differ; a new version of a file replaces the older one of its name once it is ready.
+function uploadLine(r) {
+  if (r.error) return h("div", { class: "err" }, `${r.name}: ${r.error}`);
+  if (r.existing) {
+    return h("div", {}, r.document.name === r.name ? `${r.name}: already uploaded, unchanged (${r.document.status})`
+      : `${r.name}: the same content is already uploaded as ${r.document.name}`);
+  }
+  return h("div", { class: "upload-status" },
+    `${r.name}: ${r.document.status}${r.replaces ? ", replaces the current version when ready" : ""}`);
+}
+
 // Once every file of the last upload is ready or failed, the list shows its status: drop the "queued" lines.
+// The lines about errors and content already uploaded stay until the next upload.
 function settleUploadMsg() {
   if (!state.lastUpload?.size) return;
-  const status = new Map(state.docs.map((d) => [d.name, d.status]));
+  const status = new Map([...state.docs].reverse().map((d) => [d.name, d.status]));  // a name's newest upload wins
   if ([...state.lastUpload].some((name) => !status.has(name) || ["queued", "processing"].includes(status.get(name)))) return;
   state.lastUpload = null;
-  $("#upload-msg").querySelectorAll("div:not(.err)").forEach((line) => line.remove());
+  $("#upload-msg").querySelectorAll("div.upload-status").forEach((line) => line.remove());
 }
 
 // One request per document at a time: a second click while the first is on its way does nothing.
@@ -287,7 +341,9 @@ function showSources(sources, focus) {
       h("div", { class: "src-head" }, h("span", { class: "src-n" }, `[${s.n}]`), h("span", { class: "src-doc" }, s.doc_name)),
       h("div", { class: "src-loc" }, s.location ? `${s.kind}, ${s.location}` : s.kind),
       ranks.length ? h("div", { class: "src-ranks" }, ranks) : null,
-      s.asset ? h("img", { src: `/api/documents/${s.doc_id}/assets/${s.asset}`, alt: `Figure from ${s.doc_name}`, loading: "lazy" }) : null,
+      s.asset ? h("img", { src: `/api/documents/${s.doc_id}/assets/${s.asset}`, alt: `Figure from ${s.doc_name}`, loading: "lazy",
+        // a saved chat keeps its source text, but the figure goes with its document
+        onerror: (e) => e.target.replaceWith(h("div", { class: "muted" }, "Figure not available: its document was deleted or replaced by a new version.")) }) : null,
       text);
   }));
   openPanel("Sources");
@@ -505,8 +561,7 @@ function retryButton(question, turn = {}) {
 
 function restoreTurn(turn) {
   if (Array.isArray(turn.doc_ids)) {
-    const ready = new Set(state.docs.filter(usable).map((d) => d.doc_id));
-    const ids = turn.doc_ids.filter((d) => ready.has(d)).slice(0, MAX_SELECTED);
+    const ids = usableIds(turn.doc_ids);
     if (ids.length) {
       state.selected = new Set(ids);
       renderDocs();
@@ -633,6 +688,12 @@ async function ask(question) {
       let detail = response.statusText;
       try { detail = (await response.json()).detail; } catch { /* not JSON */ }
       if (response.status === 404 && String(detail).startsWith("thread")) setThread(null);
+      if (response.status === 404 && String(detail).startsWith("unknown documents")) {
+        // deleted, or replaced by a new version, since the list was last loaded: Retry asks again with the list
+        // as it is now (the new version of a replaced file)
+        await refreshDocs();
+        detail = "a selected document was deleted or replaced by a new version meanwhile. Check the ticked documents and ask again.";
+      }
       throw new Error(typeof detail === "string" ? detail : JSON.stringify(detail));
     }
     for await (const [event, data] of sse(response)) {
@@ -718,8 +779,9 @@ async function openThread(id, { fromLink = false } = {}) {
     const detail = await api(`/threads/${id}`);
     if (view !== state.view) return;  // another chat was opened, or a new one started, meanwhile
     setThread(id);
-    const ready = new Set(state.docs.filter(usable).map((d) => d.doc_id));
-    const restored = detail.thread.doc_ids.filter((d) => ready.has(d));
+    // the chat's sources name its documents, so a file replaced since by a new version is restored as that version
+    rememberNames(detail.messages.flatMap((m) => (m.meta?.sources || []).map((s) => [s.doc_id, s.doc_name])));
+    const restored = usableIds(detail.thread.doc_ids);
     if (restored.length) state.selected = new Set(restored);
     renderDocs();
     hideSources();
@@ -842,7 +904,12 @@ async function init() {
     return;
   }
   if (state.me.must_change_password) return toLogin();
-  state.selected = new Set(load(selKey(), []));
+  // saved as [id, name] pairs, so a file replaced by a new version while the page was closed stays ticked; earlier
+  // pages saved ids only
+  const saved = load(selKey(), []);
+  const pairs = (Array.isArray(saved) ? saved : []).map((x) => (Array.isArray(x) ? x : [x, ""]));
+  rememberNames(pairs);
+  state.selected = new Set(pairs.map(([id]) => id).filter((id) => typeof id === "string" && id));
   try { localStorage.removeItem("selected"); } catch { /* storage unavailable */ }  // pre-account key
   renderUserMenu();
   renderNotice(session.security_notice);

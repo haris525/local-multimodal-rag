@@ -119,6 +119,12 @@ class StillDeleting(Exception):
     """This file's previous upload is being deleted (its row exists until its points and files are gone)."""
 
 
+class NewerVersion(Exception):
+    """A newer upload of this document's name (same owner) is queued or being processed. It replaces this
+    document once it is ready, so this one is not re-indexed meanwhile: finishing after it, it would stay listed
+    next to it (supersede only reaches versions uploaded before)."""
+
+
 class Sql(str):
     """A column value that is an SQL expression over the row (attempts + 1), not a parameter."""
 
@@ -348,11 +354,37 @@ class Registry:
                               (_owner(owner_id), D.value)).fetchall()
         return [self._info(r) for r in rows]
 
-    def requeue(self, doc_id: str, owner_id: str) -> bool:
-        """Re-index a ready or failed document; False for a queued, processing or missing one."""
+    def requeue(self, doc_id: str, owner_id: str, versions: bool = True) -> bool:
+        """Re-index a ready or failed document; False for a queued, processing or missing one. With versions
+        (a new upload of a name supersedes the older ones), NewerVersion while a newer upload of the same name
+        is queued or processing. The check and the move are one transaction."""
         with self._connect() as db:
-            return self._transition(db, doc_id, Q, sources=(R, F), owner_id=owner_id, attempts=0, error=None,
-                                    progress="") is not None
+            db.execute("BEGIN IMMEDIATE")
+            try:
+                newer = versions and db.execute(
+                    "SELECT 1 FROM documents AS old JOIN documents AS new ON new.owner_id = old.owner_id"
+                    " AND new.name = old.name AND new.rowid > old.rowid"
+                    " WHERE old.doc_id = ? AND old.owner_id = ? AND new.status IN (?, ?) LIMIT 1",
+                    (doc_id, _owner(owner_id), Q.value, P.value)).fetchone()
+                if newer:
+                    raise NewerVersion(doc_id)
+                row = self._transition(db, doc_id, Q, sources=(R, F), owner_id=owner_id, attempts=0, error=None,
+                                       progress="")
+                db.execute("COMMIT")
+            except BaseException:
+                db.execute("ROLLBACK")
+                raise
+        return row is not None
+
+    def has_older_version(self, doc_id: str, owner_id: str) -> bool:
+        """Whether the owner has another document of this document's name, uploaded before it (and not being
+        deleted): the one a new upload replaces once it is ready."""
+        with self._connect() as db:
+            return db.execute(
+                "SELECT 1 FROM documents AS new JOIN documents AS old ON old.owner_id = new.owner_id"
+                " AND old.name = new.name AND old.rowid < new.rowid"
+                " WHERE new.doc_id = ? AND new.owner_id = ? AND old.status != ? LIMIT 1",
+                (doc_id, _owner(owner_id), D.value)).fetchone() is not None
 
     def requeue_stale(self, index_version: int) -> int:
         """Re-index every ready document an older index version built (a parsing or chunking fix means it may
