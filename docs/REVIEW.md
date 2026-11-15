@@ -83,6 +83,10 @@ answer without resetting a context token created elsewhere. These fixes live in 
 code and the Linux containers used on both Windows and macOS; this follow-up was run on macOS,
 not on a Windows host.
 
+The final live stream check also exposed eager consumption in the shared command-line SSE reader:
+it expanded every response line into a list before yielding the first event. Parsing now consumes
+lines lazily; a regression makes any read beyond the first complete event fail immediately.
+
 ## Mac support and model inventory
 
 The inspected machine has Apple Silicon and 64 GB unified memory. Docker Desktop's Linux VM was
@@ -146,10 +150,13 @@ run timeouts, memory-limit killing and successful execution afterward. The other
 
 ## Validation
 
-The generation/memory follow-up passed **1,739 automated tests, with 1 skipped**, across ingestion,
+The generation/memory follow-up passed **1,740 automated tests, with 1 skipped**, across ingestion,
 RAG, SQL, auth, shared code, threads, audit, scripts, UI and evaluation. The real browser Mermaid check
 also passed. Standard Mac Docker builds and the offline parser-model warmup passed; the updated
 process-memory dependency was already pinned transitively, and no model weights/version changed.
+The final live gateway check saved a completed answer with its pinned source generation, then closed
+a second answer after its first token and verified the partial answer was saved as interrupted.
+Its temporary account and documents were removed afterward.
 The 14.7-minute live workload passed, including repeated PDF parsing, concurrent reindex/search and
 old/new pandas inputs, without new OOMs or service restarts. Its measurements and limits are recorded
 in [the benchmark report](benchmarks/reindex-memory-mac-2026-11-14.md); reproduce it using

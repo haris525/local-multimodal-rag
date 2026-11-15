@@ -15,6 +15,7 @@ and what to do about it (see [DEPLOYMENT.md, section 4.8](docs/DEPLOYMENT.md#48-
 - Add a reproducible isolated large/messy document workload and memory measurements.
 - Keep snapshot context scoped to each streamed operation so disconnect cleanup can save partial
   answers even when the stream is finalized in another task.
+- Yield parsed chat events as they arrive in command-line clients instead of buffering the full stream.
 
 **Data changes:** registry schema v5 adds `generation`, `storage_id` and a generation catalog. Existing
 documents keep their paths/point IDs and remain readable without reindexing. New derived data uses
