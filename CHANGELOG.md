@@ -31,6 +31,9 @@ and what to do about it (see [DEPLOYMENT.md, section 4.8](docs/DEPLOYMENT.md#48-
   indexed. `INDEX_VERSION` 3 reindexes every ready document once at the worker's next start.
 - Add a plan, not implemented, for video, audio and more file formats:
   [docs/design/video-and-new-formats.md](docs/design/video-and-new-formats.md).
+- Show the MMR formula in ARCHITECTURE.md section 7.4 as math on github.com. GitHub leaves a ` ```math `
+  block inside a list as a code block when the list also holds inline formulas, so the block now sits
+  between items 4 and 5 and the list goes on at 5.
 
 **Data changes:** registry schema v5 adds `generation`, `storage_id` and a generation catalog. Existing
 documents keep their paths/point IDs and remain readable without reindexing. New derived data uses

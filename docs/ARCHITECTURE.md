@@ -845,14 +845,17 @@ The top 30 fused candidates plus the per-document candidates go to the reranker.
    reranker trained to find answers scores broad questions ("what are these documents about?") low
    for every passage; a single 0.05 threshold would silently drop whole documents.
 4. **MMR fill**: remaining slots, among candidates with $s(d) \ge \tau$, go to
-   ```math
-   d^{*}=\arg\max_{d\notin S}\Big[\lambda\,s(d)-(1-\lambda)\max_{d'\in S}\cos(\mathbf{e}_d,\mathbf{e}_{d'})\Big],\qquad \lambda=0.7,
-   ```
-   where $S$ is the selected set and $\mathbf{e}$ the stored text embeddings (Carbonell & Goldstein,
-   1998). Relevance is traded against redundancy, which spreads chunks across documents and topics.
-   The threshold adapts to the best score: $`\tau = \max\big(0.005,\ \min(0.05,\ 0.25\,\max_d s(d))\big)`$.
-   When the top passage scores 0.99 the bar stays at 0.05; when nothing literally answers the question
-   (overviews, "key findings") the bar drops, so the context holds more than one or two chunks.
+
+```math
+d^{*}=\arg\max_{d\notin S}\Big[\lambda\,s(d)-(1-\lambda)\max_{d'\in S}\cos(\mathbf{e}_d,\mathbf{e}_{d'})\Big],\qquad \lambda=0.7,
+```
+
+where $S$ is the selected set and $\mathbf{e}$ the stored text embeddings (Carbonell & Goldstein,
+1998). Relevance is traded against redundancy, which spreads chunks across documents and topics.
+The threshold adapts to the best score: $`\tau = \max\big(0.005,\ \min(0.05,\ 0.25\,\max_d s(d))\big)`$.
+When the top passage scores 0.99 the bar stays at 0.05; when nothing literally answers the question
+(overviews, "key findings") the bar drops, so the context holds more than one or two chunks.
+
 5. Optional cap `RAG_MAX_PER_DOC` (0 = MMR decides); at least 2 chunks kept so the model can say what
    is missing. $K = \min(16, \max(8, 2|D|))$.
 
