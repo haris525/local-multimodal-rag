@@ -74,24 +74,27 @@ async def process_until_stopped(pipeline: Pipeline, registry: Registry, doc: Doc
     work = asyncio.create_task(pipeline.process(doc))
     halt = asyncio.create_task(stop.wait())
     hold = asyncio.create_task(_hold(registry, doc, renew_s))
-    await asyncio.wait({work, halt, hold}, return_when=asyncio.FIRST_COMPLETED)
-    halt.cancel()
-    hold.cancel()
-    if work.done():
-        return work.result()
-    work.cancel()
-    with contextlib.suppress(asyncio.CancelledError, Exception):
-        await work
-    _stop_parsing(pipeline)
-    if stop.is_set() and registry.release(doc.doc_id, doc.run_id):
-        log_fields(log, "stopping: document back in the queue", doc_id=doc.doc_id)
-        return None
-    # the row was deleted or taken back: before anything is cleaned up, the job's threads must have
-    # written whatever they were writing (a thread cannot be stopped)
-    settle = getattr(pipeline, "settle", None)
-    if settle:
-        await settle()
-    raise RunLost(doc.doc_id)
+    try:
+        await asyncio.wait({work, halt, hold}, return_when=asyncio.FIRST_COMPLETED)
+        if work.done():
+            return work.result()
+        work.cancel()
+        _stop_parsing(pipeline)
+        with contextlib.suppress(asyncio.CancelledError, Exception):
+            await work
+        # Keep renewing the claim until writers have stopped, including on shutdown. Releasing it
+        # earlier lets another worker write the same files beside an uncancellable old thread.
+        settle = getattr(pipeline, "settle", None)
+        if settle:
+            await settle()
+        if stop.is_set() and registry.release(doc.doc_id, doc.run_id):
+            log_fields(log, "stopping: document back in the queue", doc_id=doc.doc_id)
+            return None
+        raise RunLost(doc.doc_id)
+    finally:
+        halt.cancel()
+        hold.cancel()
+        await asyncio.gather(halt, hold, return_exceptions=True)
 
 
 async def abandon_quietly(pipeline: Pipeline, doc: DocumentInfo) -> None:
@@ -161,11 +164,9 @@ async def sweep(pipeline: Pipeline, registry: Registry, max_attempts: int, mine:
 
 async def sweeper(pipeline: Pipeline, registry: Registry, max_attempts: int, every_s: float,
                   stop: asyncio.Event) -> None:
-    """The sweep at start (mine) and then every every_s seconds until stop, also while a job runs."""
-    mine = True
+    """Lease-aware cleanup on a timer, also while a job runs. Own-holder recovery runs before claims."""
     while not stop.is_set():
-        await sweep(pipeline, registry, max_attempts, mine=mine)
-        mine = False
+        await sweep(pipeline, registry, max_attempts)
         with contextlib.suppress(TimeoutError):
             await asyncio.wait_for(stop.wait(), every_s)
 
@@ -235,6 +236,9 @@ async def run() -> None:
         cache = LlmCache.from_settings(s)
         await open_cache(cache, s, vision)
         pipeline = Pipeline(s, registry, indexer, vision, TokenCounter(s.tokenizer_file), runner, cache)
+        # Own-holder recovery assumes an earlier process is dead. Finish it before claiming any new
+        # work; a scheduled startup sweep could otherwise reclaim this process's first fresh job.
+        await sweep(pipeline, registry, s.max_attempts, mine=True)
         log.info("worker ready")
         sweeping = asyncio.create_task(sweeper(pipeline, registry, s.max_attempts, s.sweep_interval_s, stop))
         while not stop.is_set():

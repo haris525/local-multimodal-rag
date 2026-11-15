@@ -52,7 +52,7 @@ function browser(routes = {}) {
     const stream = typeof body === "string" ? { getReader: () => {
       let sent = false;
       return { read: async () => (sent ? { done: true } : ((sent = true), { done: false, value: new TextEncoder().encode(body) })) };
-    } } : null;
+    } } : body && typeof body.getReader === "function" ? body : null;
     return new Promise((resolve) => setTimeout(() => resolve({
       status, ok: status < 300, statusText: "", json: async () => body, body: stream }), delay));
   };
@@ -61,6 +61,7 @@ function browser(routes = {}) {
     localStorage: { getItem: () => null, setItem() {}, removeItem() {} },
     location: { hash: "", pathname: "/", replace() {} }, history: { replaceState() {} },
     requestAnimationFrame: (f) => setTimeout(f, 0), NodeFilter: { SHOW_TEXT: 4 }, TextDecoder, TextEncoder,
+    cancelAnimationFrame: clearTimeout,
     marked: { parse: (t) => t }, DOMPurify: { sanitize: (t) => t },
   });
   for (const file of ["app.js", "account.js", "admin.js"]) {
@@ -197,6 +198,75 @@ const text = (el) => (typeof el === "string" ? el : el.textContent);
 // POST /threads makes the chat (its first call); later GETs list the chats.
 const threadsRoute = () => { let made = false; return () => (made ? [0, []] : ((made = true), [0, { thread_id: "a".repeat(32) }])); };
 const find = (el, pred) => (pred(el) ? el : (el.children || []).filter((c) => c instanceof El).map((c) => find(c, pred)).find(Boolean));
+
+test("a waiting answer shows a loader, elapsed time and real stage changes until done", async () => {
+  let stream;
+  const body = new ReadableStream({ start(controller) { stream = controller; } });
+  const b = browser({ "/threads": threadsRoute(), "/chat": [0, body] });
+  b.run('$("#exhaustive").checked = true');
+  const asking = b.run('ask("explain the constitution")');
+  const activity = find(b.$("#messages"), (el) => el.className === "answer-activity");
+  const label = find(activity, (el) => el.className === "activity-label");
+  const elapsed = find(activity, (el) => el.className === "activity-time");
+  assert.equal(activity.hidden, false, "feedback appears before the first server response");
+  assert.match(activity.textContent, /Preparing your answer.*Read all may take several minutes/s);
+  assert.equal(label.attrs.role, "status");
+  assert.equal(elapsed.attrs["aria-hidden"], "true", "elapsed seconds do not interrupt screen reader announcements");
+  try {
+    await b.wait(1100);
+    assert.match(elapsed.textContent, /^[1-9]\d*s elapsed$/);
+    const send = async (...list) => {
+      stream.enqueue(new TextEncoder().encode(events(...list)));
+      await b.wait(10);
+    };
+    await send(["memory", { action: "saved", items: [{ memory_id: "m1", text: "new to the constitution" }] }],
+      ["token", { text: "Saved to memory. " }]);
+    assert.equal(label.textContent, "Preparing your answer…", "a memory confirmation is not the answer stream");
+    await send(["step", { tool: "sections", args: { plan: "2 map calls" } }]);
+    assert.equal(label.textContent, "Reading your documents…");
+    await send(["step", { tool: "reduce", args: {} }]);
+    assert.equal(label.textContent, "Combining what I found…");
+    await send(["sources", { route: "exhaustive", sources: [] }], ["reasoning", { text: "Considering the sources" }]);
+    assert.equal(label.textContent, "Thinking…");
+    await send(["token", { text: "The Constitution" }]);
+    assert.equal(label.textContent, "Writing your answer…");
+    assert.equal(activity.hidden, false, "the loader remains while the answer streams");
+    assert.equal(find(b.$("#messages"), (el) => el.className === "answer").textContent, "Saved to memory. The Constitution",
+      "answer tokens render while the server stream is still open");
+    await send(["done", { citations: [], timings: {} }]);
+    assert.equal(activity.hidden, true, "done hides the loader even before the connection closes");
+  } finally {
+    stream.close();
+    await asking;
+  }
+  assert.equal(b.run("state.busy"), false);
+  const stopped = elapsed.textContent;
+  await b.wait(1050);
+  assert.equal(elapsed.textContent, stopped, "the timer stops when the request ends");
+});
+
+test("a failed or interrupted request always stops its loader", async () => {
+  for (const route of [[0, { detail: "busy" }, 503], [0, events(["error", { message: "failed" }])],
+    [0, events(["token", { text: "Partial" }], ["error", { message: "failed after a token" }])],
+    [0, events(["token", { text: "Partial" }])]]) {
+    const b = browser({ "/threads": threadsRoute(), "/chat": route });
+    await b.run('ask("what happened?")');
+    await b.wait(20);  // allow a queued token render to run after the error/interruption
+    assert.equal(find(b.$("#messages"), (el) => el.className === "answer-activity").hidden, true);
+    assert.equal(b.run("state.busy"), false);
+    assert.ok(find(b.$("#messages"), (el) => el.tagName === "button" && text(el) === "Retry"));
+  }
+});
+
+test("saved answers have no running loader, including interrupted answers", () => {
+  const b = browser();
+  b.run(`showHistory({ messages: [{ role: "user", content: "q" },
+    { role: "assistant", content: "answer", meta: { sources: [] } },
+    { role: "assistant", content: "partial", meta: { sources: [], interrupted: true } }] })`);
+  const assistants = b.$("#messages").children.filter((el) => el.className === "msg assistant");
+  assert.equal(assistants.length, 2);
+  for (const el of assistants) assert.equal(find(el, (child) => child.className === "answer-activity").attrs.hidden, "");
+});
 
 test("a notice in the answer stream is shown with the answer", async () => {
   const stream = events(["notice", { code: "planner_failed", message: "The SQL planner could not make a plan." }],

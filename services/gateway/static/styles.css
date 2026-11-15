@@ -202,8 +202,15 @@ details.reasoning div { white-space: pre-wrap; border-left: 2px solid var(--bord
 .answer-notes li + li { margin-top: 4px; }
 .link.retry { height: 22px; padding: 0 6px; font-size: 12.5px; color: var(--accent); }
 .error { color: var(--bad); }
-.typing::after { content: "\25CF"; animation: blink 1s infinite; margin-left: 2px; color: var(--muted); }
-@keyframes blink { 50% { opacity: 0.2; } }
+.answer-activity { display: flex; align-items: flex-start; gap: 10px; margin-top: 12px; padding: 10px 12px; border-radius: 10px; background: var(--panel-2); color: var(--muted); font-size: 13px; }
+.answer-activity[hidden] { display: none; }
+.activity-spinner { flex: 0 0 15px; height: 15px; margin-top: 2px; border: 2px solid var(--border-strong); border-top-color: var(--accent); border-radius: 50%; animation: activity-spin 1s linear infinite; }
+.activity-copy { min-width: 0; flex: 1; }
+.activity-line { display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px 12px; }
+.activity-label { color: var(--text); font-weight: 550; }
+.activity-time { margin-left: auto; font-variant-numeric: tabular-nums; white-space: nowrap; }
+.activity-hint { margin-top: 3px; }
+@keyframes activity-spin { to { transform: rotate(360deg); } }
 
 /* composer: one rounded card (textarea on top, toolbar below) */
 .composer { padding: 6px max(18px, calc((100% - 820px) / 2)) 18px; background: var(--bg); }

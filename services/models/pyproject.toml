@@ -18,8 +18,8 @@ dev = ["pytest>=8.4"]
 
 [tool.uv.sources]
 rag-common = { path = "../../libs/common", editable = true }
-torch = { index = "pytorch-cu132" }
-torchvision = { index = "pytorch-cu132" }
+torch = { index = "pytorch-cu132", marker = "sys_platform != 'darwin'" }
+torchvision = { index = "pytorch-cu132", marker = "sys_platform != 'darwin'" }
 
 [[tool.uv.index]]
 name = "pytorch-cu132"

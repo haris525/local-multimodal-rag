@@ -1,6 +1,6 @@
 """Live proof of the Python sandbox's containment (compose.yaml `sandbox`; DEPLOYMENT section 4.16).
 
-    python scripts/check_sandbox_isolation.py [--compose-dir .] [--skip-memory] [--skip-port-scan]
+    uv run --python 3.12 scripts/check_sandbox_isolation.py [--macos] [--compose-dir .] [--skip-memory] [--skip-port-scan]
 
 Run it from the repository folder after every deploy and after any change to compose.yaml or the sandbox image.
 It needs the stack up with the sandbox profile (COMPOSE_PROFILES=sandbox; rag and sandbox at least) and the docker
@@ -492,11 +492,17 @@ class Stack:
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description=__doc__.split("\n\n")[0])
     parser.add_argument("--compose-dir", default=".", help="the folder with compose.yaml (default: .)")
+    parser.add_argument("--macos", action="store_true", help="use this checkout's Mac Compose files and environment")
     parser.add_argument("--skip-memory", action="store_true", help="leave out the memory limit check")
     parser.add_argument("--skip-port-scan", action="store_true",
                         help="leave out the scan of every TCP port on the host's address (about a minute)")
     args = parser.parse_args(argv)
     stack = Stack(args.compose_dir)
+    if args.macos:
+        import os
+        import macos
+        os.environ.update(macos.environment())
+        stack.compose = macos.compose_args([])
     checks: list[Check] = []
     try:
         container = stack.inspect("container", stack.container_id(SERVICE))

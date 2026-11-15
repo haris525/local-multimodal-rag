@@ -1,5 +1,9 @@
 # Local Multimodal RAG: Architecture
 
+Apple Silicon alternative: [MACOS.md](MACOS.md) runs the application in Docker and inference natively
+with Metal/MPS. Memory and isolation differ from the NVIDIA design below. Current review findings and
+remaining publication/fencing limitations: [REVIEW.md](REVIEW.md).
+
 Status: v4. Target host: one workstation (Windows 11 with Docker Desktop on WSL2, or Linux with Docker
 Engine) with one NVIDIA GPU of 32 GB, used by one person or shared by several accounts. The backend has
 no network egress at runtime.

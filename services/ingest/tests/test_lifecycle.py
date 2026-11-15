@@ -571,6 +571,139 @@ def test_the_same_content_again_is_the_document_already_there(api):
 # --- threads of a cancelled run, claims during a slow clean-up, a restarted worker --------------------
 
 
+def test_shutdown_keeps_the_claim_until_background_writes_finish(tmp_path, monkeypatch):
+    import threading
+
+    s, reg, pipe = setup(tmp_path)
+    queue(s, reg, DOC)
+    doc = reg.claim_next()
+    started, finish = threading.Event(), threading.Event()
+    release = reg.release
+
+    def checked_release(doc_id, run):
+        assert finish.is_set(), "job released while its thread can still write"
+        return release(doc_id, run)
+
+    def write():
+        started.set()
+        assert finish.wait(5)
+
+    async def process(_doc):
+        await pipe.in_thread(write)
+
+    monkeypatch.setattr(pipe, "process", process)
+    monkeypatch.setattr(reg, "release", checked_release)
+
+    async def scenario():
+        stop = asyncio.Event()
+        job = asyncio.create_task(process_until_stopped(pipe, reg, doc, stop, renew_s=0.01))
+        await asyncio.to_thread(started.wait, 5)
+        stop.set()
+        try:
+            # Let the shutdown path run while its writer is deliberately blocked.
+            for _ in range(10):
+                await asyncio.sleep(0)
+            assert not job.done(), "shutdown finished before its writer"
+            assert reg.claim_next() is None
+        finally:
+            finish.set()
+            await pipe.settle()
+        assert await job is None
+        assert reg.claim_next().run_id != doc.run_id
+
+    asyncio.run(scenario())
+
+
+def test_cancelling_a_queued_thread_cannot_make_settle_wait_forever(tmp_path):
+    import concurrent.futures
+    import threading
+
+    _, _, pipe = setup(tmp_path)
+    release_pool = threading.Event()
+    pool_busy = threading.Event()
+    wrote = threading.Event()
+
+    def occupy_pool():
+        pool_busy.set()
+        assert release_pool.wait(5)
+
+    async def scenario():
+        asyncio.get_running_loop().set_default_executor(concurrent.futures.ThreadPoolExecutor(max_workers=1))
+        occupying = asyncio.create_task(asyncio.to_thread(occupy_pool))
+        while not pool_busy.is_set():
+            await asyncio.sleep(0)
+        queued = asyncio.create_task(pipe.in_thread(wrote.set))
+        for _ in range(5):
+            await asyncio.sleep(0)
+        queued.cancel()
+        with pytest.raises(asyncio.CancelledError):
+            await queued
+        release_pool.set()
+        await occupying
+        try:
+            await asyncio.wait_for(pipe.settle(), 1)
+            assert wrote.is_set()
+        finally:
+            # Also let the executor exit when testing the old, broken implementation.
+            for finished in list(pipe._threads):
+                finished.set()
+
+    try:
+        asyncio.run(scenario())
+    finally:
+        release_pool.set()
+
+
+def test_workers_serialize_versions_but_can_process_other_documents(tmp_path):
+    reg = Registry(tmp_path / "r.db")
+    v1, v2, other = "1" * 32, "2" * 32, "3" * 32
+    for doc_id, name in ((v1, "report.txt"), (v2, "report.txt"), (other, "other.txt")):
+        reg.add(doc_id, A, name, DocType.TEXT, ".txt", 1)
+    first = reg.claim_next()
+    assert first.doc_id == v1
+    second = reg.claim_next()
+    assert second.doc_id == other, "another worker must not overtake the earlier version"
+    assert reg.claim_next() is None
+    assert reg.complete(v1, first.run_id, 1, 0, [], [], supersede=True)
+    assert reg.claim_next().doc_id == v2
+
+
+def test_placement_waiters_keep_the_same_lock():
+    from ingest import api
+
+    async def scenario():
+        entered = asyncio.Event()
+        leave = asyncio.Event()
+        active = 0
+
+        async def waiter():
+            nonlocal active
+            async with api._one_placement(DOC):
+                active += 1
+                try:
+                    entered.set()
+                    await leave.wait()
+                finally:
+                    active -= 1
+
+        first = api._one_placement(DOC)
+        await first.__aenter__()
+        waiting = asyncio.create_task(waiter())
+        await asyncio.sleep(0)  # waiter has registered before the holder leaves
+        await first.__aexit__(None, None, None)
+        third = asyncio.create_task(waiter())
+        try:
+            await entered.wait()
+            await asyncio.sleep(0)
+            assert active == 1, "two uploads entered the same placement concurrently"
+        finally:
+            leave.set()
+            await asyncio.gather(waiting, third)
+        assert DOC not in api._placing
+
+    asyncio.run(scenario())
+
+
 def test_a_cancelled_runs_thread_cannot_leave_a_file_behind(tmp_path, monkeypatch):
     """The run is cancelled while write_tables runs in a thread; the clean-up waits for the thread, so the
     tables file it writes afterwards is removed too."""
@@ -658,6 +791,25 @@ def test_the_sweep_runs_on_a_timer(tmp_path, clock):
         return first
 
     assert asyncio.run(scenario()) is None and reg.get_for_worker("2" * 32) is None
+
+
+def test_starting_the_background_sweeper_does_not_reclaim_a_fresh_job(tmp_path, clock):
+    s, reg, pipe = setup(tmp_path, clock=clock)
+    reg.holder = "worker-startup"
+    queue(s, reg, DOC)
+    reg.recover(2, mine=True)  # synchronous startup recovery, before accepting work
+    doc = reg.claim_next()  # the first job is claimed before the background task gets its turn
+
+    async def scenario():
+        stop = asyncio.Event()
+        task = asyncio.create_task(sweeper(pipe, reg, 2, 0.01, stop))
+        await asyncio.sleep(0.03)
+        stop.set()
+        await task
+
+    asyncio.run(scenario())
+    current = reg.get_for_worker(DOC)
+    assert current.status == DocStatus.PROCESSING and current.run_id == doc.run_id
 
 
 def test_an_upload_that_meets_a_deletion_keeps_no_file(api, monkeypatch):

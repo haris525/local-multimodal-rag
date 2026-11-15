@@ -7,8 +7,10 @@ Runs inside the `fetch-models` compose service (the only component that download
 """
 
 import argparse
+import os
 import shutil
 import sys
+import tempfile
 from pathlib import Path
 
 GGUF_REPO = "unsloth/Qwen3.8-27B-GGUF"
@@ -18,19 +20,31 @@ HF_MODELS = ["Qwen/Qwen3-Embedding-0.6B", "Qwen/Qwen3-VL-Embedding-2B", "Qwen/Qw
 
 def copy_tree(src: Path, dst: Path) -> None:
     for path in src.rglob("*"):
-        if path.is_file() and ".cache" not in path.parts:
-            target = dst / path.relative_to(src)
+        relative = path.relative_to(src)
+        if path.is_file() and ".cache" not in relative.parts:
+            target = dst / relative
             if target.exists() and target.stat().st_size == path.stat().st_size:
+                target.chmod(0o644)
                 continue
             target.parent.mkdir(parents=True, exist_ok=True)
-            print(f"copy {path.relative_to(src)}", flush=True)
-            shutil.copyfile(path, target)
+            print(f"copy {relative}", flush=True)
+            # An interrupted copy must not leave a partial weight file that looks installed.
+            with tempfile.NamedTemporaryFile(dir=target.parent, delete=False) as out:
+                temporary = Path(out.name)
+            try:
+                shutil.copyfile(path, temporary)
+                temporary.chmod(0o644)  # read-only bind mounts must be readable by non-root containers
+                os.replace(temporary, target)
+            finally:
+                temporary.unlink(missing_ok=True)
 
 
 def main() -> None:
     parser = argparse.ArgumentParser()
     parser.add_argument("--dest", default="/models")
     parser.add_argument("--from-dir", help="copy from a local folder instead of downloading")
+    parser.add_argument("--reuse-cache", action="store_true",
+                        help="reuse Hugging Face's host cache for HF models, then copy into --dest")
     args = parser.parse_args()
     dest = Path(args.dest)
 
@@ -48,7 +62,12 @@ def main() -> None:
             hf_hub_download(GGUF_REPO, name, local_dir=dest / "gguf")
         for repo in HF_MODELS:
             print(f"download {repo}", flush=True)
-            snapshot_download(repo, local_dir=dest / "hf" / repo.split("/")[1])
+            target = dest / "hf" / repo.split("/")[1]
+            if args.reuse_cache:
+                cached = snapshot_download(repo)
+                copy_tree(Path(cached), target)
+            else:
+                snapshot_download(repo, local_dir=target)
     print("models ready:", *sorted(str(p.relative_to(dest)) for p in dest.glob("*/*")), sep="\n  ")
 
 
