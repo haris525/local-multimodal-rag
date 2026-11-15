@@ -413,8 +413,16 @@ full transition table: [STATE_MACHINES.md, M5 and M6](STATE_MACHINES.md#m5-docum
   `generation`, schemas and counts in one SQLite transaction. A question pins that selection for all
   retrieval, SQL, Python and asset reads, even if a reindex publishes while it runs. Failed/stale runs
   cannot overwrite published files or points. A document with `n_chunks > 0` stays searchable on its
-  previous generation during a retry. Previous published generations remain until deletion, which also
-  removes unpublished failed-run artifacts; repeated reindexing consumes additional disk space.
+  previous generation during a retry.
+- **Old generations (schema v6).** `document_generations` records `retired_at` and `collected_at`.
+  Publishing retires the generation it replaces; `retire_ended_runs()` retires the unpublished generation of
+  a run that ended (failed, stopped, taken back). The worker's sweep removes a retired generation's points
+  and files once its grace has passed: `INGEST_GENERATION_RETAIN_H` (24) for a published one, so a pinned
+  question can finish, and `max(4 x INGEST_RUN_LEASE_S, 600 s)` for an unpublished one, which no question
+  reads. A run that fails in the worker is removed at once, after its threads return. The collected row
+  stays as a marker, so a later delete removes that generation again should a stalled writer have
+  written to it. Never collected: a document's current generation, the running generation, a deleting
+  document's generations (its deletion removes them), and the uploaded source file.
 - **Upload lifetimes.** New sources live at `files/<owner>/<doc>/<storage_id>/source<ext>`; derived
   tables/chunks at `<kind>/<owner>/<doc>/<generation>.<ext>`, figures under
   `assets/<owner>/<doc>/<generation>/`. Cleanup captures its targets under its deletion claim and never

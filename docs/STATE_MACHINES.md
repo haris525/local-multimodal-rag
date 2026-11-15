@@ -72,7 +72,7 @@ Machine risk is the highest rank among the machine's failure modes, handled or o
 The [November 2026 review](REVIEW.md) adds regression coverage for placement-lock lifetime, queued-thread
 cancellation, shutdown writers and same-filename worker ordering. Immutable per-run generations now
 fence external writes after lease expiry, and request-pinned publication fixes P5 during successful and
-failed reindexing. Old published generations remain until deletion; monitor the additional disk use.
+failed reindexing. A replaced generation is removed after `INGEST_GENERATION_RETAIN_H` (schema v6).
 
 The failure modes the machines are built to prevent, by rank. "Handled" means the current code guards
 against it; the machine's section says how.
@@ -609,8 +609,9 @@ Failure modes:
    across all retrieval arms, SQL, Python downloads and asset reads. A failed run leaves the old
    published generation unchanged. A delayed stale writer can finish only in its own namespace.
    Regression tests delay real file writes and Qdrant batches beyond recovery and a newer publication.
-   Previously published generations remain readable until deletion; unpublished leftovers also remain
-   cataloged until deletion. There is no automatic garbage collection of generations.
+   Previously published generations stay readable for `INGEST_GENERATION_RETAIN_H` (24 h), then the
+   sweep removes them; a failed run's generation goes at once, other unpublished leftovers after a short
+   grace (see [Generation](#generation-of-a-document)).
 6. **low: an unknown `status` value.** Handled: the CHECK on `status` refuses it; the schema upgrade turns
    an unknown status into `failed` with a note.
 7. **low: "superseded" is not a state.** The old id disappears; the browser's selection and the thread's
@@ -631,6 +632,35 @@ choices:
 - ingest-api removes the points of a processing document at once and leaves its files to the run, which
   stops within one renewal: removing the files from ingest-api would race a new upload of the same file.
 - `usable` is computed by its two readers, and there is no `superseded_by` (failure mode 7, M18).
+
+#### Generation of a document
+
+One run's index (points, tables, chunk file, figures), cataloged in `document_generations` (schema v6:
+`published`, `retired_at`, `collected_at`). The sweep runs every `INGEST_SWEEP_INTERVAL_S`.
+
+```mermaid
+stateDiagram-v2
+    [*] --> Writing: claim_next (a new run)
+    Writing --> Current: complete publishes it
+    Writing --> Leftover: the run failed, stopped or was taken back
+    Current --> Retired: a newer generation is published
+    Leftover --> Collected: failed in this worker, removed at once
+    Leftover --> Collected: after max(4 leases, 10 min)
+    Retired --> Collected: after INGEST_GENERATION_RETAIN_H
+    Collected --> [*]: the document is deleted
+```
+
+| State | Catalog row | Readable by | Removed by |
+|---|---|---|---|
+| Writing | `published = 0`, the document processing under this run | nobody (not published) | the run's own clean-up if it loses the document |
+| Current | `published = 1`, `retired_at` empty, `documents.generation` names it | every new question | never while current |
+| Retired | `published = 1`, `retired_at` set | questions that started before it was replaced | the sweep, after the retention period |
+| Leftover | `published = 0`, `retired_at` set by `retire_ended_runs()` | nobody | the worker at once (failed run), else the sweep after the grace |
+| Collected | `collected_at` set; the row stays | nobody | the document's deletion removes the row (and any late files) |
+
+A deleting document's generations are left to its deletion, and the sweep never collects the current or the
+running generation, even if a row says retired ([ingest/registry.py](../services/ingest/src/ingest/registry.py)
+`collectable`; tests in `services/ingest/tests/test_generation_cleanup.py`).
 
 ### M6. Ingest worker and parser child
 
@@ -1300,7 +1330,8 @@ drops stale loads.
   `state.docs` (server copy), `state.selected` saved as `localStorage["selected:<user_id>"]`
   ([app.js:69](../services/gateway/static/app.js#L69), [app.js:159](../services/gateway/static/app.js#L159)),
   `state.pollTimer` (2 s while anything is queued or processing, else 15 s, [app.js:123-124](../services/gateway/static/app.js#L123-L124)),
-  `state.lastUpload` (file names).
+  `state.lastUpload` (the document ids of the last upload), `uploads` (files waiting to be sent while an
+  upload is on its way).
 
 ```mermaid
 stateDiagram-v2
@@ -1330,6 +1361,12 @@ Failure modes (all open):
    line is removed as soon as the older version is ready.
 3. **low:** the usable rule and the pending statuses are copies of server rules (see the default-branch
    table in section 2).
+4. **low:** a file picked while another was still being sent started a second upload beside it; both
+   wrote the upload message, so the one that finished last hid the other's line, and the first file looked
+   gone while it was still on its way. **Handled:** files picked during an upload join it (`uploads` in
+   app.js): sent one after another in the order picked, counted together ("Uploading 2 of 3") and listed
+   together; `services/gateway/tests/ui.test.mjs`, "a file picked while another is still uploading joins
+   the upload". The server already queued both and the worker processes one document at a time, oldest first.
 
 Approach: **implicit.** Open: key the upload message by `doc_id`, take `usable` from the server, and
 follow `superseded_by` if M5 adds it.

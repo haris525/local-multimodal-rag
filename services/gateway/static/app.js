@@ -309,28 +309,51 @@ function toggleSelect(docId, on) {
   renderDocs();
 }
 
+// Files picked while an upload is on its way join it: they are sent after the ones before them, in the order
+// picked, and the message counts and lists them together (two uploads side by side each wrote the message, so
+// the one that finished last hid the other).
+const uploads = { queue: [], busy: false, done: 0, current: "" };
+
+function uploadProgress() {
+  $("#upload-msg").textContent =
+    `Uploading ${uploads.done + 1} of ${uploads.done + 1 + uploads.queue.length}: ${uploads.current}...`;
+}
+
 // One request per file, so the gateway's request limit equals the per-file limit (MAX_UPLOAD_MB)
 // and one oversized or broken file does not fail the others.
 async function upload(files) {
   files = [...files];
   if (!files.length) return;
-  const msg = $("#upload-msg");
+  uploads.queue.push(...files);
+  if (uploads.busy) {
+    uploadProgress();
+    return;
+  }
+  uploads.busy = true;
+  uploads.done = 0;
   const lines = [];
   const uploaded = new Set();
-  for (const [i, file] of files.entries()) {
-    msg.textContent = `Uploading ${i + 1} of ${files.length}: ${file.name}...`;
-    const form = new FormData();
-    form.append("files", file);
-    try {
-      const [r] = await api("/documents", { method: "POST", body: form });
-      if (!r.error && !r.existing) uploaded.add(r.document.doc_id);
-      lines.push(uploadLine(r));
-    } catch (err) {
-      lines.push(h("div", { class: "err" }, `${file.name}: ${err.message}`));
+  try {
+    while (uploads.queue.length) {
+      const file = uploads.queue.shift();
+      uploads.current = file.name;
+      uploadProgress();
+      const form = new FormData();
+      form.append("files", file);
+      try {
+        const [r] = await api("/documents", { method: "POST", body: form });
+        if (!r.error && !r.existing) uploaded.add(r.document.doc_id);
+        lines.push(uploadLine(r));
+      } catch (err) {
+        lines.push(h("div", { class: "err" }, `${file.name}: ${err.message}`));
+      }
+      uploads.done++;
+      refreshDocs();
     }
-    refreshDocs();
+  } finally {
+    uploads.busy = false;
   }
-  msg.replaceChildren(...lines);
+  $("#upload-msg").replaceChildren(...lines);
   state.lastUpload = uploaded;
   settleUploadMsg();
 }

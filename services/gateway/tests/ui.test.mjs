@@ -47,7 +47,7 @@ function browser(routes = {}) {
   const fetch = (url, opts = {}) => {
     requests.push({ url, body: opts.body ? JSON.parse(opts.body) : null });
     const route = routes[url.replace(/^\/api/, "")];
-    const [delay, body, status = 200] = (typeof route === "function" ? route() : route) || [0, []];
+    const [delay, body, status = 200] = (typeof route === "function" ? route(opts) : route) || [0, []];
     // A string body is a server-sent event stream, read through response.body.getReader().
     const stream = typeof body === "string" ? { getReader: () => {
       let sent = false;
@@ -551,6 +551,38 @@ test("the upload message says when the content is already there, and when a file
   assert.equal(text(replacing), "sales.csv: queued, replaces the current version when ready");
   assert.equal(replacing.className, "upload-status");  // dropped once the file is ready, like any status line
   assert.equal(line({ name: "x.csv", error: "file is empty" }).className, "err");
+});
+
+test("a file picked while another is still uploading joins the upload: sent after it, counted and listed with it", async () => {
+  // Found by the live browser test: two uploads side by side each wrote the message, so the one that finished
+  // last hid the other's line, and the first file looked gone while it was still being sent.
+  const v3 = "c".repeat(32);
+  const sent = [];
+  const answer = { "big.pdf": [v1, 80], "small.txt": [v2, 0], "third.txt": [v3, 0] };
+  const b = browser({ "/documents": (opts) => {
+    if (opts.method !== "POST") return [0, []];
+    const name = opts.body.name;
+    sent.push(name);
+    return [answer[name][1], [{ name, document: { doc_id: answer[name][0], name, status: "queued" }, existing: false }]];
+  } });
+  b.run(`var FormData = class { append(k, f) { this.name = f.name; } toString() { return "null"; } };
+    state.me = { user_id: "u1" }; state.docs = []`);
+  const first = b.run("upload([{ name: 'big.pdf' }])");
+  await b.wait(10);
+  assert.equal(text(b.$("#upload-msg")), "Uploading 1 of 1: big.pdf...");
+  b.run("upload([{ name: 'small.txt' }, { name: 'third.txt' }])");  // picked while big.pdf is on its way
+  assert.equal(text(b.$("#upload-msg")), "Uploading 1 of 3: big.pdf...");
+  assert.deepEqual(sent, ["big.pdf"]);  // not sent beside it
+  await first;
+  await b.wait(20);
+  assert.deepEqual(sent, ["big.pdf", "small.txt", "third.txt"]);
+  assert.equal(text(b.$("#upload-msg")), "big.pdf: queuedsmall.txt: queuedthird.txt: queued");
+  assert.equal(b.run("state.lastUpload.size"), 3);
+  assert.equal(b.run("uploads.busy"), false);
+  b.run("upload([{ name: 'small.txt' }])");  // a later pick starts a new upload, counted from one
+  assert.equal(text(b.$("#upload-msg")), "Uploading 1 of 1: small.txt...");
+  await b.wait(20);
+  b.run("clearTimeout(state.pollTimer)");
 });
 
 test("a new version's upload line stays until that version is ready, though the old one of its name is ready", async () => {

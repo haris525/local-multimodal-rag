@@ -410,6 +410,15 @@ class Pipeline:
                 log.exception("removing a superseded version failed; the sweep retries",
                               extra={"fields": {"doc_id": doc.doc_id}})
 
+    async def collect_generation(self, owner: str, doc_id: str, generation: str | None) -> None:
+        """Remove one retired generation: its points, then its tables, chunk file and figures (None: the legacy
+        layout); then mark it collected. The uploaded source file belongs to the document, not to a generation,
+        and stays. Raises on failure; the generation stays retired and the next sweep tries again."""
+        await self.indexer.delete(owner, doc_id, [generation])
+        await asyncio.to_thread(remove_worker_artifacts, self.settings, owner, doc_id, generation)
+        self.registry.mark_collected(doc_id, generation)
+        log_fields(log, "removed an old index generation", doc_id=doc_id, generation=generation or "legacy")
+
     async def abandon(self, doc: DocumentInfo) -> str:
         """The run lost its document: deal with what it wrote, by what became of the row. Returns which case.
         - account deleted: every point, folder and cached model reply of the owner goes, including folders the

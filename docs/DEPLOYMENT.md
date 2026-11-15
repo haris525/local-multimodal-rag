@@ -1199,8 +1199,16 @@ sudo ufw enable
 Registry schema v5 adds a published `generation`, an upload `storage_id`, and a generation catalog.
 Existing documents keep their legacy files and point IDs and need no automatic reindex. A new run writes
 alongside them and publishes only after every artifact is ready. New questions pin the published
-generation; questions already in progress finish on their original selection. Old generations and
-failed-run artifacts remain until the document/account is deleted. Monitor volume and Qdrant disk space.
+generation; questions already in progress finish on their original selection.
+
+Schema v6 adds the clean-up of old generations (applied automatically at start). After a reindex the
+replaced generation is retired: it stays readable for `INGEST_GENERATION_RETAIN_H` hours (24 by default;
+a question that started on it can finish), then the worker's sweep removes its points, tables, chunk file
+and figures. A run that fails removes what it wrote at once; the leftovers of a run that stopped or was
+taken back go after four run leases (at least 10 minutes). The uploaded file and the current generation
+are never touched. Generations replaced before v6 count as retired from the first start of v6. The
+worker logs each removal (`removed an old index generation`). Saved chats keep their source text; a
+figure of a removed generation shows "Figure not available".
 
 Do not mix old readers or writers with generation-aware services. Before updating, let active answers
 finish, close the app in other browsers, and back up all five data volumes and `secrets/` together using

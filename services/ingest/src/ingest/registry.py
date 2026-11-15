@@ -25,6 +25,15 @@ lifetimes of one doc_id never share its files.
 
 Index versions (schema v4). complete() records which version of the parser and chunker built a document's
 index; requeue_stale() re-queues the ready documents of an older version, which the worker does at start.
+
+Generations (schema v5, v6). Every run writes its own generation (points, tables, chunk file, figures) and
+complete() publishes it: document_generations catalogs each run's generation. When a newer generation is
+published, the previous one is retired (retired_at); a run that ends without publishing (failed, stopped,
+taken back) is retired by retire_ended_runs(). The worker's sweep removes a retired generation once its grace
+has passed (collectable(): published ones after the retention period, so a question that started on them can
+finish; unpublished ones, which no question can read, after a short grace) and marks it collected. A collected
+row stays in the catalog, so a later delete of the document removes that generation again, should a stalled
+writer have written to it meanwhile.
 """
 
 import json
@@ -55,7 +64,7 @@ NEXT: dict[DocStatus, frozenset[DocStatus]] = {
     D: frozenset(),
 }
 
-SCHEMA_VERSION = 5
+SCHEMA_VERSION = 6
 _STATUSES = ", ".join(f"'{s.value}'" for s in DocStatus)
 _COLUMNS = """
     doc_id      TEXT PRIMARY KEY,
@@ -89,7 +98,7 @@ _SCHEMA = [
     "CREATE INDEX IF NOT EXISTS documents_owner_name ON documents (owner_id, name)",
     "CREATE TABLE IF NOT EXISTS deleted_users (user_id TEXT PRIMARY KEY, deleted_at TEXT NOT NULL)",  # v2
     "CREATE TABLE IF NOT EXISTS document_generations (doc_id TEXT NOT NULL, generation TEXT NOT NULL,"
-    " published INTEGER NOT NULL DEFAULT 0, PRIMARY KEY (doc_id, generation))",
+    " published INTEGER NOT NULL DEFAULT 0, retired_at TEXT, collected_at TEXT, PRIMARY KEY (doc_id, generation))",
 ]
 # v2 -> v3: the CHECK on status and the run columns need a rebuild (rowid kept: it orders the versions of a
 # file). A row left processing gets a placeholder run without a lease, so the worker's start takes it back;
@@ -165,7 +174,7 @@ class Registry:
         self.clock = clock or (lambda: datetime.now(UTC))
         with self._connect() as db:
             db.execute("PRAGMA journal_mode=WAL")
-            self._upgrade(db)
+            self._upgrade(db, self._now())
 
     def _now(self) -> str:
         return self.clock().astimezone(UTC).isoformat(timespec="seconds")
@@ -187,10 +196,11 @@ class Registry:
             db.close()
 
     @staticmethod
-    def _upgrade(db: sqlite3.Connection) -> None:
+    def _upgrade(db: sqlite3.Connection, now: str) -> None:
         """Bring the schema to SCHEMA_VERSION in one transaction (a second run does nothing). v1 added owner_id;
         v2 the deleted_users table; v3 the CHECK on status and the run columns (a table rebuild); v4 the
-        index_version column; v5 upload storage IDs, published generations and their catalog."""
+        index_version column; v5 upload storage IDs, published generations and their catalog; v6 retired_at and
+        collected_at in the catalog, and the generations replaced before v6 retired as of now."""
         if db.execute("PRAGMA user_version").fetchone()[0] >= SCHEMA_VERSION:
             return
         db.execute("BEGIN IMMEDIATE")
@@ -210,8 +220,16 @@ class Registry:
                         db.execute(f"ALTER TABLE documents ADD COLUMN {column} TEXT")
                 for statement in _SCHEMA:
                     db.execute(statement)
+                catalog = {r[1] for r in db.execute("PRAGMA table_info(document_generations)")}
+                for column in ("retired_at", "collected_at"):
+                    if column not in catalog:
+                        db.execute(f"ALTER TABLE document_generations ADD COLUMN {column} TEXT")
                 db.execute("INSERT OR IGNORE INTO document_generations (doc_id, generation, published)"
                            " SELECT doc_id, 'legacy', 1 FROM documents WHERE n_chunks > 0 AND generation IS NULL")
+                # A published generation that is not its document's current one was replaced under v5
+                db.execute("UPDATE document_generations SET retired_at = ? WHERE published = 1 AND retired_at IS NULL"
+                           " AND generation <> COALESCE((SELECT d.generation FROM documents d"
+                           " WHERE d.doc_id = document_generations.doc_id), 'legacy')", (now,))
                 db.execute(f"PRAGMA user_version = {SCHEMA_VERSION}")
             db.execute("COMMIT")
         except BaseException:
@@ -369,13 +387,58 @@ class Registry:
         return [self._info(r) for r in rows]
 
     def is_published(self, doc_id: str, generation: str | None) -> bool:
+        """Was this generation published and is it still there (not collected)?"""
         with self._connect() as db:
             found = db.execute("SELECT 1 FROM document_generations WHERE doc_id = ? AND generation = ?"
-                               " AND published = 1", (doc_id, generation or "legacy")).fetchone()
+                               " AND published = 1 AND collected_at IS NULL", (doc_id, generation or "legacy")).fetchone()
             # Old callers can still complete a pre-generation fixture/document.
             legacy = generation is None and db.execute(
                 "SELECT 1 FROM documents WHERE doc_id = ? AND generation IS NULL AND n_chunks > 0", (doc_id,)).fetchone()
         return bool(found or legacy)
+
+    # --- old generations: retired, then collected by the worker's sweep ----------------------------
+
+    def retire_ended_runs(self) -> int:
+        """Retire the unpublished generations of runs that are over (failed, stopped, taken back, lost): no
+        question can read them. The run that still holds its document keeps its generation, and a deleting
+        document is left to its deletion. Returns how many it retired."""
+        with self._connect() as db:
+            cur = db.execute(
+                "UPDATE document_generations SET retired_at = ? WHERE published = 0 AND retired_at IS NULL"
+                " AND NOT EXISTS (SELECT 1 FROM documents d WHERE d.doc_id = document_generations.doc_id"
+                " AND (d.status = ? OR (d.status = ? AND d.run_id = document_generations.generation)))",
+                (self._now(), D.value, P.value))
+        return cur.rowcount
+
+    def collectable(self, retain_s: float, leftover_s: float, limit: int = 100) -> list[tuple[str, str, str | None]]:
+        """(owner_id, doc_id, generation) of the retired generations whose grace has passed, oldest first:
+        published ones retired at least retain_s ago (a question that started on one can finish), unpublished
+        ones at least leftover_s ago. generation None is the legacy layout. Never a document's current
+        generation, the generation of the run that holds it, or one of a deleting document."""
+        now = self.clock()
+
+        def cut(seconds: float) -> str:
+            return (now - timedelta(seconds=seconds)).astimezone(UTC).isoformat(timespec="seconds")
+
+        with self._connect() as db:
+            rows = db.execute(
+                "SELECT d.owner_id, g.doc_id, g.generation FROM document_generations g JOIN documents d"
+                " ON d.doc_id = g.doc_id WHERE g.retired_at IS NOT NULL AND g.collected_at IS NULL"
+                " AND d.owner_id IS NOT NULL AND d.status <> ? AND g.generation <> COALESCE(d.generation, 'legacy')"
+                " AND NOT (d.status = ? AND d.run_id IS g.generation)"
+                " AND ((g.published = 1 AND g.retired_at <= ?) OR (g.published = 0 AND g.retired_at <= ?))"
+                " ORDER BY g.retired_at LIMIT ?",
+                (D.value, P.value, cut(retain_s), cut(leftover_s), limit)).fetchall()
+        return [(owner, doc_id, None if generation == "legacy" else generation) for owner, doc_id, generation in rows]
+
+    def mark_collected(self, doc_id: str, generation: str | None) -> bool:
+        """Record that a generation's points and files were removed; the row stays as a marker for deletion."""
+        now = self._now()
+        with self._connect() as db:
+            cur = db.execute("UPDATE document_generations SET retired_at = COALESCE(retired_at, ?), collected_at = ?"
+                             " WHERE doc_id = ? AND generation = ? AND collected_at IS NULL",
+                             (now, now, doc_id, generation or "legacy"))
+        return cur.rowcount == 1
 
     def deletion_targets(self, doc_id: str, claim: str) -> tuple[DocumentInfo, list[str | None]] | None:
         """Capture source lifetime and generations under the renewed claim; a former holder gets none."""
@@ -574,6 +637,9 @@ class Registry:
                     db.execute("INSERT INTO document_generations (doc_id, generation, published) VALUES (?, ?, 1)"
                                " ON CONFLICT(doc_id, generation) DO UPDATE SET published = 1",
                                (doc_id, generation or "legacy"))
+                    # the generation it replaces stays readable for questions that started on it, until collected
+                    db.execute("UPDATE document_generations SET retired_at = ? WHERE doc_id = ? AND published = 1"
+                               " AND retired_at IS NULL AND generation <> ?", (self._now(), doc_id, generation or "legacy"))
                 old = self._supersede(db, doc_id) if row is not None and supersede else []
                 db.execute("COMMIT")
             except BaseException:

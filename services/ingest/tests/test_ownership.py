@@ -536,8 +536,17 @@ def test_a_failed_job_that_is_still_wanted_is_marked_failed_and_kept(tmp_path, c
     s, reg, pipe = pipeline(tmp_path, counter, indexer)
     queue(s, reg, DOC, A)
     audit = Recorder()
-    asyncio.run(run_job(pipe, reg, audit, reg.claim_next(), asyncio.Event()))
-    assert reg.get(DOC, A).status == DocStatus.FAILED and indexer.deleted == []
+    removed, original = [], indexer.delete
+
+    async def delete(user_id, doc_id, generations=None):
+        removed.append(generations)
+        await original(user_id, doc_id, generations)
+
+    indexer.delete = delete
+    run = reg.claim_next()
+    asyncio.run(run_job(pipe, reg, audit, run, asyncio.Event()))
+    # only what the failed run wrote goes (its own generation); the document and its upload stay
+    assert reg.get(DOC, A).status == DocStatus.FAILED and removed == [[run.run_id]]
     assert paths.source_path(s, A, DOC, ".txt").exists()  # kept for a retry
     assert [e[0] for e in audit.events] == ["document.failed"]
     assert asyncio.run(pipe.abandon(reg.get(DOC, A))) == "held elsewhere"  # a wanted document is left alone

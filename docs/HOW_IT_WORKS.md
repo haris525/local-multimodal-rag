@@ -171,7 +171,9 @@ You drag files onto *Add documents* in the Documents tab. The app accepts PDF, T
 JPG and WEBP. Each file shows *queued*, then *processing* with a progress note (*parsing*,
 *describing image ...*, *chunking*, *summarizing*, *embedding ... chunks*, *indexing*), then *ready*.
 A text file takes seconds. A long PDF with many charts can take several minutes, because the vision
-model reads every figure.
+model reads every figure. You can add more files while one is still being sent: they join the same
+upload and go one after another. The worker then prepares one document at a time, in the order they
+arrived, so a file uploaded while another is processing shows *queued* until its turn.
 
 ```mermaid
 flowchart LR
@@ -277,8 +279,8 @@ flowchart LR
 9. **Index.** Each chunk is saved in Qdrant with its embeddings, its text and its location, and Qdrant
    adds it to a keyword index. The chunk texts are also saved to a file for exact-word search. A new
    run writes its own version of the index and files, then publishes them together. An existing
-   question keeps reading the version it started with. Earlier versions stay until you delete the
-   document, so repeated re-processing uses additional disk space.
+   question keeps reading the version it started with. The version it replaced is removed a day later
+   (`INGEST_GENERATION_RETAIN_H`), and what a failed run wrote is removed at once.
    *Why:* this is what makes the document searchable.
 
 **Ready.** The document can now be ticked and searched. If you upload a file with the same name but new

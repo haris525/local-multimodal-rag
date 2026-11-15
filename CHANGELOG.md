@@ -16,11 +16,20 @@ and what to do about it (see [DEPLOYMENT.md, section 4.8](docs/DEPLOYMENT.md#48-
 - Keep snapshot context scoped to each streamed operation so disconnect cleanup can save partial
   answers even when the stream is finalized in another task.
 - Yield parsed chat events as they arrive in command-line clients instead of buffering the full stream.
+- Remove old generations: after a reindex the replaced generation stays readable for
+  `INGEST_GENERATION_RETAIN_H` hours (24 by default) so a question that started on it can finish, then
+  the worker's sweep removes its points, tables, chunk file and figures. A failed run removes what it
+  wrote at once; the leftovers of a run that stopped or was taken back go after four run leases (at
+  least 10 minutes). The current and running generations, deleting documents and the uploaded file are
+  never collected.
+- Files picked while an upload is being sent join it: sent one after another in the order picked,
+  counted together ("Uploading 2 of 3") and listed together. Before, the page's message showed only
+  the upload that finished last, and the first file looked gone while it was still on its way.
 
 **Data changes:** registry schema v5 adds `generation`, `storage_id` and a generation catalog. Existing
 documents keep their paths/point IDs and remain readable without reindexing. New derived data uses
-generation directories/IDs. Retain old generations until deletion, so repeated reindexing grows disk
-usage. Use the coordinated upgrade in [Deployment](docs/DEPLOYMENT.md#consistent-reindex-upgrade);
+generation directories/IDs. Schema v6 adds `retired_at` and `collected_at` to the catalog; generations
+replaced before it count as retired from its first start. Use the coordinated upgrade in [Deployment](docs/DEPLOYMENT.md#consistent-reindex-upgrade);
 rolling back after new generations are published requires the matching data backup.
 
 ## 0.1.0: initial public release

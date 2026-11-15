@@ -1,7 +1,7 @@
 from functools import lru_cache
 from pathlib import Path
 
-from pydantic import field_validator
+from pydantic import Field, field_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 from ingest.chunking import ChunkingConfig
@@ -35,6 +35,9 @@ class Settings(BaseSettings):
     poll_interval_s: float = 1.0
     run_lease_s: float = 90.0  # a running job's claim lasts this long without renewal (renewed every 10 s)
     sweep_interval_s: float = 60.0  # take back expired claims, finish deletions nobody holds (also during a job)
+    # a replaced index generation (after a reindex) stays readable this long for questions that started on it,
+    # then the sweep removes its points and files; 0 removes it at the next sweep
+    generation_retain_h: float = Field(default=24.0, ge=0)
     worker_id: str = ""  # claimed_by of this worker's jobs; empty: the host name (a container keeps it on restart)
 
     max_figures_per_doc: int = 150
@@ -120,6 +123,17 @@ class Settings(BaseSettings):
     @property
     def llm_cache_path(self) -> Path:
         return self.data_dir / "llm_cache.db"
+
+    @property
+    def generation_retain_s(self) -> float:
+        return self.generation_retain_h * 3600
+
+    @property
+    def leftover_grace_s(self) -> float:
+        """How long the unpublished generation of a run that ended stays before the sweep removes it: no question
+        reads it, but a run taken back by lease expiry may still have a writer finishing (four leases, at least
+        10 minutes). A run that failed in this worker is removed at once instead."""
+        return max(4 * self.run_lease_s, 600.0)
 
 
 @lru_cache

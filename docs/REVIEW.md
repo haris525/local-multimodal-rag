@@ -58,7 +58,8 @@ and overlap old cleanup with a new upload. See
 
 Published generations are retained until document/account deletion so an in-flight question never needs
 an expiring reader lease. Disk usage therefore grows with reindexing; unpublished leftovers of failed or
-crashed runs are also removed at deletion. There is no automatic generation garbage collector. Monitor
+crashed runs are also removed at deletion. Update: schema v6 adds the clean-up of old generations (a
+replaced one after `INGEST_GENERATION_RETAIN_H`, a failed run's at once; see ARCHITECTURE.md). Monitor
 the data volume and Qdrant disk space. Keep the supported single ingest-api process and single worker;
 these regressions do not certify a horizontally replicated deployment.
 

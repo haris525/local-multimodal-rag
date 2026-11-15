@@ -10,7 +10,9 @@ threads, and cleans up what is its to clean (Pipeline.abandon). A sweep, on a ti
 back jobs whose lease ran out and finishes deletions nobody holds. At start the worker takes back at once
 what its own earlier process held (its id: INGEST_WORKER_ID, the host name by default), and re-queues the
 ready documents an older index version built (pipeline.INDEX_VERSION). The LLM cache (llmcache.py) is checked
-and bounded at start, and the sweep removes cached replies of documents that no longer exist."""
+and bounded at start, and the sweep removes cached replies of documents that no longer exist. The sweep also
+removes old index generations (registry.py): one replaced by a reindex after INGEST_GENERATION_RETAIN_H, the
+leftovers of a run that ended without publishing after a short grace; a run that fails here is removed at once."""
 
 import asyncio
 import contextlib
@@ -134,17 +136,51 @@ async def run_job(pipeline: Pipeline, registry: Registry, audit: AuditClient, do
         if registry.fail(doc.doc_id, doc.run_id, error):
             await audit.record("document.failed", doc.doc_id, user_id=doc.owner_id, name=doc.name,
                                error=error[:2000])
+            await remove_failed_run(pipeline, doc)
         else:
             await abandon_quietly(pipeline, doc)
     return True
 
 
+async def remove_failed_run(pipeline: Pipeline, doc: DocumentInfo) -> None:
+    """A failed run published nothing: what it wrote (part of an index, tables, figures) is removed at once,
+    after the job's threads have returned. The document's published generation, if any, stays. A failure here
+    is logged; the sweep removes that generation later."""
+    if doc.run_id is None or not doc.owner_id:
+        return
+    try:
+        settle = getattr(pipeline, "settle", None)
+        if settle:
+            await settle()
+        await pipeline.collect_generation(doc.owner_id, doc.doc_id, doc.run_id)
+    except Exception:
+        log.exception("removing a failed run's files failed; the sweep retries", extra={"fields": {"doc_id": doc.doc_id}})
+
+
+async def collect_generations(pipeline: Pipeline, registry: Registry) -> int:
+    """Retire the generations of runs that ended without publishing, then remove every retired generation
+    whose grace has passed (Settings.generation_retain_s for replaced ones, leftover_grace_s for unpublished
+    ones). Returns how many it removed; one that fails is logged and tried again at the next sweep."""
+    s = pipeline.settings
+    if retired := registry.retire_ended_runs():
+        log_fields(log, "retired the generations of runs that ended without publishing", generations=retired)
+    removed = 0
+    for owner, doc_id, generation in registry.collectable(s.generation_retain_s, s.leftover_grace_s):
+        try:
+            await pipeline.collect_generation(owner, doc_id, generation)
+            removed += 1
+        except Exception:
+            log.exception("removing an old index generation failed; the next sweep retries",
+                          extra={"fields": {"doc_id": doc_id, "generation": generation or "legacy"}})
+    return removed
+
+
 async def sweep(pipeline: Pipeline, registry: Registry, max_attempts: int, mine: bool = False) -> None:
     """Take back jobs whose run stopped renewing its lease, and finish deletions nobody holds (a run that died
     after its document was deleted, a clean-up that failed). With mine (the first sweep after a start), also
-    what this worker's earlier process held. Then the LLM cache: the uses of documents the registry no longer
-    has (a run that cached replies after its document was deleted, and died), and the entries nobody uses.
-    Errors are logged; the next sweep retries."""
+    what this worker's earlier process held. Then old index generations (collect_generations), and the LLM
+    cache: the uses of documents the registry no longer has (a run that cached replies after its document was
+    deleted, and died), and the entries nobody uses. Errors are logged; the next sweep retries."""
     try:
         if taken := registry.recover(max_attempts, mine=mine):
             log_fields(log, "took back interrupted jobs", jobs=taken)
@@ -155,6 +191,10 @@ async def sweep(pipeline: Pipeline, registry: Registry, max_attempts: int, mine:
                 log_fields(log, "finished a deletion", doc_id=doc.doc_id)
     except Exception:
         log.exception("sweep failed; retried at the next one")
+    try:
+        await collect_generations(pipeline, registry)
+    except Exception:
+        log.exception("generation clean-up failed; retried at the next sweep")
     try:
         if removed := await asyncio.to_thread(LlmCache.from_settings(pipeline.settings).collect, registry.owned_ids):
             log_fields(log, "removed cached model replies of deleted documents", rows=removed)

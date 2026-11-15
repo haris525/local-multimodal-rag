@@ -173,7 +173,7 @@ def test_a_v2_registry_is_rebuilt_with_the_check_and_keeps_every_row(tmp_path, c
 
     reg = Registry(path, clock=clock)
     with sqlite3.connect(path) as db:
-        assert db.execute("PRAGMA user_version").fetchone()[0] == SCHEMA_VERSION == 5
+        assert db.execute("PRAGMA user_version").fetchone()[0] == SCHEMA_VERSION == 6
         assert db.execute("SELECT doc_id FROM documents ORDER BY rowid").fetchall() == before  # version order kept
         assert {r[0] for r in db.execute("SELECT name FROM sqlite_master WHERE type = 'index'")} >= {
             "documents_status", "documents_owner", "documents_owner_name"}
@@ -947,7 +947,7 @@ def test_a_v3_registry_gets_the_index_version_and_its_ready_rows_count_as_versio
         db.execute("PRAGMA user_version = 3")
     reg = Registry(path, clock=clock)
     with sqlite3.connect(path) as db:
-        assert db.execute("PRAGMA user_version").fetchone()[0] == SCHEMA_VERSION == 5
+        assert db.execute("PRAGMA user_version").fetchone()[0] == SCHEMA_VERSION == 6
         assert db.execute("SELECT index_version FROM documents").fetchall() == [(1,)]
     assert reg.get(DOC, A).status == DocStatus.READY and reg.requeue_stale(2) == 1
 

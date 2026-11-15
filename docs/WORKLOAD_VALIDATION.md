@@ -74,6 +74,6 @@ The companion regression in `services/ingest/tests/test_workload_fixtures.py` ch
 leading-zero IDs, Unicode, multiline cells, dates, null counts and formula warnings on the same layouts,
 including a repeated header.
 
-Reindex generations consume disk until document/account deletion. The test's cleanup removes its
+A replaced reindex generation is removed `INGEST_GENERATION_RETAIN_H` hours (24) after the reindex. The test's cleanup removes its
 generations; a production library that repeatedly reindexes needs disk monitoring. Earlier published
 versions are deliberately retained to keep in-flight questions consistent.
