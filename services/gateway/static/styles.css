@@ -202,6 +202,13 @@ details.reasoning div { white-space: pre-wrap; border-left: 2px solid var(--bord
 .answer-notes li + li { margin-top: 4px; }
 .link.retry { height: 22px; padding: 0 6px; font-size: 12.5px; color: var(--accent); }
 .error { color: var(--bad); }
+.mermaid-card { margin: 12px 0; border: 1px solid var(--border); border-radius: 10px; overflow: hidden; }
+.mermaid-status { padding: 10px 12px; color: var(--muted); font-size: 13px; }
+.mermaid-frame { display: block; width: 100%; border: 0; background: var(--panel); }
+.mermaid-frame[hidden], .mermaid-status[hidden] { display: none; }
+.mermaid-code { border-top: 1px solid var(--border); font-size: 13px; }
+.mermaid-code summary { padding: 8px 12px; cursor: pointer; color: var(--muted); }
+.mermaid-code pre { margin: 0; border-radius: 0; }
 .answer-activity { display: flex; align-items: flex-start; gap: 10px; margin-top: 12px; padding: 10px 12px; border-radius: 10px; background: var(--panel-2); color: var(--muted); font-size: 13px; }
 .answer-activity[hidden] { display: none; }
 .activity-spinner { flex: 0 0 15px; height: 15px; margin-top: 2px; border: 2px solid var(--border-strong); border-top-color: var(--accent); border-radius: 50%; animation: activity-spin 1s linear infinite; }

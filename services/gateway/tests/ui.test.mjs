@@ -58,13 +58,14 @@ function browser(routes = {}) {
   };
   const context = vm.createContext({
     document, fetch, setTimeout, clearTimeout, console, confirm: () => true, alert() {},
+    addEventListener() {},
     localStorage: { getItem: () => null, setItem() {}, removeItem() {} },
     location: { hash: "", pathname: "/", replace() {} }, history: { replaceState() {} },
     requestAnimationFrame: (f) => setTimeout(f, 0), NodeFilter: { SHOW_TEXT: 4 }, TextDecoder, TextEncoder,
     cancelAnimationFrame: clearTimeout,
     marked: { parse: (t) => t }, DOMPurify: { sanitize: (t) => t },
   });
-  for (const file of ["app.js", "account.js", "admin.js"]) {
+  for (const file of ["diagrams.js", "app.js", "account.js", "admin.js"]) {
     vm.runInContext(readFileSync(new URL(file, STATIC), "utf8"), context, { filename: file });
   }
   const run = (code) => vm.runInContext(code, context);
@@ -204,6 +205,7 @@ test("a waiting answer shows a loader, elapsed time and real stage changes until
   const body = new ReadableStream({ start(controller) { stream = controller; } });
   const b = browser({ "/threads": threadsRoute(), "/chat": [0, body] });
   b.run('$("#exhaustive").checked = true');
+  b.run('var diagramRenders = 0; renderDiagrams = () => { diagramRenders++; }');
   const asking = b.run('ask("explain the constitution")');
   const activity = find(b.$("#messages"), (el) => el.className === "answer-activity");
   const label = find(activity, (el) => el.className === "activity-label");
@@ -231,6 +233,7 @@ test("a waiting answer shows a loader, elapsed time and real stage changes until
     await send(["token", { text: "The Constitution" }]);
     assert.equal(label.textContent, "Writing your answer…");
     assert.equal(activity.hidden, false, "the loader remains while the answer streams");
+    assert.equal(b.run("diagramRenders"), 0, "streaming tokens do not recreate diagram frames");
     assert.equal(find(b.$("#messages"), (el) => el.className === "answer").textContent, "Saved to memory. The Constitution",
       "answer tokens render while the server stream is still open");
     await send(["done", { citations: [], timings: {} }]);
@@ -240,6 +243,7 @@ test("a waiting answer shows a loader, elapsed time and real stage changes until
     await asking;
   }
   assert.equal(b.run("state.busy"), false);
+  assert.equal(b.run("diagramRenders"), 1, "completed answers render their diagrams once");
   const stopped = elapsed.textContent;
   await b.wait(1050);
   assert.equal(elapsed.textContent, stopped, "the timer stops when the request ends");

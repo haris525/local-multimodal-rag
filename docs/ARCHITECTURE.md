@@ -168,6 +168,23 @@ small shared library (`libs/common`) holds settings, logging, the HTTP client, t
 audit client, the identity signer and verifier, and the inter-service contracts, so writers and
 readers cannot drift.
 
+**Diagrams.** Completed answers and reopened chats replace fenced `mermaid` blocks with local,
+lazy-loaded diagram frames. The original code stays available under **View diagram code**; invalid
+or oversized input falls back to code. Mermaid 12.3.0 and its license are bundled with the gateway.
+Each frame has an opaque sandbox origin (`allow-scripts` only), strict Mermaid settings and a second
+SVG sanitization pass. Parent messages are matched to the frame's Window; source text is capped at
+20,000 characters, edges at 200, and display at four diagrams per answer. Legends/citations remain
+in the normal sanitized answer. The chat/login CSP stays strict. Only `/diagram.html` permits generated
+inline styles, with its own CSP denying connections, images, fonts, forms and nested frames.
+Mermaid's [strict mode](https://mermaid.js.org/config/schema-docs/config-properties-securitylevel.html)
+and [protected settings](https://mermaid.js.org/config/schema-docs/config-properties-secure.html) are
+configured explicitly. No remote rendering API receives the diagram.
+
+UI checks: `node --test services/gateway/tests/*.test.mjs`. With a gateway running, the optional
+`node services/gateway/tests/mermaid.browser.mjs http://localhost:8000` check uses an installed Chromium
+browser (set `CHROME_BIN` when needed), a fresh temporary profile, and a synthetic saved answer.
+It does not sign in, call models, or access user documents.
+
 **Network.** Only `gateway` publishes a port. `backend` and `compute` are declared `internal: true`
 and have no route to the internet. `backend` holds `gateway`, `auth`, `rag`, `ingest-api`,
 `ingest-worker`, `threads`, `audit`, `qdrant` and `eval`; `compute` holds `llm`, `models` and `sql`,

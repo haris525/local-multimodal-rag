@@ -10,8 +10,9 @@ registries when the images are built and are not copied into this repository; ea
 |---|---|---|
 | `services/gateway/static/vendor/marked.umd.js` | [marked](https://github.com/markedjs/marked) 18.1.1, Copyright (c) 2018-2026 MarkedJS, Copyright (c) 2011-2018 Christopher Jeffrey | MIT |
 | `services/gateway/static/vendor/purify.min.js` | [DOMPurify](https://github.com/cure53/DOMPurify) 3.4.17, (c) Cure53 and other contributors; it includes regenerator-runtime, Copyright (c) 2014-present Facebook, Inc. (MIT) | Apache License 2.0 or Mozilla Public License 2.0 (used here under Apache 2.0) |
+| `services/gateway/static/vendor/mermaid.min.js` | [Mermaid](https://github.com/mermaid-js/mermaid) 12.3.0, Copyright (c) 2014-2022 Knut Sveidqvist | MIT; [license](services/gateway/static/vendor/mermaid.LICENSE); bundled dependency notices are retained in the distribution |
 
-The license text of each is in the header of its file and at the project links above.
+License notices are retained in the bundled files, the linked license files, and the project links above.
 
 ## Data
 

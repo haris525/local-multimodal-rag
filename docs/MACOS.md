@@ -243,6 +243,14 @@ mind: native models, Docker's VM and other applications share the same unified m
 memory limits alone do not bound all usage. Do not assume a visible loader means a particular token
 rate or change other projects' settings to diagnose this app.
 
+### Diagrams in answers
+
+Ask for a Mermaid diagram with a legend. A fenced `mermaid` block becomes a scrollable diagram once
+the answer finishes, including in reopened chats. The legend and citations remain beside the diagram.
+**View diagram code** shows the original source for copying. Invalid or oversized diagrams show
+their code with a message. Up to four diagrams per answer are displayed; each is limited to 20,000
+characters and 200 edges. No extra installation or external rendering service is needed.
+
 ### Launcher settings
 
 Mac overrides are shell variables. Set the same values in every tab that uses the launcher:

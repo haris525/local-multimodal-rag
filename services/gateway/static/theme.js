@@ -18,6 +18,7 @@
       root.dataset.theme = root.dataset.theme === "dark" ? "light" : "dark";
       try { localStorage.setItem("theme", root.dataset.theme); } catch { /* applied now, not remembered */ }
       sync();
+      dispatchEvent(new Event("themechange"));
     });
     sync();
   });

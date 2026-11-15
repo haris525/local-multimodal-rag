@@ -1,0 +1,6 @@
+:root { color-scheme: light; font: 14px system-ui, sans-serif; background: #fff; color: #1c1c1a; }
+:root[data-theme="dark"] { color-scheme: dark; background: #1a1b1e; color: #e4e2dc; }
+html, body { margin: 0; }
+body { padding: 12px; }
+#diagram { width: fit-content; min-width: 100%; }
+#diagram > svg { display: block; margin: 0 auto; }

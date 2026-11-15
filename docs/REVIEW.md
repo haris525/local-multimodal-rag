@@ -127,12 +127,12 @@ run timeouts, memory-limit killing and successful execution afterward. The other
 
 ## Validation
 
-The supported test runs total **1,770 passed and 2 skipped**. Completed checks:
+The supported test runs total **1,775 passed and 2 skipped**. Completed checks:
 
 - Ingestion: 654 tests, including all five new race regressions.
 - Retrieval/chat: 334 tests; authentication: 143; shared library: 140 passed, 1 skipped.
 - Saved chats/memory: 22; SQL: 17; audit: 19; model queue: 3.
-- Script checks: 82; browser/UI checks: 29; evaluation/benchmarks: 256 passed, 1 skipped.
+- Script checks: 82; browser/UI checks: 34; evaluation/benchmarks: 256 passed, 1 skipped.
 - Optional Python sandbox: 71 tests passed in its Linux Docker build target. A direct macOS run
   produced 28 failures, 42 passes, 1 skip because the configured process resource limits could not be
   applied. This is not a supported native Mac runtime; the Mac deployment keeps this service in Linux.
@@ -187,19 +187,30 @@ rendering tokens before the server closes its stream. This UI change does not im
 After changing the Mac's power mode, the same live request's recent generation rate rose
 to roughly 14–15 tokens/second. This is an observed rate change, not a controlled benchmark.
 
+Mermaid 12.3.0 is bundled locally, with its package integrity verified and licenses retained. Diagrams
+render after streaming finishes and when saved answers are opened. Lazy-loaded opaque-origin frames
+isolate rendering from the chat and session cookies. Only the diagram document allows generated
+inline styles; its CSP blocks network connections, images, fonts, forms and nested frames. Mermaid
+runs in strict mode with protected settings and bounded text/edges; output is sanitized again.
+The chat/login CSP is unchanged. A real Chromium check rendered the complete bill-passing fixture,
+kept its legend/citation, switched themes, rejected cookie access and hostile markup, and showed
+the original code for invalid syntax. Five focused diagram tests accompany the existing UI tests.
+
 **Not established:** sustained memory peaks, large or messy user-document performance, broad model
 quality, horizontal scaling, and atomic reindex publication. The remaining consistency risks above
 still apply. Passing unit tests and a small live fixture set is not a general correctness guarantee.
 
 ## Public repository audit
 
-Before check-in, Gitleaks 8.30.1 scanned the proposed publication tree and all five existing commits.
+Before the Mac-support check-in, Gitleaks 8.30.1 scanned the proposed publication tree and all five existing commits.
 Its six matches were individually reviewed: a public-key helper name, a public upstream GPG fingerprint
 in a test fixture, three CLI-test arguments and a synthetic JWT used to test redaction. No operational
 credential was identified; no broad scanner exclusions were added. A separate scan covered personal
 paths/identifiers and spreadsheet archive contents. Local account details were removed from these notes.
 Ignored local settings, keys, weights, databases, logs and runtime files are outside the publication
 tree. These checks do not guarantee that every possible secret format can be detected.
+The later Mermaid bundle scan added one match in upstream JavaScript identifiers; its bytes match
+the integrity-verified public npm distribution. It is also a reviewed false positive.
 
 For a new install or restart, follow [MACOS.md](MACOS.md). Completed models and keys can be reused;
 never delete `secrets/` or volumes to work around a startup/download error.

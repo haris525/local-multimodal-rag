@@ -691,6 +691,7 @@ function showHistory(detail) {
     else if (meta.error) view.answer.append(failure(`Error: ${meta.error}`, question, turn));
     renderFooter(view, meta, meta.sources || []);
     box.append(view.el);
+    renderDiagrams(view.answer);
   }
   if (!detail.messages.length) box.append(h("div", { class: "empty" }, "Empty chat. Ask a question."));
   box.scrollTop = box.scrollHeight;
@@ -791,6 +792,7 @@ async function ask(question) {
     view.answer.append(failure(`Error: ${err.message}`, question, turn));
   } finally {
     activity.stop();
+    renderDiagrams(view.answer);
     state.busy = false;
     updateSend();
     refreshThreads();
