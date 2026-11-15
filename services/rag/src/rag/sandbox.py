@@ -79,11 +79,15 @@ DESCRIPTION = (
     "filter and select columns before converting results to a dataframe. For dataframe transformations, use "
     "Polars lazy expressions where useful; pandas is available for smaller results and library compatibility. "
     "Use vectorized operations rather than Python loops over rows. The selected documents are copied into data/ for every run, and "
-    "nothing is kept between runs: data/manifest.json lists each document's folder, tables and files; "
+    "nothing is kept between runs. Read data/manifest.json first: it lists each document's exact tables_file, "
+    "text_file and table names. Original uploads (including CSV/XLSX/PDF files) are NOT present: do not call "
+    "pd.read_csv or pd.read_excel on the upload name, and do not invent a path using doc_id. "
     "data/<folder>/tables.duckdb holds its tables, the same ones sql queries "
     "(duckdb.connect(path, read_only=True).sql('SELECT ...').df()); data/<folder>/text.jsonl holds its text passages, "
     "one JSON object per line (chunk_index, page, section, text). Print every result you need, labelled; only "
-    "printed output comes back (about {tokens} tokens of it). A run may take {timeout:g} s."
+    "printed output comes back (about {tokens} tokens of it). A run may take {timeout:g} s. "
+    "For pandas, load the manifest with json.load(open('data/manifest.json')), choose the matching document, "
+    "connect to its tables_file with duckdb.connect(path, read_only=True), and use SQL followed by .df()."
 )
 
 
@@ -191,6 +195,17 @@ def folder(i: int, name: str) -> str:
     """A document's folder under data/: its place in the selection and its name, in safe characters."""
     slug = re.sub(r"[^A-Za-z0-9._-]+", "_", name).strip("._-")[:60] or "document"
     return f"data/{i}_{slug}"
+
+
+def input_index(docs: list[DocumentInfo]) -> str:
+    """Exact input paths visible before the model writes code; only this request's selected documents."""
+    entries = []
+    for i, doc in enumerate(docs, 1):
+        base = folder(i, doc.name)
+        entries.append({"doc_id": doc.doc_id,
+                        "tables_file": f"{base}/tables.duckdb" if doc.tables else None,
+                        "text_file": f"{base}/text.jsonl" if doc.doc_type != DocType.SPREADSHEET else None})
+    return json.dumps(entries, ensure_ascii=False)
 
 
 def _mb(size: int) -> str:
@@ -391,8 +406,13 @@ def failed(reply: dict, s) -> str | None:
         tail = tail_tokens(err, s.sandbox_result_tokens)
         return f"The run failed after {took}: {reply['error']}.\n{tail}{printed}".rstrip()
     if reply.get("exit_code") not in (0, None):
+        hint = ("\nInput files: read data/manifest.json for exact tables_file/text_file paths and table names. "
+                "Original uploads are not present; CSV/XLSX data is in tables_file. Use "
+                "duckdb.connect(tables_file, read_only=True) and SQL followed by .df() for pandas. "
+                "Do not guess paths from doc_id or the original filename."
+                if "FileNotFoundError" in err else "")
         return (f"The code failed (exit code {reply['exit_code']}, {took}):\n"
-                f"{tail_tokens(err, s.sandbox_result_tokens) or '(nothing on stderr)'}{printed}")
+                f"{tail_tokens(err, s.sandbox_result_tokens) or '(nothing on stderr)'}{printed}{hint}")
     if not out and not reply.get("files"):
         return "The code ran (exit code 0) but printed nothing: print() every result you need, then run it again."
     return None
@@ -514,6 +534,8 @@ def run_python_tool(ctx) -> StructuredTool:
 
         return await ctx.once("run_python:" + code, run)  # exact code: whitespace matters in Python
 
-    tool = _tool(run_python, DESCRIPTION.format(tokens=s.sandbox_result_tokens, timeout=s.sandbox_timeout_s))
+    description = DESCRIPTION.format(tokens=s.sandbox_result_tokens, timeout=s.sandbox_timeout_s)
+    description += "\nSelected-document input paths (null means absent; table names are in the manifest):\n" + input_index(ctx.docs)
+    tool = _tool(run_python, description)
     tool.handle_tool_error = True  # a ToolException becomes the tool message, status "error", its text unescaped
     return tool

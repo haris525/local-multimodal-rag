@@ -194,7 +194,13 @@ The installed libraries include DuckDB, Polars, pandas, NumPy, SciPy, statsmodel
 Printed analysis results become citable evidence; generated charts are currently not displayed in the UI.
 
 Use **Deep search** to test analysis. The agent decides when to call Python; enabling the tool does not
-force a Python call for every question. For a comparison of the installed tabular engines, run:
+force a Python call for every question. Ask it to **run Python with pandas** on the selected data and
+show computed results, then look for a successful `run_python` step. Standard search and **Read all**
+can write code examples but do not run Python. The sandbox receives a per-run `data/manifest.json`
+with exact paths to extracted tables/text; it does not mount the original CSV/XLSX uploads. See the
+[input-file contract](ANALYSIS_PERFORMANCE.md#input-files-inside-docker) for details.
+
+For a comparison of the installed tabular engines, run:
 
 ```sh
 uv run --python 3.12 scripts/check_sandbox_isolation.py --macos

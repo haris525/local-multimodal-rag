@@ -22,7 +22,7 @@ class El {
     this.parentElement = null;
   }
   insertBefore(node, next) { this.children.splice(this.children.indexOf(next), 0, node); node.parentElement = this; }
-  closest() { return this.attrs.class === "mermaid-card" ? this : this.parentElement?.closest() || null; }
+  closest() { return (this.className || this.attrs.class) === "mermaid-card" ? this : this.parentElement?.closest() || null; }
   get textContent() { return this.children.map((c) => typeof c === "string" ? c : c.textContent).join(""); }
   set textContent(value) { this.children = [value]; }
   querySelectorAll(selector) {
@@ -41,12 +41,13 @@ function browser(...sources) {
   const root = new El("main"); root.connected = true;
   for (const source of sources) root.append(new El("pre", {}, new El("code", { class: "language-mermaid" }, source)));
   const listeners = {}, timers = new Map();
-  const document = { documentElement: { dataset: { theme: "dark" } }, querySelectorAll: (s) => root.querySelectorAll(s) };
+  const document = { documentElement: { dataset: { theme: "dark" } }, querySelectorAll: (s) => root.querySelectorAll(s),
+    createElement: (tag) => new El(tag), addEventListener() {} };
   const context = vm.createContext({ document, h: (tag, attrs, ...children) => new El(tag, attrs, ...children),
     addEventListener: (type, fn) => { listeners[type] = fn; },
     setTimeout: (fn) => { const id = {}; timers.set(id, fn); return id; }, clearTimeout: (id) => timers.delete(id) });
-  vm.runInContext(readFileSync(new URL("diagrams.js", STATIC), "utf8"), context);
-  const render = () => { context.root = root; vm.runInContext("renderDiagrams(root)", context); };
+  vm.runInContext(readFileSync(new URL("app.js", STATIC), "utf8"), context);
+  const render = () => { context.root = root; vm.runInContext("renderChatDiagrams(root)", context); };
   return { root, render, listeners, timers, document, frames: () => root.querySelectorAll("iframe.mermaid-frame") };
 }
 

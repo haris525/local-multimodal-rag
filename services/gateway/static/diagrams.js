@@ -1,3 +1,4 @@
+// Legacy renderer for cached pages. Current pages use the renderer bundled in app.js.
 "use strict";
 
 // Each diagram runs in an opaque-origin frame, with no access to the chat, cookies or network.

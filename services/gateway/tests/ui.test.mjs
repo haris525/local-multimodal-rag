@@ -65,7 +65,7 @@ function browser(routes = {}) {
     cancelAnimationFrame: clearTimeout,
     marked: { parse: (t) => t }, DOMPurify: { sanitize: (t) => t },
   });
-  for (const file of ["diagrams.js", "app.js", "account.js", "admin.js"]) {
+  for (const file of ["app.js", "account.js", "admin.js"]) {
     vm.runInContext(readFileSync(new URL(file, STATIC), "utf8"), context, { filename: file });
   }
   const run = (code) => vm.runInContext(code, context);
@@ -200,12 +200,37 @@ const text = (el) => (typeof el === "string" ? el : el.textContent);
 const threadsRoute = () => { let made = false; return () => (made ? [0, []] : ((made = true), [0, { thread_id: "a".repeat(32) }])); };
 const find = (el, pred) => (pred(el) ? el : (el.children || []).filter((c) => c instanceof El).map((c) => find(c, pred)).find(Boolean));
 
+test("a saved chat opens without the separately loaded diagram script", () => {
+  const b = browser();
+  b.run(`globalThis.renderDiagrams = undefined;
+    showHistory({ messages: [{ role: "user", content: "my question" },
+      { role: "assistant", content: "saved answer", meta: { sources: [] } }] })`);
+  assert.match(b.$("#messages").textContent, /saved answer/);
+});
+
+test("a diagram enhancement failure does not interrupt the answer or leave Send disabled", async () => {
+  const b = browser({ "/threads": threadsRoute(), "/chat": [0, events(["sources", { route: "search", sources: [] }],
+    ["token", { text: "answer" }], ["done", { citations: [], timings: {} }])] });
+  b.run(`var originalCreate = document.createElement;
+    document.createElement = (tag) => {
+      const node = originalCreate(tag);
+      node.querySelectorAll = (selector) => {
+        if (selector === "pre > code.language-mermaid") throw new Error("diagram enhancement failed");
+        return [];
+      };
+      return node;
+    };`);
+  await b.run('ask("my question")');
+  assert.equal(b.run("state.busy"), false);
+  assert.match(b.$("#messages").textContent, /answer/);
+});
+
 test("a waiting answer shows a loader, elapsed time and real stage changes until done", async () => {
   let stream;
   const body = new ReadableStream({ start(controller) { stream = controller; } });
   const b = browser({ "/threads": threadsRoute(), "/chat": [0, body] });
   b.run('$("#exhaustive").checked = true');
-  b.run('var diagramRenders = 0; renderDiagrams = () => { diagramRenders++; }');
+  b.run('var diagramRenders = 0; renderChatDiagrams = () => { diagramRenders++; }');
   const asking = b.run('ask("explain the constitution")');
   const activity = find(b.$("#messages"), (el) => el.className === "answer-activity");
   const label = find(activity, (el) => el.className === "activity-label");

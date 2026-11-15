@@ -74,7 +74,15 @@ try {
     throw new Error(`Timed out: ${description}`);
   };
   await call("Page.navigate", { url: origin }, sessionId);
-  await until(() => evaluate('document.readyState === "complete" && typeof renderDiagrams === "function"'), "UI load");
+  await until(() => evaluate('document.readyState === "complete" && typeof renderChatDiagrams === "function"'), "UI load");
+  // Cached HTML can still include the legacy script; it must coexist with the bundled renderer.
+  await evaluate(`new Promise((resolve, reject) => {
+    const script = document.createElement("script"); script.src = "/diagrams.js";
+    script.onload = () => resolve(true); script.onerror = () => reject(new Error("Legacy script did not load"));
+    document.head.append(script);
+  })`);
+  // Reproduce an older cached page that never loaded the former standalone helper.
+  await evaluate("globalThis.renderDiagrams = undefined");
   const source = await readFile(new URL("fixtures/bill-passing.mmd", import.meta.url), "utf8");
   const display = async (code) => {
     const markdown = `\`\`\`mermaid\n${code}\n\`\`\`\n\n### Legend\n- Decisions use diamonds. See the source [1].`;
@@ -114,7 +122,7 @@ try {
   assert.equal(await evaluate('document.querySelector(".mermaid-code").open && document.querySelector(".mermaid-frame").hidden'), true);
   assert.equal(exceptions.length, 0, `no unhandled browser errors: ${exceptions.join(", ")}`);
   assert.equal(externalOrigins.size, 0, `no external diagram requests: ${[...externalOrigins].join(", ")}`);
-  console.log("Browser checks passed: flowchart/sequence, legend/citations, theme, isolated origin, hostile markup, invalid-code fallback, no external requests.");
+  console.log("Browser checks passed: saved chats without the old helper, flowchart/sequence, legend/citations, theme, isolated origin, hostile markup, invalid-code fallback, no external requests.");
   await call("Browser.close");
 } finally {
   ws?.close();

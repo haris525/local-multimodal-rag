@@ -10,6 +10,29 @@ with the `request` setting). It runs in a separate Linux container, with selecte
 no credentials, no document-volume mounts, and one run at a time. The default installation leaves it off;
 [Mac instructions](MACOS.md#enable-python-analysis-for-deep-search) include the enable/build/check steps.
 
+To execute an analysis in the app, select the data document, turn on **Deep search**, and ask explicitly:
+"Run Python with pandas on the selected CSV. Group by region and show the computed count, mean and
+standard deviation for each numeric column." Look for a `run_python` tool step and evidence from its
+output. Standard search and **Read all** do not expose Python execution; they can generate example
+code without running it. Deep search makes the tool available, but the model still chooses which
+tools to call, so a code block or an "expected output" paragraph alone does not establish execution.
+
+## Input files inside Docker
+
+The sandbox container is created by Compose; each Python run gets a fresh working directory inside
+that container. The app transfers only the selected documents' extracted tables and text into its
+`data/` directory. These are per-run files, not paths on the operator's Mac or Windows machine.
+Original uploads such as CSV and XLSX are represented by their extracted DuckDB tables, so reading
+the original upload filename with `pandas.read_csv()` or `pandas.read_excel()` fails there.
+
+The tool description supplies the exact input paths before the model writes code. The file
+`data/manifest.json` supplies their table names and schemas. Use its `tables_file` value to open a
+database with `duckdb.connect(path, read_only=True)` and convert a filtered or aggregated query to
+pandas with `.df()`. A document without tables has a null `tables_file`; text passages, when
+available, are at its `text_file`. Do not construct paths from document IDs or upload names.
+Files and Python variables are removed after each run; the same selected inputs are supplied again
+for subsequent calls. This behavior ships with the repository and needs no machine-specific mounts.
+
 ## Workload guidance
 
 | Need | First tool to consider |

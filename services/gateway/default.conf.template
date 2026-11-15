@@ -78,7 +78,13 @@ server {
     if ($origin_ok = 0) { return 403; }
 
     location = /healthz { access_log off; return 200 "ok\n"; }
+    # Revalidate UI files on refresh, so a browser does not mix pages/scripts from different updates.
+    location ~ ^/(?:[^/]+\.(?:html|js|css)|vendor/[^/]+\.js)$ {
+        expires -1;
+        try_files $uri =404;
+    }
     location = /diagram.html {
+        expires -1;
         add_header X-Content-Type-Options "nosniff" always;
         add_header Referrer-Policy "no-referrer" always;
         add_header Content-Security-Policy "default-src 'none'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'none'; connect-src 'none'; font-src 'none'; frame-ancestors 'self'; form-action 'none'; base-uri 'none'; sandbox allow-scripts" always;

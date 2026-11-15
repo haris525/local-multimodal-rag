@@ -121,18 +121,29 @@ and pandas for compatibility or small results; the Python tool description now s
 See [analysis performance](ANALYSIS_PERFORMANCE.md) for timings, memory, caveats, and reproducible commands.
 These data-operation measurements do not test model reasoning or semantic search quality.
 
+A subsequent Deep search run guessed an original CSV path in `run_python`, which failed because the
+sandbox receives extracted tables and text rather than original uploads. Each Python tool now lists
+its selected documents' exact input paths before code generation and explicitly directs the model
+to the manifest and read-only DuckDB-to-pandas loading. Missing-file errors include recovery guidance.
+Two regressions check that the advertised paths match the actual manifest without fetching data early,
+and that a missing-file failure remains an error with actionable feedback rather than citable evidence.
+A synthetic live check using the deployed tool description, Qwen model and Docker sandbox then
+generated and executed pandas code successfully on its first Python attempt. Both regional groups'
+counts, sums and means matched the known 120-row fixture, and the tool registered a Python source.
+This focused check offered only `run_python`; it does not establish full-agent tool-selection quality.
+
 The live sandbox containment check passed **89 checks**, with the Linux-host UID check skipped on
 Docker Desktop (90 checks accounted for). It exercised network restrictions, process/file cleanup,
 run timeouts, memory-limit killing and successful execution afterward. The other projects were untouched.
 
 ## Validation
 
-The supported test runs total **1,775 passed and 2 skipped**. Completed checks:
+The supported test runs total **1,779 passed and 2 skipped**. Completed checks:
 
 - Ingestion: 654 tests, including all five new race regressions.
-- Retrieval/chat: 334 tests; authentication: 143; shared library: 140 passed, 1 skipped.
+- Retrieval/chat: 336 tests; authentication: 143; shared library: 140 passed, 1 skipped.
 - Saved chats/memory: 22; SQL: 17; audit: 19; model queue: 3.
-- Script checks: 82; browser/UI checks: 34; evaluation/benchmarks: 256 passed, 1 skipped.
+- Script checks: 82; browser/UI checks: 36; evaluation/benchmarks: 256 passed, 1 skipped.
 - Optional Python sandbox: 71 tests passed in its Linux Docker build target. A direct macOS run
   produced 28 failures, 42 passes, 1 skip because the configured process resource limits could not be
   applied. This is not a supported native Mac runtime; the Mac deployment keeps this service in Linux.
@@ -195,6 +206,13 @@ runs in strict mode with protected settings and bounded text/edges; output is sa
 The chat/login CSP is unchanged. A real Chromium check rendered the complete bill-passing fixture,
 kept its legend/citation, switched themes, rejected cookie access and hostile markup, and showed
 the original code for invalid syntax. Five focused diagram tests accompany the existing UI tests.
+
+A deployment exposed a mixed-cache failure: chat code called a separately loaded diagram helper that
+was absent from the page, blocking saved-chat display. The parent renderer now ships inside the chat
+script, and rendering failures fall back to code without interrupting chat loading or completion.
+Static UI files require cache revalidation; the former helper URL remains available for cached pages.
+Two regressions cover the missing helper and answer completion after a rendering error. The real
+browser check also opens saved diagrams with the former helper explicitly absent.
 
 **Not established:** sustained memory peaks, large or messy user-document performance, broad model
 quality, horizontal scaling, and atomic reindex publication. The remaining consistency risks above
