@@ -85,10 +85,13 @@ def test_audit_event_user_and_migration_contracts():
 
 def test_scope_filter_always_carries_the_owner():
     flt = scope_filter(UID, [DOC])
-    keys = {c.key for c in flt.must}
-    assert keys == {USER_FIELD, "doc_id"}
-    owner = next(c for c in flt.must if c.key == USER_FIELD)
+    owner, selected = flt.must
+    assert owner.key == USER_FIELD
     assert owner.match == qm.MatchValue(value=UID)
+    branch, = selected.should
+    document, generation = branch.must
+    assert document.key == "doc_id" and document.match.value == DOC
+    assert generation == qm.IsEmptyCondition(is_empty=qm.PayloadField(key="generation"))
     for bad in ("", "legacy", None):
         with pytest.raises(ValueError):
             user_condition(bad)

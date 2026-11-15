@@ -53,7 +53,7 @@ from ingest.registry import Registry
 from ingest.tables import TableSource, column_warnings, write_tables
 
 log = logging.getLogger("ingest.pipeline")
-DropPoints = Callable[[str, str], Awaitable[None]]  # (owner, doc_id): delete the document's points
+DropPoints = Callable[[str, str, list[str | None]], Awaitable[None]]
 # The version of what builds a document's index. Bump it when a parsing or chunking fix leaves documents
 # indexed before it missing content: the worker re-queues every ready document of a lower version at start.
 # 1: before versions were kept. 2: text after a figure or table in the same section is no longer dropped.
@@ -75,12 +75,20 @@ async def delete_document(settings: Settings, registry: Registry, drop_points: D
     uses (llmcache.py). A failure raises and leaves the row deleting (hidden); the worker's sweep finishes it
     later."""
     owner = _owner(doc)
-    if claim is not None and not registry.renew_claim(doc.doc_id, claim):
+    if claim is None:
+        # Use only the captured document, never a fresh doc_id lookup: a delayed API call may resume
+        # after deletion and re-upload. Every new run/upload has a different generation.
+        await drop_points(owner, doc.doc_id, list(dict.fromkeys([doc.generation, doc.run_id])))
         return False
-    await drop_points(owner, doc.doc_id)
+    targets = registry.deletion_targets(doc.doc_id, claim)
+    if targets is None:
+        return False
+    captured, generations = targets
+    owner = _owner(captured)
+    await drop_points(owner, doc.doc_id, generations)
     if claim is None or not registry.renew_claim(doc.doc_id, claim):
         return False
-    remove_artifacts(settings, owner, doc.doc_id)
+    remove_artifacts(settings, owner, doc.doc_id, storage_id=captured.storage_id, generations=generations)
     if not registry.renew_claim(doc.doc_id, claim):
         return False
     await asyncio.to_thread(LlmCache.from_settings(settings).release_document, owner, doc.doc_id)
@@ -145,7 +153,7 @@ class Pipeline:
 
     async def parse(self, doc: DocumentInfo, ext: str) -> ParsedDocument:
         """Every format is parsed in the isolated child, with the timeout and crash detection."""
-        path = source_path(self.settings, _owner(doc), doc.doc_id, ext)
+        path = source_path(self.settings, _owner(doc), doc.doc_id, ext, doc.storage_id)
         artifacts = self.settings.docling_artifacts
         artifacts = artifacts if artifacts and Path(artifacts).exists() else None
         return await self.in_thread(
@@ -344,7 +352,7 @@ class Pipeline:
         self.step(doc, "writing tables")
         sources = self.table_sources(parsed)
         schemas = (
-            await self.in_thread(write_tables, table_path(s, owner, doc.doc_id), sources) if sources else []
+            await self.in_thread(write_tables, table_path(s, owner, doc.doc_id, doc.run_id), sources) if sources else []
         )
         parsed.warnings.extend(column_warnings(schemas))  # dates stored as numbers, mixed values, lost cells
         await self.describe(doc, parsed, job)
@@ -359,30 +367,33 @@ class Pipeline:
             if summary:
                 chunks.append(summary)
 
-        self.step(doc, f"embedding {len(chunks)} chunks")
-        text_vectors = await self.indexer.embed_texts([c.search_text for c in chunks])
         with_images = [(i, c) for i, c in enumerate(chunks) if c.image]
-        image_vectors = dict(
-            zip([i for i, _ in with_images], await self.indexer.embed_images([c.image for _, c in with_images]), strict=True)
-        )
         for _, c in with_images:
-            path = asset_dir(s, owner, doc.doc_id) / c.asset
+            path = asset_dir(s, owner, doc.doc_id, doc.run_id) / c.asset
             path.parent.mkdir(parents=True, exist_ok=True)
             path.write_bytes(c.image)
 
         payloads = [self._payload(doc, i, c) for i, c in enumerate(chunks)]
-        self.step(doc, "indexing")
-        await self.indexer.replace(owner, doc.doc_id, payloads, text_vectors, image_vectors)
+        # Generations make partial writes private, so only one upsert batch's vectors need live in RAM.
+        for start in range(0, len(chunks), s.upsert_batch):
+            batch = chunks[start:start + s.upsert_batch]
+            self.step(doc, f"embedding/indexing {start + 1}-{start + len(batch)} of {len(chunks)} chunks")
+            text_vectors = await self.indexer.embed_texts([c.search_text for c in batch])
+            images = [(start + i, c) for i, c in enumerate(batch) if c.image]
+            image_vectors = dict(zip([i for i, _ in images],
+                                     await self.indexer.embed_images([c.image for _, c in images]), strict=True))
+            await self.indexer.replace(owner, doc.doc_id, payloads[start:start + len(batch)], text_vectors, image_vectors)
         await self.in_thread(
             chunkstore.write,
-            chunk_path(s, owner, doc.doc_id),
-            [{"id": point_id(doc.doc_id, p.chunk_index), **p.model_dump(exclude={"search_text"})} for p in payloads],
+            chunk_path(s, owner, doc.doc_id, doc.run_id),
+            [{"id": point_id(doc.doc_id, p.chunk_index, p.generation), **p.model_dump(exclude={"search_text"})} for p in payloads],
         )
 
         # A re-uploaded file with new content replaces its earlier versions (same owner, same name) only now
         # that the new version is searchable, in the transaction that marks it ready: never neither, never both.
         done = self.registry.complete(doc.doc_id, doc.run_id, len(chunks), len(with_images), parsed.warnings,
-                                      schemas, supersede=s.replace_same_name, index_version=INDEX_VERSION)
+                                      schemas, supersede=s.replace_same_name, index_version=INDEX_VERSION,
+                                      generation=doc.run_id)
         if done is None:
             raise RunLost(doc.doc_id)  # deleted while processing, its account purged, or taken back
         log_fields(log, "document indexed", doc_id=doc.doc_id, chunks=len(chunks), images=len(with_images),
@@ -406,8 +417,8 @@ class Pipeline:
         - deleting under this run (deleted while it ran): points, files, cached replies, then the row;
         - gone (finished by someone else): the points and files this run wrote, and the document's cached
           replies; the upload's file is not the run's;
-        - anything else (another run, or a new upload of the same file, holds the id): nothing is touched,
-          the files are not this run's."""
+        - anything else (another run, or a new upload holds the id): only this run's unpublished
+          generation is removed; all published generations and the uploaded source remain."""
         owner, s = _owner(doc), self.settings
         if self.registry.is_deleted(owner):
             await self.indexer.delete(owner, doc.doc_id)
@@ -420,11 +431,14 @@ class Pipeline:
                 await delete_document(s, self.registry, self.indexer.delete, row, doc.run_id)
                 case = "deleted"
             elif row is None:
-                await self.indexer.delete(owner, doc.doc_id)
-                remove_worker_artifacts(s, owner, doc.doc_id)
+                await self.indexer.delete(owner, doc.doc_id, [doc.run_id])
+                remove_worker_artifacts(s, owner, doc.doc_id, doc.run_id)
                 await asyncio.to_thread(LlmCache.from_settings(s).release_document, owner, doc.doc_id)
                 case = "gone"
             else:
+                if doc.run_id is not None and not self.registry.is_published(doc.doc_id, doc.run_id):
+                    await self.indexer.delete(owner, doc.doc_id, [doc.run_id])
+                    remove_worker_artifacts(s, owner, doc.doc_id, doc.run_id)
                 return "held elsewhere"
             remove_empty_owner_dirs(s, owner)
         log_fields(log, "cleaned up after a run that lost its document", doc_id=doc.doc_id, case=case)
@@ -452,4 +466,5 @@ class Pipeline:
             row_end=c.row_end,
             asset=c.asset,
             user_id=doc.owner_id,
+            generation=doc.run_id,
         )

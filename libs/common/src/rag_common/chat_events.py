@@ -22,6 +22,7 @@ import json
 from collections.abc import Iterable, Iterator
 from dataclasses import dataclass, field
 from enum import StrEnum
+from itertools import chain
 
 
 class ChatEvent(StrEnum):
@@ -136,7 +137,7 @@ def parse_sse(lines: Iterable[str]) -> Iterator[tuple[str, dict]]:
     """(event, data) pairs from server-sent event lines; a block ends with an empty line, data lines are
     joined with newlines, and a last block without its empty line still counts."""
     event, data = "message", []
-    for line in [*lines, ""]:
+    for line in chain(lines, ("",)):
         if line == "":
             if data:
                 yield event, json.loads("\n".join(data))

@@ -22,6 +22,16 @@ def test_parse_sse_splits_on_blank_lines_and_joins_data_lines():
     assert list(parse_sse(lines)) == [("sources", {"route": "search", "sources": []}), ("message", {"text": "Hi"})]
 
 
+def test_parse_sse_yields_an_event_before_consuming_the_rest_of_the_stream():
+    def live_lines():
+        yield from sse(("token", '{"text": "first"}'))
+        raise AssertionError("the reader consumed beyond the available event")
+
+    events = parse_sse(live_lines())
+    assert next(events) == ("token", {"text": "first"})
+    events.close()
+
+
 def test_a_complete_answer():
     reply = read_chat(sse(("memory", '{"action": "saved", "items": [{"memory_id": "x", "text": "t"}]}'),
                           ("sources", '{"route": "search", "sources": [{"n": 1}]}'),

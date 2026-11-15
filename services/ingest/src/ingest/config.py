@@ -29,6 +29,7 @@ class Settings(BaseSettings):
     max_upload_mb: int = 200
     parse_timeout_s: int = 1800
     parse_threads: int = 8
+    parser_cache_mb: int = 1024  # recycle an idle parser above this RSS; 0 recycles after every parse
     max_attempts: int = 2
     replace_same_name: bool = True  # a new upload with an existing file name supersedes it once ready
     poll_interval_s: float = 1.0

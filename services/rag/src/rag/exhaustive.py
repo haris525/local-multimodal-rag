@@ -561,7 +561,7 @@ def _sources(passages: dict[int, Passage], numbers: list[int]) -> list[Source]:
         psg = passages[n]
         p = psg.payload
         out.append(Source(n, psg.id, p.doc_id, p.doc_name, p.kind, location(p), p.text, p.n_tokens, p.asset,
-                          None, {}, p.chunk_index))
+                          None, {}, p.chunk_index, p.generation))
     return out
 
 

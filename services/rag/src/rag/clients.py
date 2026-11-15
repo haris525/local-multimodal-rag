@@ -15,6 +15,7 @@ from rag_common.http import ServiceError  # also raised for unreachable (502) an
 from rag_common.logging import log_fields
 from rag_common.retry import describe, retry_once, transient
 from rag_common.sandbox import MEDIA_TYPE, encode
+from rag_common.snapshots import generation_parameter, selected_generations
 
 STREAM_CHUNK = 1 << 20
 __all__ = ["IngestClient", "LLMClient", "ModelsClient", "RetryPolicy", "SandboxClient", "ServiceError", "SqlClient",
@@ -42,15 +43,18 @@ class IngestClient:
 
     async def grep(self, doc_ids: list[str], terms: list[str], limit: int) -> list[GrepHit]:
         body = {"doc_ids": doc_ids, "terms": terms, "limit": limit}
+        if (generations := selected_generations(doc_ids)) is not None:
+            body["generations"] = generations
         return [GrepHit(**h) for h in await response_json(await self.http.post("/v1/grep", json=body))]
 
     async def chunks(self, doc_id: str, offset: int, limit: int) -> list[dict]:
         """One page of a document's chunk records (ingest caps a page at 1000), in chunk order."""
         params = {"offset": offset, "limit": limit}
+        params.update(generation_parameter(doc_id))
         return await response_json(await self.http.get(f"/v1/documents/{doc_id}/chunks", params=params))
 
     async def asset_data_uri(self, doc_id: str, name: str) -> str | None:
-        response = await self.http.get(f"/v1/documents/{doc_id}/assets/{name}")
+        response = await self.http.get(f"/v1/documents/{doc_id}/assets/{name}", params=generation_parameter(doc_id))
         if response.status_code != 200:
             return None
         return "data:image/png;base64," + base64.b64encode(response.content).decode()
@@ -94,6 +98,7 @@ class SqlClient:
 
     async def query(self, doc_id: str, sql: str, max_rows: int = 200) -> SqlResult:
         body = {"doc_id": doc_id, "sql": sql, "max_rows": max_rows}
+        body.update(generation_parameter(doc_id))
 
         async def call():
             return SqlResult(**await response_json(await self.http.post("/v1/query", json=body)))
@@ -115,7 +120,7 @@ class SqlClient:
         async def call() -> bytearray:
             reserved = 0
             try:
-                async with self.http.stream("GET", f"/v1/tables/{doc_id}") as response:
+                async with self.http.stream("GET", f"/v1/tables/{doc_id}", params=generation_parameter(doc_id)) as response:
                     if response.status_code >= 400:
                         await response.aread()
                         await response_json(response)  # raises ServiceError with the service's detail

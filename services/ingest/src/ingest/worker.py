@@ -224,7 +224,7 @@ async def run() -> None:
     vision = make_client(s.vision_url, timeout=s.vision_timeout_s)
     indexer = Indexer(qdrant, models, s.embed_batch, s.image_embed_batch, s.upsert_batch, s.retry_backoff_s)
     os.environ["INGEST_RAW_TABLE_MAX_ROWS"] = str(s.raw_table_max_rows)  # the parse child reads it (layout.py)
-    runner = IsolatedRunner()
+    runner = IsolatedRunner(max_cache_mb=s.parser_cache_mb)
     audit = AuditClient(s.audit_url, "ingest-worker")
     heartbeat = asyncio.create_task(_heartbeat(s.data_dir / "worker.heartbeat", stop))
     sweeping = None

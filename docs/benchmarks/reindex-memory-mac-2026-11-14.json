@@ -1,0 +1,2917 @@
+{
+  "schema": 1,
+  "rows": 250000,
+  "pages": 100,
+  "documents": [
+    {
+      "name": "large-orders.csv",
+      "bytes": 9351892,
+      "status": "ready",
+      "chunks": 20002,
+      "elapsed_s": 159.6,
+      "tables": [
+        {
+          "name": "large_orders",
+          "rows": 250000
+        }
+      ],
+      "warning_count": 1
+    },
+    {
+      "name": "messy-unicode.csv",
+      "bytes": 2714462,
+      "status": "ready",
+      "chunks": 20002,
+      "elapsed_s": 147.5,
+      "tables": [
+        {
+          "name": "messy_unicode",
+          "rows": 50000
+        }
+      ],
+      "warning_count": 1
+    },
+    {
+      "name": "messy-workbook.xlsx",
+      "bytes": 362494,
+      "status": "ready",
+      "chunks": 12003,
+      "elapsed_s": 117.5,
+      "tables": [
+        {
+          "name": "quarterly_sales",
+          "rows": 12001
+        }
+      ],
+      "warning_count": 2
+    },
+    {
+      "name": "long-report.pdf",
+      "bytes": 223918,
+      "status": "ready",
+      "chunks": 157,
+      "elapsed_s": 99.4,
+      "tables": [],
+      "warning_count": 0
+    },
+    {
+      "name": "long-handbook.txt",
+      "bytes": 1068046,
+      "status": "ready",
+      "chunks": 751,
+      "elapsed_s": 39.2,
+      "tables": [],
+      "warning_count": 0
+    },
+    {
+      "name": "broken-report.pdf",
+      "bytes": 61,
+      "status": "failed",
+      "chunks": 0,
+      "elapsed_s": 3.0,
+      "tables": [],
+      "warning_count": 0
+    }
+  ],
+  "checks": {
+    "large_csv_exact_aggregates": true,
+    "long-report.pdf_tail_search": true,
+    "long-handbook.txt_tail_search": true,
+    "old_and_new_python_snapshots": true,
+    "concurrent_reindex": {
+      "old": 67,
+      "new": 1,
+      "old_and_new_sql_readable": true,
+      "elapsed_s": 150.5
+    },
+    "repeated_pdf": {
+      "passed": true,
+      "elapsed_s": 84.4
+    },
+    "repeated_reads": {
+      "cycles": 30,
+      "requests": 300,
+      "median_pair_s": 0.057,
+      "max_pair_s": 0.113
+    }
+  },
+  "cleanup": true,
+  "elapsed_s": 883.5,
+  "memory": {
+    "interval_s": 5,
+    "errors": 0,
+    "before": {
+      "audit": {
+        "oom_killed": false,
+        "restarts": 0,
+        "health": "healthy"
+      },
+      "auth": {
+        "oom_killed": false,
+        "restarts": 0,
+        "health": "healthy"
+      },
+      "gateway": {
+        "oom_killed": false,
+        "restarts": 0,
+        "health": "healthy"
+      },
+      "ingest-api": {
+        "oom_killed": false,
+        "restarts": 0,
+        "health": "healthy"
+      },
+      "ingest-worker": {
+        "oom_killed": false,
+        "restarts": 0,
+        "health": "healthy",
+        "child_oom_kills": 0
+      },
+      "llm": {
+        "oom_killed": false,
+        "restarts": 0,
+        "health": "healthy"
+      },
+      "models": {
+        "oom_killed": false,
+        "restarts": 0,
+        "health": "healthy"
+      },
+      "qdrant": {
+        "oom_killed": false,
+        "restarts": 0,
+        "health": "healthy"
+      },
+      "rag": {
+        "oom_killed": false,
+        "restarts": 0,
+        "health": "healthy"
+      },
+      "sandbox": {
+        "oom_killed": true,
+        "restarts": 0,
+        "health": "healthy",
+        "child_oom_kills": 1
+      },
+      "sql": {
+        "oom_killed": false,
+        "restarts": 0,
+        "health": "healthy"
+      },
+      "threads": {
+        "oom_killed": false,
+        "restarts": 0,
+        "health": "healthy"
+      }
+    },
+    "after": {
+      "audit": {
+        "oom_killed": false,
+        "restarts": 0,
+        "health": "healthy"
+      },
+      "auth": {
+        "oom_killed": false,
+        "restarts": 0,
+        "health": "healthy"
+      },
+      "gateway": {
+        "oom_killed": false,
+        "restarts": 0,
+        "health": "healthy"
+      },
+      "ingest-api": {
+        "oom_killed": false,
+        "restarts": 0,
+        "health": "healthy"
+      },
+      "ingest-worker": {
+        "oom_killed": false,
+        "restarts": 0,
+        "health": "healthy",
+        "child_oom_kills": 0
+      },
+      "llm": {
+        "oom_killed": false,
+        "restarts": 0,
+        "health": "healthy"
+      },
+      "models": {
+        "oom_killed": false,
+        "restarts": 0,
+        "health": "healthy"
+      },
+      "qdrant": {
+        "oom_killed": false,
+        "restarts": 0,
+        "health": "healthy"
+      },
+      "rag": {
+        "oom_killed": false,
+        "restarts": 0,
+        "health": "healthy"
+      },
+      "sandbox": {
+        "oom_killed": true,
+        "restarts": 0,
+        "health": "healthy",
+        "child_oom_kills": 1
+      },
+      "sql": {
+        "oom_killed": false,
+        "restarts": 0,
+        "health": "healthy"
+      },
+      "threads": {
+        "oom_killed": false,
+        "restarts": 0,
+        "health": "healthy"
+      }
+    },
+    "container_peak_bytes": {
+      "audit": 68587356,
+      "auth": 81306583,
+      "gateway": 5054136,
+      "ingest-api": 148163788,
+      "ingest-worker": 3767760060,
+      "llm": 2883584,
+      "models": 3653238,
+      "qdrant": 562770739,
+      "rag": 346449510,
+      "sandbox": 178362777,
+      "sql": 119327948,
+      "threads": 68063068
+    },
+    "samples": [
+      {
+        "elapsed_s": 2.1,
+        "stage": "baseline",
+        "containers": {
+          "audit": 52764344,
+          "auth": 66804776,
+          "gateway": 3829399,
+          "ingest-api": 131072000,
+          "ingest-worker": 233203302,
+          "llm": 2527068,
+          "models": 3051356,
+          "qdrant": 216845516,
+          "rag": 337117184,
+          "sandbox": 61614325,
+          "sql": 105801318,
+          "threads": 54022635
+        },
+        "native_process_rss_bytes": 6893568000,
+        "host_available_bytes": 23136927744,
+        "host_swap_used_bytes": 15864627200
+      },
+      {
+        "elapsed_s": 9.2,
+        "stage": "baseline",
+        "containers": {
+          "audit": 52795801,
+          "auth": 66783805,
+          "gateway": 4059037,
+          "ingest-api": 131072000,
+          "ingest-worker": 233203302,
+          "llm": 2527068,
+          "models": 3051356,
+          "qdrant": 217579520,
+          "rag": 337222041,
+          "sandbox": 61635297,
+          "sql": 105906176,
+          "threads": 54054092
+        },
+        "native_process_rss_bytes": 6893584384,
+        "host_available_bytes": 23121608704,
+        "host_swap_used_bytes": 15864627200
+      },
+      {
+        "elapsed_s": 15.6,
+        "stage": "large-orders.csv",
+        "containers": {
+          "audit": 52827258,
+          "auth": 66773319,
+          "gateway": 3837788,
+          "ingest-api": 134217728,
+          "ingest-worker": 520513126,
+          "llm": 2552233,
+          "models": 3096444,
+          "qdrant": 217579520,
+          "rag": 337222041,
+          "sandbox": 61677240,
+          "sql": 105906176,
+          "threads": 54085550
+        },
+        "native_process_rss_bytes": 6893584384,
+        "host_available_bytes": 23299915776,
+        "host_swap_used_bytes": 15864627200
+      },
+      {
+        "elapsed_s": 22.7,
+        "stage": "large-orders.csv",
+        "containers": {
+          "audit": 66385346,
+          "auth": 81306583,
+          "gateway": 3837788,
+          "ingest-api": 134217728,
+          "ingest-worker": 507720499,
+          "llm": 2527068,
+          "models": 3051356,
+          "qdrant": 217579520,
+          "rag": 337222041,
+          "sandbox": 65106083,
+          "sql": 119327948,
+          "threads": 54075064
+        },
+        "native_process_rss_bytes": 6893584384,
+        "host_available_bytes": 23407476736,
+        "host_swap_used_bytes": 15864627200
+      },
+      {
+        "elapsed_s": 29.9,
+        "stage": "large-orders.csv",
+        "containers": {
+          "audit": 52858716,
+          "auth": 66804776,
+          "gateway": 3841982,
+          "ingest-api": 134217728,
+          "ingest-worker": 587621990,
+          "llm": 2535456,
+          "models": 3051356,
+          "qdrant": 217579520,
+          "rag": 337222041,
+          "sandbox": 61698211,
+          "sql": 105906176,
+          "threads": 54117007
+        },
+        "native_process_rss_bytes": 7026573312,
+        "host_available_bytes": 10503684096,
+        "host_swap_used_bytes": 15864627200
+      },
+      {
+        "elapsed_s": 36.7,
+        "stage": "large-orders.csv",
+        "containers": {
+          "audit": 52890173,
+          "auth": 67087892,
+          "gateway": 4108320,
+          "ingest-api": 134217728,
+          "ingest-worker": 587621990,
+          "llm": 2535456,
+          "models": 3100639,
+          "qdrant": 217579520,
+          "rag": 337222041,
+          "sandbox": 61729669,
+          "sql": 105906176,
+          "threads": 54148464
+        },
+        "native_process_rss_bytes": 7026769920,
+        "host_available_bytes": 10054615040,
+        "host_swap_used_bytes": 15864627200
+      },
+      {
+        "elapsed_s": 43.8,
+        "stage": "large-orders.csv",
+        "containers": {
+          "audit": 52911144,
+          "auth": 66888663,
+          "gateway": 3837788,
+          "ingest-api": 134217728,
+          "ingest-worker": 661966028,
+          "llm": 2527068,
+          "models": 3452960,
+          "qdrant": 237607321,
+          "rag": 337326899,
+          "sandbox": 61761126,
+          "sql": 106011033,
+          "threads": 54148464
+        },
+        "native_process_rss_bytes": 7058915328,
+        "host_available_bytes": 8956313600,
+        "host_swap_used_bytes": 15864627200
+      },
+      {
+        "elapsed_s": 50.9,
+        "stage": "large-orders.csv",
+        "containers": {
+          "audit": 52911144,
+          "auth": 66867691,
+          "gateway": 3841982,
+          "ingest-api": 134322585,
+          "ingest-worker": 662070886,
+          "llm": 2531262,
+          "models": 3620732,
+          "qdrant": 248931942,
+          "rag": 337326899,
+          "sandbox": 61761126,
+          "sql": 106011033,
+          "threads": 54158950
+        },
+        "native_process_rss_bytes": 7059275776,
+        "host_available_bytes": 9181184000,
+        "host_swap_used_bytes": 15864627200
+      },
+      {
+        "elapsed_s": 57.7,
+        "stage": "large-orders.csv",
+        "containers": {
+          "audit": 52953088,
+          "auth": 66888663,
+          "gateway": 3841982,
+          "ingest-api": 134217728,
+          "ingest-worker": 664692326,
+          "llm": 2531262,
+          "models": 3465543,
+          "qdrant": 260256563,
+          "rag": 337326899,
+          "sandbox": 61792583,
+          "sql": 106011033,
+          "threads": 54190407
+        },
+        "native_process_rss_bytes": 7059308544,
+        "host_available_bytes": 8772190208,
+        "host_swap_used_bytes": 15864627200
+      },
+      {
+        "elapsed_s": 64.8,
+        "stage": "large-orders.csv",
+        "containers": {
+          "audit": 52974059,
+          "auth": 66993520,
+          "gateway": 3846176,
+          "ingest-api": 134217728,
+          "ingest-worker": 664692326,
+          "llm": 2527068,
+          "models": 3088056,
+          "qdrant": 264136294,
+          "rag": 337326899,
+          "sandbox": 61824040,
+          "sql": 106115891,
+          "threads": 64319651
+        },
+        "native_process_rss_bytes": 7060307968,
+        "host_available_bytes": 8849899520,
+        "host_swap_used_bytes": 15864627200
+      },
+      {
+        "elapsed_s": 71.9,
+        "stage": "large-orders.csv",
+        "containers": {
+          "audit": 53026488,
+          "auth": 66962063,
+          "gateway": 3850371,
+          "ingest-api": 134322585,
+          "ingest-worker": 664902041,
+          "llm": 2527068,
+          "models": 3489660,
+          "qdrant": 233413017,
+          "rag": 337431756,
+          "sandbox": 61824040,
+          "sql": 106115891,
+          "threads": 54253322
+        },
+        "native_process_rss_bytes": 7060373504,
+        "host_available_bytes": 8319188992,
+        "host_swap_used_bytes": 15864627200
+      },
+      {
+        "elapsed_s": 79.0,
+        "stage": "large-orders.csv",
+        "containers": {
+          "audit": 53047459,
+          "auth": 66993520,
+          "gateway": 3846176,
+          "ingest-api": 134217728,
+          "ingest-worker": 664692326,
+          "llm": 2535456,
+          "models": 3113222,
+          "qdrant": 248827084,
+          "rag": 337431756,
+          "sandbox": 61845012,
+          "sql": 106115891,
+          "threads": 54284779
+        },
+        "native_process_rss_bytes": 7061323776,
+        "host_available_bytes": 8785969152,
+        "host_swap_used_bytes": 15864627200
+      },
+      {
+        "elapsed_s": 85.7,
+        "stage": "large-orders.csv",
+        "containers": {
+          "audit": 53068431,
+          "auth": 67024977,
+          "gateway": 3846176,
+          "ingest-api": 134217728,
+          "ingest-worker": 664692326,
+          "llm": 2548039,
+          "models": 3128950,
+          "qdrant": 245157068,
+          "rag": 337431756,
+          "sandbox": 61876469,
+          "sql": 106115891,
+          "threads": 54305751
+        },
+        "native_process_rss_bytes": 7059357696,
+        "host_available_bytes": 8830959616,
+        "host_swap_used_bytes": 15864627200
+      },
+      {
+        "elapsed_s": 92.8,
+        "stage": "large-orders.csv",
+        "containers": {
+          "audit": 53068431,
+          "auth": 67004006,
+          "gateway": 3850371,
+          "ingest-api": 134322585,
+          "ingest-worker": 665006899,
+          "llm": 2531262,
+          "models": 3145728,
+          "qdrant": 267701452,
+          "rag": 337431756,
+          "sandbox": 61876469,
+          "sql": 106115891,
+          "threads": 54316236
+        },
+        "native_process_rss_bytes": 6701383680,
+        "host_available_bytes": 8544239616,
+        "host_swap_used_bytes": 15864627200
+      },
+      {
+        "elapsed_s": 99.8,
+        "stage": "large-orders.csv",
+        "containers": {
+          "audit": 53099888,
+          "auth": 67035463,
+          "gateway": 3846176,
+          "ingest-api": 134217728,
+          "ingest-worker": 664692326,
+          "llm": 2527068,
+          "models": 3305111,
+          "qdrant": 259941990,
+          "rag": 337536614,
+          "sandbox": 61907927,
+          "sql": 106115891,
+          "threads": 54337208
+        },
+        "native_process_rss_bytes": 6701187072,
+        "host_available_bytes": 8636809216,
+        "host_swap_used_bytes": 15856238592
+      },
+      {
+        "elapsed_s": 106.7,
+        "stage": "large-orders.csv",
+        "containers": {
+          "audit": 53131345,
+          "auth": 67056435,
+          "gateway": 3846176,
+          "ingest-api": 134217728,
+          "ingest-worker": 664797184,
+          "llm": 2531262,
+          "models": 3186622,
+          "qdrant": 287624396,
+          "rag": 337746329,
+          "sandbox": 61939384,
+          "sql": 106115891,
+          "threads": 54368665
+        },
+        "native_process_rss_bytes": 6700793856,
+        "host_available_bytes": 8513699840,
+        "host_swap_used_bytes": 15856238592
+      },
+      {
+        "elapsed_s": 113.8,
+        "stage": "large-orders.csv",
+        "containers": {
+          "audit": 53131345,
+          "auth": 67087892,
+          "gateway": 3850371,
+          "ingest-api": 134322585,
+          "ingest-worker": 665006899,
+          "llm": 2531262,
+          "models": 3571449,
+          "qdrant": 288777830,
+          "rag": 337536614,
+          "sandbox": 61939384,
+          "sql": 106115891,
+          "threads": 54379151
+        },
+        "native_process_rss_bytes": 6700695552,
+        "host_available_bytes": 8439660544,
+        "host_swap_used_bytes": 15856238592
+      },
+      {
+        "elapsed_s": 120.8,
+        "stage": "large-orders.csv",
+        "containers": {
+          "audit": 53162803,
+          "auth": 67108864,
+          "gateway": 3846176,
+          "ingest-api": 135476019,
+          "ingest-worker": 664797184,
+          "llm": 2522873,
+          "models": 3485466,
+          "qdrant": 277348352,
+          "rag": 337536614,
+          "sandbox": 61960355,
+          "sql": 106220748,
+          "threads": 54400122
+        },
+        "native_process_rss_bytes": 6700711936,
+        "host_available_bytes": 8533065728,
+        "host_swap_used_bytes": 15847849984
+      },
+      {
+        "elapsed_s": 127.8,
+        "stage": "large-orders.csv",
+        "containers": {
+          "audit": 53194260,
+          "auth": 67119349,
+          "gateway": 3846176,
+          "ingest-api": 134322585,
+          "ingest-worker": 665426329,
+          "llm": 2527068,
+          "models": 3403677,
+          "qdrant": 312685363,
+          "rag": 337536614,
+          "sandbox": 61991813,
+          "sql": 106220748,
+          "threads": 54431580
+        },
+        "native_process_rss_bytes": 6689718272,
+        "host_available_bytes": 8522088448,
+        "host_swap_used_bytes": 16225140736
+      },
+      {
+        "elapsed_s": 134.9,
+        "stage": "large-orders.csv",
+        "containers": {
+          "audit": 53215232,
+          "auth": 67150807,
+          "gateway": 3850371,
+          "ingest-api": 134322585,
+          "ingest-worker": 665740902,
+          "llm": 2527068,
+          "models": 3141533,
+          "qdrant": 260885708,
+          "rag": 337536614,
+          "sandbox": 62023270,
+          "sql": 106220748,
+          "threads": 54536437
+        },
+        "native_process_rss_bytes": 6691241984,
+        "host_available_bytes": 8709242880,
+        "host_swap_used_bytes": 16216752128
+      },
+      {
+        "elapsed_s": 142.0,
+        "stage": "large-orders.csv",
+        "containers": {
+          "audit": 53215232,
+          "auth": 67150807,
+          "gateway": 3854565,
+          "ingest-api": 134322585,
+          "ingest-worker": 665636044,
+          "llm": 2522873,
+          "models": 3141533,
+          "qdrant": 284164096,
+          "rag": 337641472,
+          "sandbox": 62012784,
+          "sql": 106220748,
+          "threads": 54463037
+        },
+        "native_process_rss_bytes": 6691110912,
+        "host_available_bytes": 8599633920,
+        "host_swap_used_bytes": 16216752128
+      },
+      {
+        "elapsed_s": 149.1,
+        "stage": "large-orders.csv",
+        "containers": {
+          "audit": 53236203,
+          "auth": 67182264,
+          "gateway": 3850371,
+          "ingest-api": 134322585,
+          "ingest-worker": 665740902,
+          "llm": 2527068,
+          "models": 3137339,
+          "qdrant": 281857228,
+          "rag": 337536614,
+          "sandbox": 62033756,
+          "sql": 106325606,
+          "threads": 54494494
+        },
+        "native_process_rss_bytes": 6691127296,
+        "host_available_bytes": 8634630144,
+        "host_swap_used_bytes": 16216752128
+      },
+      {
+        "elapsed_s": 155.7,
+        "stage": "large-orders.csv",
+        "containers": {
+          "audit": 53267660,
+          "auth": 67192750,
+          "gateway": 3846176,
+          "ingest-api": 134322585,
+          "ingest-worker": 665636044,
+          "llm": 2531262,
+          "models": 3158310,
+          "qdrant": 304611328,
+          "rag": 337641472,
+          "sandbox": 62054727,
+          "sql": 106325606,
+          "threads": 54525952
+        },
+        "native_process_rss_bytes": 6691536896,
+        "host_available_bytes": 8558313472,
+        "host_swap_used_bytes": 16208363520
+      },
+      {
+        "elapsed_s": 162.8,
+        "stage": "large-orders.csv",
+        "containers": {
+          "audit": 53257175,
+          "auth": 67192750,
+          "gateway": 3846176,
+          "ingest-api": 134322585,
+          "ingest-worker": 665636044,
+          "llm": 2522873,
+          "models": 3395289,
+          "qdrant": 305030758,
+          "rag": 337641472,
+          "sandbox": 62054727,
+          "sql": 106325606,
+          "threads": 54525952
+        },
+        "native_process_rss_bytes": 6691635200,
+        "host_available_bytes": 8353333248,
+        "host_swap_used_bytes": 16208363520
+      },
+      {
+        "elapsed_s": 169.9,
+        "stage": "large-orders.csv",
+        "containers": {
+          "audit": 53299118,
+          "auth": 67234693,
+          "gateway": 3854565,
+          "ingest-api": 134322585,
+          "ingest-worker": 579862528,
+          "llm": 2527068,
+          "models": 3133145,
+          "qdrant": 285107814,
+          "rag": 337641472,
+          "sandbox": 62086184,
+          "sql": 106325606,
+          "threads": 54525952
+        },
+        "native_process_rss_bytes": 6697861120,
+        "host_available_bytes": 9044164608,
+        "host_swap_used_bytes": 16208363520
+      },
+      {
+        "elapsed_s": 176.7,
+        "stage": "messy-unicode.csv",
+        "containers": {
+          "audit": 53330575,
+          "auth": 67255664,
+          "gateway": 3850371,
+          "ingest-api": 134637158,
+          "ingest-worker": 505308774,
+          "llm": 2531262,
+          "models": 3124756,
+          "qdrant": 266757734,
+          "rag": 337956044,
+          "sandbox": 62107156,
+          "sql": 106640179,
+          "threads": 54546923
+        },
+        "native_process_rss_bytes": 7247921152,
+        "host_available_bytes": 9983983616,
+        "host_swap_used_bytes": 16208363520
+      },
+      {
+        "elapsed_s": 183.8,
+        "stage": "messy-unicode.csv",
+        "containers": {
+          "audit": 53330575,
+          "auth": 67287121,
+          "gateway": 3846176,
+          "ingest-api": 134322585,
+          "ingest-worker": 504889344,
+          "llm": 2531262,
+          "models": 3113222,
+          "qdrant": 255328256,
+          "rag": 338060902,
+          "sandbox": 62107156,
+          "sql": 106640179,
+          "threads": 54557409
+        },
+        "native_process_rss_bytes": 7249117184,
+        "host_available_bytes": 10492641280,
+        "host_swap_used_bytes": 16208363520
+      },
+      {
+        "elapsed_s": 190.8,
+        "stage": "messy-unicode.csv",
+        "containers": {
+          "audit": 53351546,
+          "auth": 67475865,
+          "gateway": 3850371,
+          "ingest-api": 134532300,
+          "ingest-worker": 581435392,
+          "llm": 2531262,
+          "models": 3113222,
+          "qdrant": 272734617,
+          "rag": 338060902,
+          "sandbox": 62138613,
+          "sql": 106640179,
+          "threads": 54588866
+        },
+        "native_process_rss_bytes": 7253114880,
+        "host_available_bytes": 9359671296,
+        "host_swap_used_bytes": 16208363520
+      },
+      {
+        "elapsed_s": 197.7,
+        "stage": "messy-unicode.csv",
+        "containers": {
+          "audit": 53383004,
+          "auth": 67308093,
+          "gateway": 3850371,
+          "ingest-api": 134322585,
+          "ingest-worker": 583008256,
+          "llm": 2527068,
+          "models": 3391094,
+          "qdrant": 331035443,
+          "rag": 338060902,
+          "sandbox": 62170071,
+          "sql": 106640179,
+          "threads": 54620323
+        },
+        "native_process_rss_bytes": 7245299712,
+        "host_available_bytes": 8850915328,
+        "host_swap_used_bytes": 16199974912
+      },
+      {
+        "elapsed_s": 204.8,
+        "stage": "messy-unicode.csv",
+        "containers": {
+          "audit": 53383004,
+          "auth": 67308093,
+          "gateway": 3846176,
+          "ingest-api": 134322585,
+          "ingest-worker": 583008256,
+          "llm": 2527068,
+          "models": 3128950,
+          "qdrant": 309225062,
+          "rag": 338060902,
+          "sandbox": 62170071,
+          "sql": 106640179,
+          "threads": 54620323
+        },
+        "native_process_rss_bytes": 7245316096,
+        "host_available_bytes": 9024028672,
+        "host_swap_used_bytes": 16199974912
+      },
+      {
+        "elapsed_s": 211.9,
+        "stage": "messy-unicode.csv",
+        "containers": {
+          "audit": 53414461,
+          "auth": 67633152,
+          "gateway": 3846176,
+          "ingest-api": 134427443,
+          "ingest-worker": 583008256,
+          "llm": 2527068,
+          "models": 3113222,
+          "qdrant": 348127232,
+          "rag": 338060902,
+          "sandbox": 62191042,
+          "sql": 106640179,
+          "threads": 54641295
+        },
+        "native_process_rss_bytes": 7125188608,
+        "host_available_bytes": 9004023808,
+        "host_swap_used_bytes": 16199974912
+      },
+      {
+        "elapsed_s": 218.9,
+        "stage": "messy-unicode.csv",
+        "containers": {
+          "audit": 53445918,
+          "auth": 67391979,
+          "gateway": 3850371,
+          "ingest-api": 134532300,
+          "ingest-worker": 583008256,
+          "llm": 2527068,
+          "models": 3113222,
+          "qdrant": 305135616,
+          "rag": 338060902,
+          "sandbox": 62222499,
+          "sql": 106745036,
+          "threads": 54672752
+        },
+        "native_process_rss_bytes": 7070744576,
+        "host_available_bytes": 9254600704,
+        "host_swap_used_bytes": 16199974912
+      },
+      {
+        "elapsed_s": 225.7,
+        "stage": "messy-unicode.csv",
+        "containers": {
+          "audit": 53445918,
+          "auth": 67371008,
+          "gateway": 3846176,
+          "ingest-api": 134322585,
+          "ingest-worker": 583008256,
+          "llm": 2527068,
+          "models": 3117416,
+          "qdrant": 295069286,
+          "rag": 338165760,
+          "sandbox": 62222499,
+          "sql": 106745036,
+          "threads": 54672752
+        },
+        "native_process_rss_bytes": 7070744576,
+        "host_available_bytes": 9086812160,
+        "host_swap_used_bytes": 16199974912
+      },
+      {
+        "elapsed_s": 232.7,
+        "stage": "messy-unicode.csv",
+        "containers": {
+          "audit": 53477376,
+          "auth": 67402465,
+          "gateway": 3846176,
+          "ingest-api": 134322585,
+          "ingest-worker": 583008256,
+          "llm": 2527068,
+          "models": 3121610,
+          "qdrant": 323590553,
+          "rag": 338165760,
+          "sandbox": 62253957,
+          "sql": 106745036,
+          "threads": 54704209
+        },
+        "native_process_rss_bytes": 7068762112,
+        "host_available_bytes": 9034858496,
+        "host_swap_used_bytes": 16199974912
+      },
+      {
+        "elapsed_s": 239.8,
+        "stage": "messy-unicode.csv",
+        "containers": {
+          "audit": 53508833,
+          "auth": 67423436,
+          "gateway": 4125097,
+          "ingest-api": 134322585,
+          "ingest-worker": 583008256,
+          "llm": 2531262,
+          "models": 3128950,
+          "qdrant": 295908147,
+          "rag": 338165760,
+          "sandbox": 62274928,
+          "sql": 106745036,
+          "threads": 54746152
+        },
+        "native_process_rss_bytes": 7068811264,
+        "host_available_bytes": 9294200832,
+        "host_swap_used_bytes": 16199974912
+      },
+      {
+        "elapsed_s": 246.7,
+        "stage": "messy-unicode.csv",
+        "containers": {
+          "audit": 62369300,
+          "auth": 76472647,
+          "gateway": 3846176,
+          "ingest-api": 134322585,
+          "ingest-worker": 583113113,
+          "llm": 2527068,
+          "models": 3137339,
+          "qdrant": 342255206,
+          "rag": 338165760,
+          "sandbox": 72446115,
+          "sql": 115867648,
+          "threads": 63795363
+        },
+        "native_process_rss_bytes": 7069171712,
+        "host_available_bytes": 8826077184,
+        "host_swap_used_bytes": 16199974912
+      },
+      {
+        "elapsed_s": 253.8,
+        "stage": "messy-unicode.csv",
+        "containers": {
+          "audit": 53529804,
+          "auth": 67454894,
+          "gateway": 3846176,
+          "ingest-api": 134322585,
+          "ingest-worker": 583217971,
+          "llm": 2527068,
+          "models": 3624927,
+          "qdrant": 308281344,
+          "rag": 338270617,
+          "sandbox": 62306385,
+          "sql": 106849894,
+          "threads": 54767124
+        },
+        "native_process_rss_bytes": 7069335552,
+        "host_available_bytes": 8929689600,
+        "host_swap_used_bytes": 16199974912
+      },
+      {
+        "elapsed_s": 260.9,
+        "stage": "messy-unicode.csv",
+        "containers": {
+          "audit": 53571747,
+          "auth": 67507322,
+          "gateway": 3899654,
+          "ingest-api": 134322585,
+          "ingest-worker": 585839411,
+          "llm": 2527068,
+          "models": 3141533,
+          "qdrant": 350434099,
+          "rag": 338480332,
+          "sandbox": 62337843,
+          "sql": 106849894,
+          "threads": 54809067
+        },
+        "native_process_rss_bytes": 7064436736,
+        "host_available_bytes": 8887156736,
+        "host_swap_used_bytes": 16191586304
+      },
+      {
+        "elapsed_s": 267.7,
+        "stage": "messy-unicode.csv",
+        "containers": {
+          "audit": 53603205,
+          "auth": 67549265,
+          "gateway": 3846176,
+          "ingest-api": 134322585,
+          "ingest-worker": 585944268,
+          "llm": 2522873,
+          "models": 3137339,
+          "qdrant": 304821043,
+          "rag": 338270617,
+          "sandbox": 62484643,
+          "sql": 106849894,
+          "threads": 54830039
+        },
+        "native_process_rss_bytes": 7064436736,
+        "host_available_bytes": 9204072448,
+        "host_swap_used_bytes": 16191586304
+      },
+      {
+        "elapsed_s": 274.8,
+        "stage": "messy-unicode.csv",
+        "containers": {
+          "audit": 53592719,
+          "auth": 67507322,
+          "gateway": 3846176,
+          "ingest-api": 134322585,
+          "ingest-worker": 586153984,
+          "llm": 2522873,
+          "models": 3141533,
+          "qdrant": 297585868,
+          "rag": 338270617,
+          "sandbox": 62369300,
+          "sql": 106849894,
+          "threads": 54830039
+        },
+        "native_process_rss_bytes": 7064453120,
+        "host_available_bytes": 9281421312,
+        "host_swap_used_bytes": 16191586304
+      },
+      {
+        "elapsed_s": 281.9,
+        "stage": "messy-unicode.csv",
+        "containers": {
+          "audit": 53624176,
+          "auth": 67538780,
+          "gateway": 3850371,
+          "ingest-api": 134322585,
+          "ingest-worker": 586363699,
+          "llm": 2522873,
+          "models": 3141533,
+          "qdrant": 336802611,
+          "rag": 338270617,
+          "sandbox": 62390272,
+          "sql": 106849894,
+          "threads": 54861496
+        },
+        "native_process_rss_bytes": 7064485888,
+        "host_available_bytes": 9240330240,
+        "host_swap_used_bytes": 16191586304
+      },
+      {
+        "elapsed_s": 289.0,
+        "stage": "messy-unicode.csv",
+        "containers": {
+          "audit": 53697576,
+          "auth": 67601694,
+          "gateway": 3841982,
+          "ingest-api": 134322585,
+          "ingest-worker": 586573414,
+          "llm": 2527068,
+          "models": 3190816,
+          "qdrant": 327365427,
+          "rag": 338270617,
+          "sandbox": 62421729,
+          "sql": 106849894,
+          "threads": 54924410
+        },
+        "native_process_rss_bytes": 7064485888,
+        "host_available_bytes": 9192570880,
+        "host_swap_used_bytes": 16191586304
+      },
+      {
+        "elapsed_s": 295.7,
+        "stage": "messy-unicode.csv",
+        "containers": {
+          "audit": 53666119,
+          "auth": 67591208,
+          "gateway": 3850371,
+          "ingest-api": 134322585,
+          "ingest-worker": 587202560,
+          "llm": 2522873,
+          "models": 3653238,
+          "qdrant": 358508134,
+          "rag": 338375475,
+          "sandbox": 62421729,
+          "sql": 106849894,
+          "threads": 54882467
+        },
+        "native_process_rss_bytes": 6701334528,
+        "host_available_bytes": 9002418176,
+        "host_swap_used_bytes": 16191586304
+      },
+      {
+        "elapsed_s": 302.7,
+        "stage": "messy-unicode.csv",
+        "containers": {
+          "audit": 53697576,
+          "auth": 67591208,
+          "gateway": 3850371,
+          "ingest-api": 134427443,
+          "ingest-worker": 586678272,
+          "llm": 2522873,
+          "models": 3174039,
+          "qdrant": 324324556,
+          "rag": 338375475,
+          "sandbox": 62442700,
+          "sql": 106954752,
+          "threads": 54924410
+        },
+        "native_process_rss_bytes": 6701416448,
+        "host_available_bytes": 9017507840,
+        "host_swap_used_bytes": 16191586304
+      },
+      {
+        "elapsed_s": 309.8,
+        "stage": "messy-unicode.csv",
+        "containers": {
+          "audit": 53718548,
+          "auth": 67633152,
+          "gateway": 4125097,
+          "ingest-api": 134322585,
+          "ingest-worker": 586783129,
+          "llm": 2522873,
+          "models": 3371171,
+          "qdrant": 378640793,
+          "rag": 338375475,
+          "sandbox": 62463672,
+          "sql": 106954752,
+          "threads": 54955868
+        },
+        "native_process_rss_bytes": 6697402368,
+        "host_available_bytes": 9018277888,
+        "host_swap_used_bytes": 16191586304
+      },
+      {
+        "elapsed_s": 316.7,
+        "stage": "messy-unicode.csv",
+        "containers": {
+          "audit": 53718548,
+          "auth": 67622666,
+          "gateway": 3846176,
+          "ingest-api": 134322585,
+          "ingest-worker": 586887987,
+          "llm": 2531262,
+          "models": 3444572,
+          "qdrant": 363855872,
+          "rag": 338375475,
+          "sandbox": 62463672,
+          "sql": 106954752,
+          "threads": 54945382
+        },
+        "native_process_rss_bytes": 6696288256,
+        "host_available_bytes": 9122168832,
+        "host_swap_used_bytes": 16191586304
+      },
+      {
+        "elapsed_s": 323.8,
+        "stage": "messy-workbook.xlsx",
+        "containers": {
+          "audit": 53760491,
+          "auth": 67654123,
+          "gateway": 3850371,
+          "ingest-api": 134951731,
+          "ingest-worker": 517472256,
+          "llm": 2531262,
+          "models": 3124756,
+          "qdrant": 313104793,
+          "rag": 338375475,
+          "sandbox": 62505615,
+          "sql": 106954752,
+          "threads": 54976839
+        },
+        "native_process_rss_bytes": 7256457216,
+        "host_available_bytes": 10904928256,
+        "host_swap_used_bytes": 16191586304
+      },
+      {
+        "elapsed_s": 330.9,
+        "stage": "messy-workbook.xlsx",
+        "containers": {
+          "audit": 53781463,
+          "auth": 67664609,
+          "gateway": 3862953,
+          "ingest-api": 134951731,
+          "ingest-worker": 518206259,
+          "llm": 2531262,
+          "models": 3113222,
+          "qdrant": 284793241,
+          "rag": 338375475,
+          "sandbox": 62516101,
+          "sql": 106954752,
+          "threads": 54997811
+        },
+        "native_process_rss_bytes": 7258030080,
+        "host_available_bytes": 10811637760,
+        "host_swap_used_bytes": 16191586304
+      },
+      {
+        "elapsed_s": 337.7,
+        "stage": "messy-workbook.xlsx",
+        "containers": {
+          "audit": 53791948,
+          "auth": 67664609,
+          "gateway": 3846176,
+          "ingest-api": 134951731,
+          "ingest-worker": 544420659,
+          "llm": 2531262,
+          "models": 3342860,
+          "qdrant": 280913510,
+          "rag": 338480332,
+          "sandbox": 62516101,
+          "sql": 106954752,
+          "threads": 54997811
+        },
+        "native_process_rss_bytes": 7259897856,
+        "host_available_bytes": 9574744064,
+        "host_swap_used_bytes": 16183197696
+      },
+      {
+        "elapsed_s": 344.8,
+        "stage": "messy-workbook.xlsx",
+        "containers": {
+          "audit": 53812920,
+          "auth": 67696066,
+          "gateway": 3817865,
+          "ingest-api": 134951731,
+          "ingest-worker": 563399884,
+          "llm": 2531262,
+          "models": 3117416,
+          "qdrant": 301885030,
+          "rag": 338480332,
+          "sandbox": 62547558,
+          "sql": 107059609,
+          "threads": 55018782
+        },
+        "native_process_rss_bytes": 7252721664,
+        "host_available_bytes": 9836511232,
+        "host_swap_used_bytes": 16183197696
+      },
+      {
+        "elapsed_s": 351.9,
+        "stage": "messy-workbook.xlsx",
+        "containers": {
+          "audit": 53844377,
+          "auth": 67727523,
+          "gateway": 3829399,
+          "ingest-api": 134951731,
+          "ingest-worker": 563399884,
+          "llm": 2531262,
+          "models": 3240099,
+          "qdrant": 356410982,
+          "rag": 338480332,
+          "sandbox": 62558044,
+          "sql": 107059609,
+          "threads": 55029268
+        },
+        "native_process_rss_bytes": 7253147648,
+        "host_available_bytes": 9485893632,
+        "host_swap_used_bytes": 16183197696
+      },
+      {
+        "elapsed_s": 359.0,
+        "stage": "messy-workbook.xlsx",
+        "containers": {
+          "audit": 53875834,
+          "auth": 67758981,
+          "gateway": 3850371,
+          "ingest-api": 134951731,
+          "ingest-worker": 563399884,
+          "llm": 2531262,
+          "models": 3109027,
+          "qdrant": 306498764,
+          "rag": 338480332,
+          "sandbox": 62610472,
+          "sql": 107374182,
+          "threads": 55029268
+        },
+        "native_process_rss_bytes": 7253295104,
+        "host_available_bytes": 9492152320,
+        "host_swap_used_bytes": 16183197696
+      },
+      {
+        "elapsed_s": 365.7,
+        "stage": "messy-workbook.xlsx",
+        "containers": {
+          "audit": 53875834,
+          "auth": 67758981,
+          "gateway": 3850371,
+          "ingest-api": 134951731,
+          "ingest-worker": 564763033,
+          "llm": 2531262,
+          "models": 3104833,
+          "qdrant": 300417024,
+          "rag": 338480332,
+          "sandbox": 62599987,
+          "sql": 107059609,
+          "threads": 55060725
+        },
+        "native_process_rss_bytes": 7253360640,
+        "host_available_bytes": 9622011904,
+        "host_swap_used_bytes": 16183197696
+      },
+      {
+        "elapsed_s": 372.8,
+        "stage": "messy-workbook.xlsx",
+        "containers": {
+          "audit": 53907292,
+          "auth": 67821895,
+          "gateway": 3841982,
+          "ingest-api": 135056588,
+          "ingest-worker": 565916467,
+          "llm": 2531262,
+          "models": 3104833,
+          "qdrant": 371615334,
+          "rag": 338480332,
+          "sandbox": 62610472,
+          "sql": 107059609,
+          "threads": 55092183
+        },
+        "native_process_rss_bytes": 7250984960,
+        "host_available_bytes": 9256828928,
+        "host_swap_used_bytes": 16183197696
+      },
+      {
+        "elapsed_s": 379.8,
+        "stage": "messy-workbook.xlsx",
+        "containers": {
+          "audit": 53938749,
+          "auth": 67832381,
+          "gateway": 5054136,
+          "ingest-api": 135056588,
+          "ingest-worker": 566126182,
+          "llm": 2531262,
+          "models": 3174039,
+          "qdrant": 307127910,
+          "rag": 338585190,
+          "sandbox": 62652416,
+          "sql": 107164467,
+          "threads": 55123640
+        },
+        "native_process_rss_bytes": 7251034112,
+        "host_available_bytes": 9255059456,
+        "host_swap_used_bytes": 16174809088
+      },
+      {
+        "elapsed_s": 386.8,
+        "stage": "messy-workbook.xlsx",
+        "containers": {
+          "audit": 53928263,
+          "auth": 67800924,
+          "gateway": 3846176,
+          "ingest-api": 135056588,
+          "ingest-worker": 566545612,
+          "llm": 2531262,
+          "models": 3109027,
+          "qdrant": 331874304,
+          "rag": 338585190,
+          "sandbox": 62652416,
+          "sql": 107164467,
+          "threads": 55123640
+        },
+        "native_process_rss_bytes": 6697058304,
+        "host_available_bytes": 8051900416,
+        "host_swap_used_bytes": 16312696832
+      },
+      {
+        "elapsed_s": 393.9,
+        "stage": "messy-workbook.xlsx",
+        "containers": {
+          "audit": 53959720,
+          "auth": 68073553,
+          "gateway": 3846176,
+          "ingest-api": 135056588,
+          "ingest-worker": 566545612,
+          "llm": 2531262,
+          "models": 3371171,
+          "qdrant": 374865920,
+          "rag": 338899763,
+          "sandbox": 62673387,
+          "sql": 107164467,
+          "threads": 55155097
+        },
+        "native_process_rss_bytes": 6692782080,
+        "host_available_bytes": 8534818816,
+        "host_swap_used_bytes": 16315056128
+      },
+      {
+        "elapsed_s": 401.0,
+        "stage": "messy-workbook.xlsx",
+        "containers": {
+          "audit": 53991178,
+          "auth": 67853352,
+          "gateway": 3846176,
+          "ingest-api": 135056588,
+          "ingest-worker": 566545612,
+          "llm": 2531262,
+          "models": 3575644,
+          "qdrant": 319815680,
+          "rag": 338585190,
+          "sandbox": 62704844,
+          "sql": 107164467,
+          "threads": 55176069
+        },
+        "native_process_rss_bytes": 6693093376,
+        "host_available_bytes": 9169354752,
+        "host_swap_used_bytes": 16306667520
+      },
+      {
+        "elapsed_s": 407.8,
+        "stage": "messy-workbook.xlsx",
+        "containers": {
+          "audit": 53980692,
+          "auth": 67853352,
+          "gateway": 3846176,
+          "ingest-api": 135056588,
+          "ingest-worker": 566545612,
+          "llm": 2535456,
+          "models": 3121610,
+          "qdrant": 323485696,
+          "rag": 338690048,
+          "sandbox": 62704844,
+          "sql": 107164467,
+          "threads": 55165583
+        },
+        "native_process_rss_bytes": 6692782080,
+        "host_available_bytes": 10011033600,
+        "host_swap_used_bytes": 16281501696
+      },
+      {
+        "elapsed_s": 415.0,
+        "stage": "messy-workbook.xlsx",
+        "containers": {
+          "audit": 54012149,
+          "auth": 65840087,
+          "gateway": 3846176,
+          "ingest-api": 137258598,
+          "ingest-worker": 567069900,
+          "llm": 2522873,
+          "models": 2625634,
+          "qdrant": 401080320,
+          "rag": 338690048,
+          "sandbox": 62358814,
+          "sql": 72267857,
+          "threads": 54295265
+        },
+        "native_process_rss_bytes": 6692028416,
+        "host_available_bytes": 9420537856,
+        "host_swap_used_bytes": 16281501696
+      },
+      {
+        "elapsed_s": 422.1,
+        "stage": "messy-workbook.xlsx",
+        "containers": {
+          "audit": 54022635,
+          "auth": 66112716,
+          "gateway": 3850371,
+          "ingest-api": 145542348,
+          "ingest-worker": 566650470,
+          "llm": 2600468,
+          "models": 2907701,
+          "qdrant": 322227404,
+          "rag": 338690048,
+          "sandbox": 62379786,
+          "sql": 72299315,
+          "threads": 54326722
+        },
+        "native_process_rss_bytes": 6692536320,
+        "host_available_bytes": 9580773376,
+        "host_swap_used_bytes": 16281501696
+      },
+      {
+        "elapsed_s": 429.2,
+        "stage": "messy-workbook.xlsx",
+        "containers": {
+          "audit": 54022635,
+          "auth": 65892515,
+          "gateway": 3841982,
+          "ingest-api": 145542348,
+          "ingest-worker": 567174758,
+          "llm": 2604662,
+          "models": 3162505,
+          "qdrant": 289721548,
+          "rag": 338690048,
+          "sandbox": 62379786,
+          "sql": 72299315,
+          "threads": 54316236
+        },
+        "native_process_rss_bytes": 6692061184,
+        "host_available_bytes": 9635020800,
+        "host_swap_used_bytes": 16281501696
+      },
+      {
+        "elapsed_s": 435.7,
+        "stage": "messy-workbook.xlsx",
+        "containers": {
+          "audit": 54054092,
+          "auth": 65923973,
+          "gateway": 3850371,
+          "ingest-api": 145542348,
+          "ingest-worker": 567174758,
+          "llm": 2765094,
+          "models": 2904555,
+          "qdrant": 383673958,
+          "rag": 338794905,
+          "sandbox": 61949870,
+          "sql": 72330772,
+          "threads": 54337208
+        },
+        "native_process_rss_bytes": 6691930112,
+        "host_available_bytes": 9460563968,
+        "host_swap_used_bytes": 16281501696
+      },
+      {
+        "elapsed_s": 442.8,
+        "stage": "long-report.pdf",
+        "containers": {
+          "audit": 54085550,
+          "auth": 65955430,
+          "gateway": 3850371,
+          "ingest-api": 145647206,
+          "ingest-worker": 2202244481,
+          "llm": 2765094,
+          "models": 2891972,
+          "qdrant": 323590553,
+          "rag": 339004620,
+          "sandbox": 61981327,
+          "sql": 72351744,
+          "threads": 54368665
+        },
+        "native_process_rss_bytes": 6695452672,
+        "host_available_bytes": 10815537152,
+        "host_swap_used_bytes": 16281501696
+      },
+      {
+        "elapsed_s": 449.9,
+        "stage": "long-report.pdf",
+        "containers": {
+          "audit": 54085550,
+          "auth": 65955430,
+          "gateway": 4112515,
+          "ingest-api": 144913203,
+          "ingest-worker": 3099892645,
+          "llm": 2760900,
+          "models": 2883584,
+          "qdrant": 278711500,
+          "rag": 304821043,
+          "sandbox": 61981327,
+          "sql": 72351744,
+          "threads": 54368665
+        },
+        "native_process_rss_bytes": 6695239680,
+        "host_available_bytes": 11617107968,
+        "host_swap_used_bytes": 16247947264
+      },
+      {
+        "elapsed_s": 456.8,
+        "stage": "long-report.pdf",
+        "containers": {
+          "audit": 54117007,
+          "auth": 65976401,
+          "gateway": 3846176,
+          "ingest-api": 144913203,
+          "ingest-worker": 3058016714,
+          "llm": 2883584,
+          "models": 3006267,
+          "qdrant": 276404633,
+          "rag": 304821043,
+          "sandbox": 62012784,
+          "sql": 72383201,
+          "threads": 54400122
+        },
+        "native_process_rss_bytes": 6695092224,
+        "host_available_bytes": 10985766912,
+        "host_swap_used_bytes": 16247947264
+      },
+      {
+        "elapsed_s": 463.9,
+        "stage": "long-report.pdf",
+        "containers": {
+          "audit": 54148464,
+          "auth": 66007859,
+          "gateway": 3846176,
+          "ingest-api": 144913203,
+          "ingest-worker": 3074122842,
+          "llm": 2760900,
+          "models": 2866806,
+          "qdrant": 261095424,
+          "rag": 304821043,
+          "sandbox": 62044241,
+          "sql": 72404172,
+          "threads": 54410608
+        },
+        "native_process_rss_bytes": 6651314176,
+        "host_available_bytes": 11392761856,
+        "host_swap_used_bytes": 16247947264
+      },
+      {
+        "elapsed_s": 471.0,
+        "stage": "long-report.pdf",
+        "containers": {
+          "audit": 66930606,
+          "auth": 79555461,
+          "gateway": 3846176,
+          "ingest-api": 144913203,
+          "ingest-worker": 2950642532,
+          "llm": 2760900,
+          "models": 2862612,
+          "qdrant": 261934284,
+          "rag": 304925900,
+          "sandbox": 74239180,
+          "sql": 84525711,
+          "threads": 54410608
+        },
+        "native_process_rss_bytes": 6647414784,
+        "host_available_bytes": 11240538112,
+        "host_swap_used_bytes": 16247947264
+      },
+      {
+        "elapsed_s": 477.7,
+        "stage": "long-report.pdf",
+        "containers": {
+          "audit": 54179921,
+          "auth": 66039316,
+          "gateway": 3846176,
+          "ingest-api": 144913203,
+          "ingest-worker": 3326452170,
+          "llm": 2765094,
+          "models": 2855272,
+          "qdrant": 261934284,
+          "rag": 304925900,
+          "sandbox": 62065213,
+          "sql": 72425144,
+          "threads": 54452551
+        },
+        "native_process_rss_bytes": 6645645312,
+        "host_available_bytes": 11298488320,
+        "host_swap_used_bytes": 16247947264
+      },
+      {
+        "elapsed_s": 484.9,
+        "stage": "long-report.pdf",
+        "containers": {
+          "audit": 54200893,
+          "auth": 66070773,
+          "gateway": 3846176,
+          "ingest-api": 144913203,
+          "ingest-worker": 3366180618,
+          "llm": 2760900,
+          "models": 2846883,
+          "qdrant": 260571136,
+          "rag": 304925900,
+          "sandbox": 62086184,
+          "sql": 72467087,
+          "threads": 54473523
+        },
+        "native_process_rss_bytes": 6645645312,
+        "host_available_bytes": 11134615552,
+        "host_swap_used_bytes": 16239558656
+      },
+      {
+        "elapsed_s": 491.9,
+        "stage": "long-report.pdf",
+        "containers": {
+          "audit": 54221864,
+          "auth": 66091745,
+          "gateway": 3850371,
+          "ingest-api": 145122918,
+          "ingest-worker": 3429531385,
+          "llm": 2765094,
+          "models": 2842689,
+          "qdrant": 260571136,
+          "rag": 304925900,
+          "sandbox": 62117642,
+          "sql": 72498544,
+          "threads": 54504980
+        },
+        "native_process_rss_bytes": 6645202944,
+        "host_available_bytes": 11556782080,
+        "host_swap_used_bytes": 16239558656
+      },
+      {
+        "elapsed_s": 499.0,
+        "stage": "long-report.pdf",
+        "containers": {
+          "audit": 54221864,
+          "auth": 66081259,
+          "gateway": 3846176,
+          "ingest-api": 145122918,
+          "ingest-worker": 3689376907,
+          "llm": 2765094,
+          "models": 2838495,
+          "qdrant": 255957401,
+          "rag": 304925900,
+          "sandbox": 62117642,
+          "sql": 72488058,
+          "threads": 54504980
+        },
+        "native_process_rss_bytes": 6645415936,
+        "host_available_bytes": 11201970176,
+        "host_swap_used_bytes": 16239558656
+      },
+      {
+        "elapsed_s": 505.7,
+        "stage": "long-report.pdf",
+        "containers": {
+          "audit": 54232350,
+          "auth": 66112716,
+          "gateway": 3846176,
+          "ingest-api": 144913203,
+          "ingest-worker": 3760243867,
+          "llm": 2760900,
+          "models": 2834300,
+          "qdrant": 249665945,
+          "rag": 315306803,
+          "sandbox": 62128128,
+          "sql": 72519516,
+          "threads": 54525952
+        },
+        "native_process_rss_bytes": 6645415936,
+        "host_available_bytes": 11636391936,
+        "host_swap_used_bytes": 16239558656
+      },
+      {
+        "elapsed_s": 512.8,
+        "stage": "long-report.pdf",
+        "containers": {
+          "audit": 54263808,
+          "auth": 66731376,
+          "gateway": 4108320,
+          "ingest-api": 145122918,
+          "ingest-worker": 3563749113,
+          "llm": 2765094,
+          "models": 2830106,
+          "qdrant": 249665945,
+          "rag": 304925900,
+          "sandbox": 62191042,
+          "sql": 72571944,
+          "threads": 54567895
+        },
+        "native_process_rss_bytes": 6645547008,
+        "host_available_bytes": 11727618048,
+        "host_swap_used_bytes": 16231170048
+      },
+      {
+        "elapsed_s": 519.9,
+        "stage": "long-report.pdf",
+        "containers": {
+          "audit": 54263808,
+          "auth": 66154659,
+          "gateway": 3846176,
+          "ingest-api": 144913203,
+          "ingest-worker": 975175680,
+          "llm": 2785017,
+          "models": 3083862,
+          "qdrant": 249665945,
+          "rag": 305030758,
+          "sandbox": 62170071,
+          "sql": 72550973,
+          "threads": 54567895
+        },
+        "native_process_rss_bytes": 7367458816,
+        "host_available_bytes": 12019253248,
+        "host_swap_used_bytes": 16222781440
+      },
+      {
+        "elapsed_s": 526.7,
+        "stage": "long-report.pdf",
+        "containers": {
+          "audit": 54284779,
+          "auth": 66165145,
+          "gateway": 3822059,
+          "ingest-api": 144913203,
+          "ingest-worker": 975175680,
+          "llm": 2780823,
+          "models": 2830106,
+          "qdrant": 249875660,
+          "rag": 305030758,
+          "sandbox": 62201528,
+          "sql": 72582430,
+          "threads": 54588866
+        },
+        "native_process_rss_bytes": 7369097216,
+        "host_available_bytes": 11975081984,
+        "host_swap_used_bytes": 16222781440
+      },
+      {
+        "elapsed_s": 533.8,
+        "stage": "long-report.pdf",
+        "containers": {
+          "audit": 54316236,
+          "auth": 66196602,
+          "gateway": 3841982,
+          "ingest-api": 144913203,
+          "ingest-worker": 975175680,
+          "llm": 2769289,
+          "models": 2982150,
+          "qdrant": 249980518,
+          "rag": 305030758,
+          "sandbox": 62232985,
+          "sql": 72592916,
+          "threads": 55008296
+        },
+        "native_process_rss_bytes": 7410532352,
+        "host_available_bytes": 11536334848,
+        "host_swap_used_bytes": 16222781440
+      },
+      {
+        "elapsed_s": 540.9,
+        "stage": "long-handbook.txt",
+        "containers": {
+          "audit": 54525952,
+          "auth": 66196602,
+          "gateway": 3858759,
+          "ingest-api": 145752064,
+          "ingest-worker": 1101659111,
+          "llm": 2785017,
+          "models": 2834300,
+          "qdrant": 258054553,
+          "rag": 305135616,
+          "sandbox": 62222499,
+          "sql": 72592916,
+          "threads": 54620323
+        },
+        "native_process_rss_bytes": 8030371840,
+        "host_available_bytes": 12877152256,
+        "host_swap_used_bytes": 16222781440
+      },
+      {
+        "elapsed_s": 547.8,
+        "stage": "long-handbook.txt",
+        "containers": {
+          "audit": 54536437,
+          "auth": 66458746,
+          "gateway": 3846176,
+          "ingest-api": 146066636,
+          "ingest-worker": 1100585369,
+          "llm": 2810183,
+          "models": 3166699,
+          "qdrant": 257320550,
+          "rag": 305135616,
+          "sandbox": 62253957,
+          "sql": 72624373,
+          "threads": 54641295
+        },
+        "native_process_rss_bytes": 8349630464,
+        "host_available_bytes": 12167872512,
+        "host_swap_used_bytes": 16206004224
+      },
+      {
+        "elapsed_s": 555.0,
+        "stage": "long-handbook.txt",
+        "containers": {
+          "audit": 54578380,
+          "auth": 66259517,
+          "gateway": 3841982,
+          "ingest-api": 146066636,
+          "ingest-worker": 1100585369,
+          "llm": 2785017,
+          "models": 2834300,
+          "qdrant": 254174822,
+          "rag": 305135616,
+          "sandbox": 62285414,
+          "sql": 72655831,
+          "threads": 54672752
+        },
+        "native_process_rss_bytes": 8097775616,
+        "host_available_bytes": 11236524032,
+        "host_swap_used_bytes": 16197615616
+      },
+      {
+        "elapsed_s": 562.0,
+        "stage": "long-handbook.txt",
+        "containers": {
+          "audit": 54567895,
+          "auth": 66259517,
+          "gateway": 4108320,
+          "ingest-api": 145752064,
+          "ingest-worker": 1101659111,
+          "llm": 2769289,
+          "models": 3300917,
+          "qdrant": 267491737,
+          "rag": 305240473,
+          "sandbox": 62285414,
+          "sql": 72655831,
+          "threads": 54672752
+        },
+        "native_process_rss_bytes": 8093564928,
+        "host_available_bytes": 10006249472,
+        "host_swap_used_bytes": 16197615616
+      },
+      {
+        "elapsed_s": 569.1,
+        "stage": "long-handbook.txt",
+        "containers": {
+          "audit": 54588866,
+          "auth": 66280488,
+          "gateway": 3846176,
+          "ingest-api": 145752064,
+          "ingest-worker": 1101659111,
+          "llm": 2769289,
+          "models": 2859466,
+          "qdrant": 275775488,
+          "rag": 305240473,
+          "sandbox": 62316871,
+          "sql": 72687288,
+          "threads": 54704209
+        },
+        "native_process_rss_bytes": 8088354816,
+        "host_available_bytes": 10296377344,
+        "host_swap_used_bytes": 16197615616
+      },
+      {
+        "elapsed_s": 575.7,
+        "stage": "long-handbook.txt",
+        "containers": {
+          "audit": 54620323,
+          "auth": 66322432,
+          "gateway": 3854565,
+          "ingest-api": 145752064,
+          "ingest-worker": 1100585369,
+          "llm": 2769289,
+          "models": 2842689,
+          "qdrant": 273992908,
+          "rag": 305240473,
+          "sandbox": 62348328,
+          "sql": 72718745,
+          "threads": 54735667
+        },
+        "native_process_rss_bytes": 8090468352,
+        "host_available_bytes": 10827366400,
+        "host_swap_used_bytes": 16197615616
+      },
+      {
+        "elapsed_s": 582.8,
+        "stage": "reindex-with-readers",
+        "containers": {
+          "audit": 54630809,
+          "auth": 66311946,
+          "gateway": 3850371,
+          "ingest-api": 146276352,
+          "ingest-worker": 1459215138,
+          "llm": 2769289,
+          "models": 2842689,
+          "qdrant": 268854886,
+          "rag": 305974476,
+          "sandbox": 62348328,
+          "sql": 72718745,
+          "threads": 54735667
+        },
+        "native_process_rss_bytes": 8089370624,
+        "host_available_bytes": 11470094336,
+        "host_swap_used_bytes": 16197615616
+      },
+      {
+        "elapsed_s": 589.9,
+        "stage": "reindex-with-readers",
+        "containers": {
+          "audit": 54651781,
+          "auth": 66605547,
+          "gateway": 3862953,
+          "ingest-api": 146590924,
+          "ingest-worker": 1374389534,
+          "llm": 2769289,
+          "models": 2842689,
+          "qdrant": 268225740,
+          "rag": 305974476,
+          "sandbox": 62379786,
+          "sql": 72750202,
+          "threads": 54767124
+        },
+        "native_process_rss_bytes": 7484063744,
+        "host_available_bytes": 10841014272,
+        "host_swap_used_bytes": 16197615616
+      },
+      {
+        "elapsed_s": 596.7,
+        "stage": "reindex-with-readers",
+        "containers": {
+          "audit": 54672752,
+          "auth": 66385346,
+          "gateway": 3867148,
+          "ingest-api": 146171494,
+          "ingest-worker": 1530082099,
+          "llm": 2773483,
+          "models": 2855272,
+          "qdrant": 281437798,
+          "rag": 306184192,
+          "sandbox": 62411243,
+          "sql": 72781660,
+          "threads": 54798581
+        },
+        "native_process_rss_bytes": 7156776960,
+        "host_available_bytes": 9453273088,
+        "host_swap_used_bytes": 16197615616
+      },
+      {
+        "elapsed_s": 603.9,
+        "stage": "reindex-with-readers",
+        "containers": {
+          "audit": 54672752,
+          "auth": 66416803,
+          "gateway": 3858759,
+          "ingest-api": 146066636,
+          "ingest-worker": 1530082099,
+          "llm": 2765094,
+          "models": 2866806,
+          "qdrant": 407162060,
+          "rag": 305974476,
+          "sandbox": 62432215,
+          "sql": 72802631,
+          "threads": 54788096
+        },
+        "native_process_rss_bytes": 6987497472,
+        "host_available_bytes": 8282914816,
+        "host_swap_used_bytes": 16216293376
+      },
+      {
+        "elapsed_s": 610.9,
+        "stage": "reindex-with-readers",
+        "containers": {
+          "audit": 54704209,
+          "auth": 66437775,
+          "gateway": 3882876,
+          "ingest-api": 146276352,
+          "ingest-worker": 1530082099,
+          "llm": 2769289,
+          "models": 3124756,
+          "qdrant": 399088025,
+          "rag": 305974476,
+          "sandbox": 62442700,
+          "sql": 72813117,
+          "threads": 54830039
+        },
+        "native_process_rss_bytes": 6988283904,
+        "host_available_bytes": 8372469760,
+        "host_swap_used_bytes": 16342122496
+      },
+      {
+        "elapsed_s": 617.8,
+        "stage": "reindex-with-readers",
+        "containers": {
+          "audit": 54735667,
+          "auth": 66469232,
+          "gateway": 3858759,
+          "ingest-api": 146066636,
+          "ingest-worker": 1532229582,
+          "llm": 2769289,
+          "models": 3047161,
+          "qdrant": 474795212,
+          "rag": 306079334,
+          "sandbox": 62463672,
+          "sql": 72823603,
+          "threads": 54851010
+        },
+        "native_process_rss_bytes": 6975913984,
+        "host_available_bytes": 8621031424,
+        "host_swap_used_bytes": 16342122496
+      },
+      {
+        "elapsed_s": 624.9,
+        "stage": "reindex-with-readers",
+        "containers": {
+          "audit": 54756638,
+          "auth": 66469232,
+          "gateway": 3867148,
+          "ingest-api": 146066636,
+          "ingest-worker": 1533303324,
+          "llm": 2765094,
+          "models": 2887778,
+          "qdrant": 390384844,
+          "rag": 306079334,
+          "sandbox": 73075261,
+          "sql": 72855060,
+          "threads": 64204308
+        },
+        "native_process_rss_bytes": 6976110592,
+        "host_available_bytes": 8969928704,
+        "host_swap_used_bytes": 16342122496
+      },
+      {
+        "elapsed_s": 632.0,
+        "stage": "reindex-with-readers",
+        "containers": {
+          "audit": 54767124,
+          "auth": 66469232,
+          "gateway": 3878682,
+          "ingest-api": 146276352,
+          "ingest-worker": 1532229582,
+          "llm": 2765094,
+          "models": 2956984,
+          "qdrant": 465777459,
+          "rag": 306079334,
+          "sandbox": 62505615,
+          "sql": 72855060,
+          "threads": 54882467
+        },
+        "native_process_rss_bytes": 6976225280,
+        "host_available_bytes": 8901394432,
+        "host_swap_used_bytes": 16342122496
+      },
+      {
+        "elapsed_s": 639.1,
+        "stage": "reindex-with-readers",
+        "containers": {
+          "audit": 54788096,
+          "auth": 66500689,
+          "gateway": 3870294,
+          "ingest-api": 146066636,
+          "ingest-worker": 1533303324,
+          "llm": 2773483,
+          "models": 3346006,
+          "qdrant": 413768089,
+          "rag": 306079334,
+          "sandbox": 62526586,
+          "sql": 72886517,
+          "threads": 54913925
+        },
+        "native_process_rss_bytes": 6976307200,
+        "host_available_bytes": 8820097024,
+        "host_swap_used_bytes": 16325345280
+      },
+      {
+        "elapsed_s": 645.7,
+        "stage": "reindex-with-readers",
+        "containers": {
+          "audit": 54788096,
+          "auth": 66542632,
+          "gateway": 3867148,
+          "ingest-api": 146066636,
+          "ingest-worker": 1535450808,
+          "llm": 2760900,
+          "models": 2911895,
+          "qdrant": 349909811,
+          "rag": 306393907,
+          "sandbox": 62558044,
+          "sql": 72917975,
+          "threads": 54945382
+        },
+        "native_process_rss_bytes": 6976356352,
+        "host_available_bytes": 8825339904,
+        "host_swap_used_bytes": 16325345280
+      },
+      {
+        "elapsed_s": 652.8,
+        "stage": "reindex-with-readers",
+        "containers": {
+          "audit": 54788096,
+          "auth": 66521661,
+          "gateway": 3870294,
+          "ingest-api": 146066636,
+          "ingest-worker": 1535450808,
+          "llm": 2760900,
+          "models": 2920284,
+          "qdrant": 470286336,
+          "rag": 306184192,
+          "sandbox": 62558044,
+          "sql": 72917975,
+          "threads": 54945382
+        },
+        "native_process_rss_bytes": 6970638336,
+        "host_available_bytes": 8466415616,
+        "host_swap_used_bytes": 16325345280
+      },
+      {
+        "elapsed_s": 659.9,
+        "stage": "reindex-with-readers",
+        "containers": {
+          "audit": 54819553,
+          "auth": 66542632,
+          "gateway": 3870294,
+          "ingest-api": 146066636,
+          "ingest-worker": 1535450808,
+          "llm": 2765094,
+          "models": 3051356,
+          "qdrant": 412509798,
+          "rag": 306184192,
+          "sandbox": 62589501,
+          "sql": 72949432,
+          "threads": 54955868
+        },
+        "native_process_rss_bytes": 6970834944,
+        "host_available_bytes": 8610611200,
+        "host_swap_used_bytes": 16325345280
+      },
+      {
+        "elapsed_s": 666.8,
+        "stage": "reindex-with-readers",
+        "containers": {
+          "audit": 54851010,
+          "auth": 66563604,
+          "gateway": 3867148,
+          "ingest-api": 146066636,
+          "ingest-worker": 1535450808,
+          "llm": 2760900,
+          "models": 2941255,
+          "qdrant": 478360371,
+          "rag": 306184192,
+          "sandbox": 62620958,
+          "sql": 72980889,
+          "threads": 54997811
+        },
+        "native_process_rss_bytes": 6970490880,
+        "host_available_bytes": 8323547136,
+        "host_swap_used_bytes": 16509829120
+      },
+      {
+        "elapsed_s": 673.9,
+        "stage": "reindex-with-readers",
+        "containers": {
+          "audit": 54851010,
+          "auth": 66794291,
+          "gateway": 3874488,
+          "ingest-api": 146486067,
+          "ingest-worker": 1535450808,
+          "llm": 2765094,
+          "models": 2924478,
+          "qdrant": 449839104,
+          "rag": 306184192,
+          "sandbox": 62620958,
+          "sql": 72980889,
+          "threads": 54987325
+        },
+        "native_process_rss_bytes": 6970753024,
+        "host_available_bytes": 8765407232,
+        "host_swap_used_bytes": 16501440512
+      },
+      {
+        "elapsed_s": 680.3,
+        "stage": "reindex-with-readers",
+        "containers": {
+          "audit": 54882467,
+          "auth": 66825748,
+          "gateway": 3874488,
+          "ingest-api": 146066636,
+          "ingest-worker": 1535450808,
+          "llm": 2765094,
+          "models": 3104833,
+          "qdrant": 545783808,
+          "rag": 306289049,
+          "sandbox": 62652416,
+          "sql": 73001861,
+          "threads": 55029268
+        },
+        "native_process_rss_bytes": 6969425920,
+        "host_available_bytes": 8956264448,
+        "host_swap_used_bytes": 16493051904
+      },
+      {
+        "elapsed_s": 686.5,
+        "stage": "reindex-with-readers",
+        "containers": {
+          "audit": 54913925,
+          "auth": 66584576,
+          "gateway": 3867148,
+          "ingest-api": 146066636,
+          "ingest-worker": 1535450808,
+          "llm": 2760900,
+          "models": 3038773,
+          "qdrant": 562770739,
+          "rag": 306184192,
+          "sandbox": 62694359,
+          "sql": 73022832,
+          "threads": 55060725
+        },
+        "native_process_rss_bytes": 6969196544,
+        "host_available_bytes": 8702918656,
+        "host_swap_used_bytes": 16843603968
+      },
+      {
+        "elapsed_s": 693.5,
+        "stage": "reindex-with-readers",
+        "containers": {
+          "audit": 54913925,
+          "auth": 66584576,
+          "gateway": 3874488,
+          "ingest-api": 146066636,
+          "ingest-worker": 1535450808,
+          "llm": 2760900,
+          "models": 2973761,
+          "qdrant": 402758041,
+          "rag": 306289049,
+          "sandbox": 62673387,
+          "sql": 73022832,
+          "threads": 55050240
+        },
+        "native_process_rss_bytes": 6969294848,
+        "host_available_bytes": 8921169920,
+        "host_swap_used_bytes": 16843603968
+      },
+      {
+        "elapsed_s": 700.6,
+        "stage": "reindex-with-readers",
+        "containers": {
+          "audit": 54924410,
+          "auth": 66857205,
+          "gateway": 3867148,
+          "ingest-api": 146066636,
+          "ingest-worker": 1535450808,
+          "llm": 2760900,
+          "models": 3190816,
+          "qdrant": 448371097,
+          "rag": 306289049,
+          "sandbox": 62715330,
+          "sql": 73054289,
+          "threads": 55081697
+        },
+        "native_process_rss_bytes": 6969982976,
+        "host_available_bytes": 9220997120,
+        "host_swap_used_bytes": 16843603968
+      },
+      {
+        "elapsed_s": 706.7,
+        "stage": "reindex-with-readers",
+        "containers": {
+          "audit": 54945382,
+          "auth": 66657976,
+          "gateway": 3862953,
+          "ingest-api": 146066636,
+          "ingest-worker": 1535450808,
+          "llm": 2765094,
+          "models": 2924478,
+          "qdrant": 388497408,
+          "rag": 307337625,
+          "sandbox": 62746787,
+          "sql": 73085747,
+          "threads": 55102668
+        },
+        "native_process_rss_bytes": 6970081280,
+        "host_available_bytes": 9109012480,
+        "host_swap_used_bytes": 16843603968
+      },
+      {
+        "elapsed_s": 713.8,
+        "stage": "reindex-with-readers",
+        "containers": {
+          "audit": 54945382,
+          "auth": 66899148,
+          "gateway": 3870294,
+          "ingest-api": 146066636,
+          "ingest-worker": 1535450808,
+          "llm": 2760900,
+          "models": 2920284,
+          "qdrant": 452355686,
+          "rag": 306393907,
+          "sandbox": 62736302,
+          "sql": 73085747,
+          "threads": 55102668
+        },
+        "native_process_rss_bytes": 6969999360,
+        "host_available_bytes": 8596570112,
+        "host_swap_used_bytes": 16843603968
+      },
+      {
+        "elapsed_s": 720.9,
+        "stage": "reindex-with-readers",
+        "containers": {
+          "audit": 55060725,
+          "auth": 66678947,
+          "gateway": 3870294,
+          "ingest-api": 146171494,
+          "ingest-worker": 1445256495,
+          "llm": 2765094,
+          "models": 2920284,
+          "qdrant": 456235417,
+          "rag": 346449510,
+          "sandbox": 62767759,
+          "sql": 73117204,
+          "threads": 55134126
+        },
+        "native_process_rss_bytes": 6974128128,
+        "host_available_bytes": 9348415488,
+        "host_swap_used_bytes": 16843603968
+      },
+      {
+        "elapsed_s": 727.8,
+        "stage": "reindex-with-readers",
+        "containers": {
+          "audit": 55071211,
+          "auth": 66699919,
+          "gateway": 3867148,
+          "ingest-api": 146066636,
+          "ingest-worker": 1445256495,
+          "llm": 2760900,
+          "models": 2904555,
+          "qdrant": 368155033,
+          "rag": 324743987,
+          "sandbox": 164731289,
+          "sql": 76231475,
+          "threads": 55155097
+        },
+        "native_process_rss_bytes": 6972686336,
+        "host_available_bytes": 9803169792,
+        "host_swap_used_bytes": 16843603968
+      },
+      {
+        "elapsed_s": 734.9,
+        "stage": "repeat-pdf",
+        "containers": {
+          "audit": 55071211,
+          "auth": 66699919,
+          "gateway": 3858759,
+          "ingest-api": 146066636,
+          "ingest-worker": 2889439248,
+          "llm": 2760900,
+          "models": 2891972,
+          "qdrant": 327680000,
+          "rag": 306918195,
+          "sandbox": 165989580,
+          "sql": 76252446,
+          "threads": 55155097
+        },
+        "native_process_rss_bytes": 6972964864,
+        "host_available_bytes": 10819338240,
+        "host_swap_used_bytes": 16835215360
+      },
+      {
+        "elapsed_s": 742.0,
+        "stage": "repeat-pdf",
+        "containers": {
+          "audit": 55113154,
+          "auth": 64833454,
+          "gateway": 4136632,
+          "ingest-api": 146066636,
+          "ingest-worker": 2954937499,
+          "llm": 2735734,
+          "models": 2883584,
+          "qdrant": 325058560,
+          "rag": 307023052,
+          "sandbox": 165989580,
+          "sql": 76283904,
+          "threads": 55186554
+        },
+        "native_process_rss_bytes": 6972948480,
+        "host_available_bytes": 10841866240,
+        "host_swap_used_bytes": 16818438144
+      },
+      {
+        "elapsed_s": 749.1,
+        "stage": "repeat-pdf",
+        "containers": {
+          "audit": 55123640,
+          "auth": 64864911,
+          "gateway": 3858759,
+          "ingest-api": 146276352,
+          "ingest-worker": 3125662449,
+          "llm": 2739929,
+          "models": 2896166,
+          "qdrant": 318767104,
+          "rag": 309854208,
+          "sandbox": 165989580,
+          "sql": 76661391,
+          "threads": 55207526
+        },
+        "native_process_rss_bytes": 6922862592,
+        "host_available_bytes": 8895266816,
+        "host_swap_used_bytes": 17091985408
+      },
+      {
+        "elapsed_s": 755.8,
+        "stage": "repeat-pdf",
+        "containers": {
+          "audit": 55123640,
+          "auth": 64864911,
+          "gateway": 3854565,
+          "ingest-api": 146276352,
+          "ingest-worker": 3382286745,
+          "llm": 2731540,
+          "models": 2859466,
+          "qdrant": 319815680,
+          "rag": 310273638,
+          "sandbox": 165989580,
+          "sql": 78905344,
+          "threads": 55207526
+        },
+        "native_process_rss_bytes": 6923927552,
+        "host_available_bytes": 9817227264,
+        "host_swap_used_bytes": 17216110592
+      },
+      {
+        "elapsed_s": 762.9,
+        "stage": "repeat-pdf",
+        "containers": {
+          "audit": 55165583,
+          "auth": 65106083,
+          "gateway": 3858759,
+          "ingest-api": 146276352,
+          "ingest-worker": 3169685864,
+          "llm": 2735734,
+          "models": 2846883,
+          "qdrant": 319081676,
+          "rag": 314572800,
+          "sandbox": 164521574,
+          "sql": 83047219,
+          "threads": 55238983
+        },
+        "native_process_rss_bytes": 6924091392,
+        "host_available_bytes": 10081796096,
+        "host_swap_used_bytes": 17216110592
+      },
+      {
+        "elapsed_s": 770.0,
+        "stage": "repeat-pdf",
+        "containers": {
+          "audit": 55176069,
+          "auth": 64896368,
+          "gateway": 3854565,
+          "ingest-api": 146276352,
+          "ingest-worker": 3272765079,
+          "llm": 2769289,
+          "models": 2855272,
+          "qdrant": 319081676,
+          "rag": 316355379,
+          "sandbox": 164521574,
+          "sql": 84095795,
+          "threads": 55259955
+        },
+        "native_process_rss_bytes": 6924124160,
+        "host_available_bytes": 10436067328,
+        "host_swap_used_bytes": 17216110592
+      },
+      {
+        "elapsed_s": 776.7,
+        "stage": "repeat-pdf",
+        "containers": {
+          "audit": 68587356,
+          "auth": 78790000,
+          "gateway": 3846176,
+          "ingest-api": 147220070,
+          "ingest-worker": 3475702284,
+          "llm": 2735734,
+          "models": 2830106,
+          "qdrant": 319081676,
+          "rag": 316355379,
+          "sandbox": 178362777,
+          "sql": 98136227,
+          "threads": 68063068
+        },
+        "native_process_rss_bytes": 6924156928,
+        "host_available_bytes": 10573414400,
+        "host_swap_used_bytes": 17216110592
+      },
+      {
+        "elapsed_s": 783.8,
+        "stage": "repeat-pdf",
+        "containers": {
+          "audit": 55197040,
+          "auth": 64917340,
+          "gateway": 3850371,
+          "ingest-api": 147220070,
+          "ingest-worker": 3525094408,
+          "llm": 2735734,
+          "models": 2825912,
+          "qdrant": 318347673,
+          "rag": 316355379,
+          "sandbox": 164626432,
+          "sql": 84557168,
+          "threads": 55280926
+        },
+        "native_process_rss_bytes": 6924337152,
+        "host_available_bytes": 20696399872,
+        "host_swap_used_bytes": 17207721984
+      },
+      {
+        "elapsed_s": 790.9,
+        "stage": "repeat-pdf",
+        "containers": {
+          "audit": 55218012,
+          "auth": 64969768,
+          "gateway": 3850371,
+          "ingest-api": 147220070,
+          "ingest-worker": 3767760060,
+          "llm": 2735734,
+          "models": 2825912,
+          "qdrant": 318347673,
+          "rag": 317403955,
+          "sandbox": 164626432,
+          "sql": 86769664,
+          "threads": 55312384
+        },
+        "native_process_rss_bytes": 6924271616,
+        "host_available_bytes": 20627177472,
+        "host_swap_used_bytes": 17199333376
+      },
+      {
+        "elapsed_s": 798.0,
+        "stage": "repeat-pdf",
+        "containers": {
+          "audit": 55259955,
+          "auth": 64990740,
+          "gateway": 3850371,
+          "ingest-api": 147220070,
+          "ingest-worker": 3655017168,
+          "llm": 2735734,
+          "models": 2821718,
+          "qdrant": 317508812,
+          "rag": 321703116,
+          "sandbox": 164626432,
+          "sql": 89558876,
+          "threads": 55354327
+        },
+        "native_process_rss_bytes": 6206799872,
+        "host_available_bytes": 19689373696,
+        "host_swap_used_bytes": 17190944768
+      },
+      {
+        "elapsed_s": 805.1,
+        "stage": "repeat-pdf",
+        "containers": {
+          "audit": 55249469,
+          "auth": 64980254,
+          "gateway": 3846176,
+          "ingest-api": 147220070,
+          "ingest-worker": 3573412790,
+          "llm": 2735734,
+          "models": 2821718,
+          "qdrant": 316565094,
+          "rag": 321703116,
+          "sandbox": 164626432,
+          "sql": 89548390,
+          "threads": 55343841
+        },
+        "native_process_rss_bytes": 6206832640,
+        "host_available_bytes": 19802898432,
+        "host_swap_used_bytes": 17190944768
+      },
+      {
+        "elapsed_s": 812.2,
+        "stage": "repeat-pdf",
+        "containers": {
+          "audit": 55280926,
+          "auth": 65001226,
+          "gateway": 4112515,
+          "ingest-api": 147220070,
+          "ingest-worker": 928618905,
+          "llm": 2735734,
+          "models": 2830106,
+          "qdrant": 317508812,
+          "rag": 321703116,
+          "sandbox": 164626432,
+          "sql": 89579847,
+          "threads": 55375298
+        },
+        "native_process_rss_bytes": 6182240256,
+        "host_available_bytes": 19234242560,
+        "host_swap_used_bytes": 17190944768
+      },
+      {
+        "elapsed_s": 819.3,
+        "stage": "repeated-reads",
+        "containers": {
+          "audit": 55312384,
+          "auth": 65294827,
+          "gateway": 4132438,
+          "ingest-api": 148163788,
+          "ingest-worker": 928618905,
+          "llm": 2735734,
+          "models": 2846883,
+          "qdrant": 335858892,
+          "rag": 321703116,
+          "sandbox": 164731289,
+          "sql": 89611304,
+          "threads": 55406755
+        },
+        "native_process_rss_bytes": 6182354944,
+        "host_available_bytes": 20644282368,
+        "host_swap_used_bytes": 17190944768
+      },
+      {
+        "elapsed_s": 825.7,
+        "stage": "repeated-reads",
+        "containers": {
+          "audit": 55312384,
+          "auth": 65053655,
+          "gateway": 4161798,
+          "ingest-api": 147744358,
+          "ingest-worker": 928618905,
+          "llm": 2735734,
+          "models": 2825912,
+          "qdrant": 324639129,
+          "rag": 321703116,
+          "sandbox": 164731289,
+          "sql": 89611304,
+          "threads": 55406755
+        },
+        "native_process_rss_bytes": 6182354944,
+        "host_available_bytes": 20476411904,
+        "host_swap_used_bytes": 17190944768
+      },
+      {
+        "elapsed_s": 832.8,
+        "stage": "repeated-reads",
+        "containers": {
+          "audit": 55343841,
+          "auth": 65064140,
+          "gateway": 3936354,
+          "ingest-api": 147744358,
+          "ingest-worker": 928618905,
+          "llm": 2731540,
+          "models": 2825912,
+          "qdrant": 323275980,
+          "rag": 322017689,
+          "sandbox": 164731289,
+          "sql": 89621790,
+          "threads": 55438213
+        },
+        "native_process_rss_bytes": 6182502400,
+        "host_available_bytes": 20864188416,
+        "host_swap_used_bytes": 17190944768
+      },
+      {
+        "elapsed_s": 840.0,
+        "stage": "repeated-reads",
+        "containers": {
+          "audit": 55375298,
+          "auth": 65095598,
+          "gateway": 3956277,
+          "ingest-api": 147744358,
+          "ingest-worker": 928618905,
+          "llm": 2735734,
+          "models": 2830106,
+          "qdrant": 323800268,
+          "rag": 321807974,
+          "sandbox": 164731289,
+          "sql": 89642762,
+          "threads": 55469670
+        },
+        "native_process_rss_bytes": 6182895616,
+        "host_available_bytes": 20940881920,
+        "host_swap_used_bytes": 17190944768
+      },
+      {
+        "elapsed_s": 846.8,
+        "stage": "repeated-reads",
+        "containers": {
+          "audit": 55375298,
+          "auth": 65085112,
+          "gateway": 3973054,
+          "ingest-api": 147744358,
+          "ingest-worker": 928618905,
+          "llm": 2731540,
+          "models": 2825912,
+          "qdrant": 322332262,
+          "rag": 321807974,
+          "sandbox": 164731289,
+          "sql": 89642762,
+          "threads": 55469670
+        },
+        "native_process_rss_bytes": 6182862848,
+        "host_available_bytes": 20429029376,
+        "host_swap_used_bytes": 17190944768
+      },
+      {
+        "elapsed_s": 853.9,
+        "stage": "cooldown",
+        "containers": {
+          "audit": 55396270,
+          "auth": 65137541,
+          "gateway": 4009754,
+          "ingest-api": 147744358,
+          "ingest-worker": 928618905,
+          "llm": 2731540,
+          "models": 2825912,
+          "qdrant": 321388544,
+          "rag": 321807974,
+          "sandbox": 164836147,
+          "sql": 89674219,
+          "threads": 55501127
+        },
+        "native_process_rss_bytes": 6182862848,
+        "host_available_bytes": 20263518208,
+        "host_swap_used_bytes": 17190944768
+      },
+      {
+        "elapsed_s": 861.0,
+        "stage": "cooldown",
+        "containers": {
+          "audit": 55406755,
+          "auth": 65137541,
+          "gateway": 4005560,
+          "ingest-api": 147744358,
+          "ingest-worker": 928828620,
+          "llm": 2739929,
+          "models": 2825912,
+          "qdrant": 321073971,
+          "rag": 321912832,
+          "sandbox": 164836147,
+          "sql": 89705676,
+          "threads": 55522099
+        },
+        "native_process_rss_bytes": 6182764544,
+        "host_available_bytes": 20554432512,
+        "host_swap_used_bytes": 17182556160
+      },
+      {
+        "elapsed_s": 867.8,
+        "stage": "cooldown",
+        "containers": {
+          "audit": 55406755,
+          "auth": 65148026,
+          "gateway": 4001366,
+          "ingest-api": 147744358,
+          "ingest-worker": 928828620,
+          "llm": 2735734,
+          "models": 2825912,
+          "qdrant": 318662246,
+          "rag": 321912832,
+          "sandbox": 164836147,
+          "sql": 89705676,
+          "threads": 55522099
+        },
+        "native_process_rss_bytes": 6182764544,
+        "host_available_bytes": 21081178112,
+        "host_swap_used_bytes": 17182556160
+      },
+      {
+        "elapsed_s": 874.9,
+        "stage": "cooldown",
+        "containers": {
+          "audit": 55427727,
+          "auth": 65179484,
+          "gateway": 4001366,
+          "ingest-api": 147744358,
+          "ingest-worker": 928618905,
+          "llm": 2731540,
+          "models": 2825912,
+          "qdrant": 318871961,
+          "rag": 321912832,
+          "sandbox": 164836147,
+          "sql": 89726648,
+          "threads": 55553556
+        },
+        "native_process_rss_bytes": 6182420480,
+        "host_available_bytes": 20677443584,
+        "host_swap_used_bytes": 17182556160
+      },
+      {
+        "elapsed_s": 882.0,
+        "stage": "cleanup",
+        "containers": {
+          "audit": 55448698,
+          "auth": 65210941,
+          "gateway": 4222615,
+          "ingest-api": 147744358,
+          "ingest-worker": 928618905,
+          "llm": 2739929,
+          "models": 2842689,
+          "qdrant": 317613670,
+          "rag": 322646835,
+          "sandbox": 164836147,
+          "sql": 89758105,
+          "threads": 55574528
+        },
+        "native_process_rss_bytes": 6182420480,
+        "host_available_bytes": 21094170624,
+        "host_swap_used_bytes": 17182556160
+      }
+    ],
+    "limits": "Docker working set and native process RSS; RSS excludes some Metal allocations. Finite synthetic workload; no assertion of leak freedom or support for every document."
+  },
+  "passed": true
+}

@@ -1194,6 +1194,45 @@ sudo ufw allow 443/tcp          # the TLS proxy
 sudo ufw enable
 ```
 
+### Consistent reindex upgrade
+
+Registry schema v5 adds a published `generation`, an upload `storage_id`, and a generation catalog.
+Existing documents keep their legacy files and point IDs and need no automatic reindex. A new run writes
+alongside them and publishes only after every artifact is ready. New questions pin the published
+generation; questions already in progress finish on their original selection. Old generations and
+failed-run artifacts remain until the document/account is deleted. Monitor volume and Qdrant disk space.
+
+Do not mix old readers or writers with generation-aware services. Before updating, let active answers
+finish, close the app in other browsers, and back up all five data volumes and `secrets/` together using
+section 6.2. Build the images while the old app runs, then stop its writers and readers before recreating
+them. For the standard Compose deployment:
+
+```sh
+docker compose build ingest-api ingest-worker rag sql gateway auth threads audit
+docker compose stop gateway ingest-worker ingest-api rag sql auth threads audit
+docker compose up -d --no-deps --no-build audit threads auth ingest-api sql rag ingest-worker gateway
+docker compose up -d --no-deps --no-build --wait --wait-timeout 180 audit threads auth ingest-api sql rag ingest-worker gateway
+```
+
+On a Mac use these commands instead; leave the two native inference servers running:
+
+```sh
+python3 scripts/macos.py compose build ingest-api ingest-worker rag sql gateway auth threads audit
+python3 scripts/macos.py compose stop gateway ingest-worker ingest-api rag sql auth threads audit
+python3 scripts/macos.py compose up -d --no-deps --no-build audit threads auth ingest-api sql rag ingest-worker gateway
+python3 scripts/macos.py compose up -d --no-deps --no-build --wait --wait-timeout 180 audit threads auth ingest-api sql rag ingest-worker gateway
+```
+
+The first `up` starts all updated services, including the worker; the second waits for health. Waiting
+for RAG/ingest readiness before starting the worker can otherwise wait on its missing heartbeat.
+The first migration is automatic and retains accounts, sessions and existing document metadata.
+Every new reindex receives new point IDs even when its text is unchanged. Regenerate and review any
+evaluation golden set tied to those IDs after reindexing; a score change against old IDs is label drift.
+Rollback to pre-generation code requires restoring the matching data backup, including Qdrant, and
+the previous images. Merely checking out old code would make it read incompatible point selections.
+Never use `down -v` as an upgrade or rollback step. Validate a disposable synthetic workload using
+[WORKLOAD_VALIDATION.md](WORKLOAD_VALIDATION.md).
+
 ## 6. Data, backups and restore
 
 ### 6.1 What is stored where
@@ -1211,6 +1250,12 @@ Compose names volumes `local-rag_<name>` (project `name: local-rag`).
 
 The `sandbox` container has no volume: what a run receives and writes lives on tmpfs and is removed after the
 run (section 4.16), so there is nothing of it to back up.
+
+For generation-aware documents, the paths within `ingest-data` are
+`files/<user>/<doc>/<storage_id>/source<ext>`, `tables/<user>/<doc>/<generation>.duckdb`,
+`chunks/<user>/<doc>/<generation>.jsonl` and `assets/<user>/<doc>/<generation>/<figure>.png`.
+The table above also describes the legacy paths, which remain readable. Back up the entire volume,
+including all generations and the registry; copying only the latest file is insufficient.
 
 Host files outside the volumes, all ignored by Git: `secrets/` (the Ed25519 signing keys of `auth`
 and `rag`, their public keys, and the Qdrant `api_key`; back it up and keep it private), `.env`,

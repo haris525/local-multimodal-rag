@@ -24,6 +24,11 @@ DOC = "a" * 32
 STATUSES = list(DocStatus)
 
 
+def api_source(api, owner, doc_id):
+    doc = api.registry.get_for_worker(doc_id)
+    return paths.source_path(api.settings, owner, doc_id, ".txt", doc.storage_id if doc else None)
+
+
 class WordCounter:
     _TOKEN = re.compile(r"\w+|[^\w\s]")
 
@@ -65,7 +70,7 @@ class FakeIndexer:
         if self.on_replace:
             self.on_replace()
 
-    async def delete(self, user_id, doc_id):
+    async def delete(self, user_id, doc_id, generations=None):
         self.deleted.append(doc_id)
 
 
@@ -168,7 +173,7 @@ def test_a_v2_registry_is_rebuilt_with_the_check_and_keeps_every_row(tmp_path, c
 
     reg = Registry(path, clock=clock)
     with sqlite3.connect(path) as db:
-        assert db.execute("PRAGMA user_version").fetchone()[0] == SCHEMA_VERSION == 4
+        assert db.execute("PRAGMA user_version").fetchone()[0] == SCHEMA_VERSION == 5
         assert db.execute("SELECT doc_id FROM documents ORDER BY rowid").fetchall() == before  # version order kept
         assert {r[0] for r in db.execute("SELECT name FROM sqlite_master WHERE type = 'index'")} >= {
             "documents_status", "documents_owner", "documents_owner_name"}
@@ -269,8 +274,8 @@ def test_P4_a_second_worker_start_leaves_a_running_job_alone(tmp_path, clock):
 
 
 class DeleteFailsIndexer(FakeIndexer):
-    async def delete(self, user_id, doc_id):
-        await super().delete(user_id, doc_id)
+    async def delete(self, user_id, doc_id, generations=None):
+        await super().delete(user_id, doc_id, generations)
         raise RuntimeError("qdrant timed out")
 
 
@@ -369,11 +374,11 @@ def test_a_run_stops_within_a_renewal_when_its_document_is_deleted(tmp_path):
 
 def test_a_failed_clean_up_is_finished_by_the_sweep(tmp_path, clock):
     class DownOnce(FakeIndexer):
-        async def delete(self, user_id, doc_id):
+        async def delete(self, user_id, doc_id, generations=None):
             if not self.deleted:
                 self.deleted.append("failed")
                 raise ConnectionError("qdrant is down")
-            await super().delete(user_id, doc_id)
+            await super().delete(user_id, doc_id, generations)
 
     indexer = DownOnce()
     s, reg, pipe = setup(tmp_path, indexer, clock)
@@ -459,7 +464,7 @@ def test_deleting_a_processing_document_through_the_api(api):
     assert client.get(f"/v1/documents/{doc_id}", headers=h).status_code == 404
     assert client.delete(f"/v1/documents/{doc_id}", headers=h).status_code == 404
     assert len(api.qdrant.deleted) == 1  # the points go at once; the files are the run's to remove
-    assert paths.source_path(api.settings, a, doc_id, ".txt").exists()
+    assert api_source(api, a, doc_id).exists()
     again = post(client, a, "big-final.txt", data)  # the run has not finished the deletion yet
     assert again["error"] == api.STILL_DELETING and again["document"] is None
     assert api.registry.finish_deleting(doc_id, run.run_id)  # what the run does when it sees the deletion
@@ -482,7 +487,7 @@ def test_a_delete_whose_clean_up_fails_is_accepted_and_finished_later(api, monke
     monkeypatch.setattr(api, "qdrant", FakeQdrant())
     again = post(client, a, "x.txt", data)  # the upload finishes the old deletion first
     assert again["document"]["status"] == "queued" and len(api.qdrant.deleted) == 1
-    assert paths.source_path(api.settings, a, doc_id, ".txt").exists()
+    assert api_source(api, a, doc_id).exists()
 
 
 def test_reindex_is_refused_for_a_queued_or_processing_document(api):
@@ -743,7 +748,7 @@ def test_a_clean_up_that_lost_its_claim_removes_no_files(tmp_path, clock):
     make_ready(reg, DOC)
     doc, claim = reg.mark_deleting(DOC, A)
 
-    async def slow_points(owner, doc_id):
+    async def slow_points(owner, doc_id, generations=None):
         clock.advance(seconds=reg.lease_s + 1)  # the lease runs out while Qdrant answers
         other = reg.claim_deleting(DOC)  # the sweep, or an upload of the same file, takes over
         assert other and reg.finish_deleting(DOC, other)
@@ -825,7 +830,7 @@ def test_an_upload_that_meets_a_deletion_keeps_no_file(api, monkeypatch):
     monkeypatch.setattr(api.registry, "add", still_deleting)
     assert post(client, a, "late.txt", data)["error"] == api.STILL_DELETING
     doc_id = api.derive_doc_id(a, hashlib.sha256(data).hexdigest())
-    assert not paths.source_path(api.settings, a, doc_id, ".txt").exists()
+    assert not api_source(api, a, doc_id).exists()
 
 
 # --- the v2 to v3 upgrade ---------------------------------------------------------------------
@@ -942,7 +947,7 @@ def test_a_v3_registry_gets_the_index_version_and_its_ready_rows_count_as_versio
         db.execute("PRAGMA user_version = 3")
     reg = Registry(path, clock=clock)
     with sqlite3.connect(path) as db:
-        assert db.execute("PRAGMA user_version").fetchone()[0] == SCHEMA_VERSION == 4
+        assert db.execute("PRAGMA user_version").fetchone()[0] == SCHEMA_VERSION == 5
         assert db.execute("SELECT index_version FROM documents").fetchall() == [(1,)]
     assert reg.get(DOC, A).status == DocStatus.READY and reg.requeue_stale(2) == 1
 

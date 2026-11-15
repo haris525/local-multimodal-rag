@@ -10,9 +10,10 @@ from qdrant_client import AsyncQdrantClient
 from qdrant_client import models as qm
 from qdrant_client.http.exceptions import UnexpectedResponse
 
-from rag_common.contracts import ModelsInfo
+from rag_common.contracts import Generation, ModelsInfo
 from rag_common.identity import USER_ID_RE
 from rag_common.secrets import read_secret
+from rag_common.snapshots import checked_generation, selected_generations
 
 COLLECTION = "chunks"
 TEXT_VECTOR = "text"
@@ -45,6 +46,7 @@ class ChunkPayload(BaseModel):
     row_end: int | None = None
     asset: str | None = None
     user_id: str | None = None
+    generation: Generation | None = None
 
 
 def qdrant_client(url: str, api_key_file: Path | None, timeout: int) -> AsyncQdrantClient:
@@ -57,8 +59,14 @@ def qdrant_client(url: str, api_key_file: Path | None, timeout: int) -> AsyncQdr
         return AsyncQdrantClient(url=url, api_key=api_key, timeout=timeout)
 
 
-def point_id(doc_id: str, chunk_index: int) -> str:
-    return str(uuid.uuid5(_NAMESPACE, f"{doc_id}:{chunk_index}"))
+def point_id(doc_id: str, chunk_index: int, generation: str | None = None) -> str:
+    key = f"{doc_id}:{chunk_index}" if generation is None else f"{doc_id}:{checked_generation(generation)}:{chunk_index}"
+    return str(uuid.uuid5(_NAMESPACE, key))
+
+
+def generation_condition(generation: str | None):
+    return (qm.IsEmptyCondition(is_empty=qm.PayloadField(key="generation")) if generation is None else
+            qm.FieldCondition(key="generation", match=qm.MatchValue(value=checked_generation(generation))))
 
 
 def user_condition(user_id: str) -> qm.FieldCondition:
@@ -68,12 +76,19 @@ def user_condition(user_id: str) -> qm.FieldCondition:
 
 
 def scope_filter(user_id: str, doc_ids: list[str]) -> qm.Filter:
-    """The owner's chunks of these documents: what every multi-user read must use."""
-    return qm.Filter(must=[user_condition(user_id), qm.FieldCondition(key="doc_id", match=qm.MatchAny(any=doc_ids))])
+    """The owner's published snapshot of each selected document, including pre-generation documents."""
+    pinned = selected_generations(doc_ids)
+    branches = [qm.Filter(must=[qm.FieldCondition(key="doc_id", match=qm.MatchValue(value=doc_id)),
+                                generation_condition(pinned[doc_id] if pinned is not None else None)])
+                for doc_id in doc_ids]
+    # An empty selection must match nothing (an empty should-list is otherwise unfiltered).
+    return qm.Filter(must=[user_condition(user_id), qm.Filter(should=branches)] if branches else
+                     [user_condition(user_id), qm.FieldCondition(key="doc_id", match=qm.MatchAny(any=[]))])
 
 
 _USER_INDEX = qm.KeywordIndexParams(type=qm.KeywordIndexType.KEYWORD, is_tenant=True)
 _PAYLOAD_INDEXES = {
+    "generation": qm.KeywordIndexParams(type=qm.KeywordIndexType.KEYWORD),
     "doc_id": qm.KeywordIndexParams(type=qm.KeywordIndexType.KEYWORD, is_tenant=True),
     USER_FIELD: _USER_INDEX,
     BM25_FIELD: qm.TextIndexParams(

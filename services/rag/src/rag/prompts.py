@@ -45,12 +45,14 @@ class Source:
     score: float | None = None
     ranks: dict[str, int] = field(default_factory=dict)
     chunk_index: int | None = None
+    generation: str | None = None
 
     def card(self, preview_chars: int = 1500) -> dict:
         text = self.text if len(self.text) <= preview_chars else self.text[:preview_chars] + "..."
         return {
             "n": self.n, "id": self.id, "doc_id": self.doc_id, "doc_name": self.doc_name, "kind": self.kind,
             "location": self.location, "text": text, "asset": self.asset, "score": self.score, "ranks": self.ranks,
+            "generation": self.generation,
         }
 
 
@@ -116,7 +118,7 @@ def build_sources(
         used += cost
         sources.append(
             Source(len(sources) + 1, cand.id, p.doc_id, p.doc_name, p.kind, location(p), p.text, p.n_tokens,
-                   p.asset, cand.score, dict(cand.ranks), p.chunk_index)
+                   p.asset, cand.score, dict(cand.ranks), p.chunk_index, p.generation)
         )
     by_id = {s.id: s for s in sources}
     for cand in cands:

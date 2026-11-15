@@ -40,6 +40,7 @@ from pathlib import Path
 from rag_common.contracts import DocStatus, DocType, DocumentInfo, TableSchema
 from rag_common.identity import USER_ID_RE
 from rag_common.sqlite import truncate_wal
+from rag_common.snapshots import checked_generation
 
 log = logging.getLogger("ingest.registry")
 
@@ -54,7 +55,7 @@ NEXT: dict[DocStatus, frozenset[DocStatus]] = {
     D: frozenset(),
 }
 
-SCHEMA_VERSION = 4
+SCHEMA_VERSION = 5
 _STATUSES = ", ".join(f"'{s.value}'" for s in DocStatus)
 _COLUMNS = """
     doc_id      TEXT PRIMARY KEY,
@@ -75,6 +76,8 @@ _COLUMNS = """
     lease_until TEXT,
     claimed_by  TEXT,
     index_version INTEGER NOT NULL DEFAULT 1,
+    generation  TEXT,
+    storage_id  TEXT,
     created_at  TEXT NOT NULL,
     updated_at  TEXT NOT NULL,
     CHECK (status <> 'processing' OR run_id IS NOT NULL)
@@ -85,6 +88,8 @@ _SCHEMA = [
     "CREATE INDEX IF NOT EXISTS documents_owner ON documents (owner_id, created_at)",
     "CREATE INDEX IF NOT EXISTS documents_owner_name ON documents (owner_id, name)",
     "CREATE TABLE IF NOT EXISTS deleted_users (user_id TEXT PRIMARY KEY, deleted_at TEXT NOT NULL)",  # v2
+    "CREATE TABLE IF NOT EXISTS document_generations (doc_id TEXT NOT NULL, generation TEXT NOT NULL,"
+    " published INTEGER NOT NULL DEFAULT 0, PRIMARY KEY (doc_id, generation))",
 ]
 # v2 -> v3: the CHECK on status and the run columns need a rebuild (rowid kept: it orders the versions of a
 # file). A row left processing gets a placeholder run without a lease, so the worker's start takes it back;
@@ -108,7 +113,7 @@ _V2_TO_V3 = [
 _V3_TO_V4 = "ALTER TABLE documents ADD COLUMN index_version INTEGER NOT NULL DEFAULT 1"
 _LIVE_OWNER = "NOT EXISTS (SELECT 1 FROM deleted_users d WHERE d.user_id = documents.owner_id)"
 _FIELDS = frozenset({"progress", "error", "warnings", "n_chunks", "n_images", "tables", "attempts", "run_id",
-                     "lease_until", "claimed_by", "index_version"})
+                     "lease_until", "claimed_by", "index_version", "generation", "storage_id"})
 
 
 class OwnerDeleted(Exception):
@@ -185,7 +190,7 @@ class Registry:
     def _upgrade(db: sqlite3.Connection) -> None:
         """Bring the schema to SCHEMA_VERSION in one transaction (a second run does nothing). v1 added owner_id;
         v2 the deleted_users table; v3 the CHECK on status and the run columns (a table rebuild); v4 the
-        index_version column."""
+        index_version column; v5 upload storage IDs, published generations and their catalog."""
         if db.execute("PRAGMA user_version").fetchone()[0] >= SCHEMA_VERSION:
             return
         db.execute("BEGIN IMMEDIATE")
@@ -200,8 +205,13 @@ class Registry:
                 columns = {r[1] for r in db.execute("PRAGMA table_info(documents)")}  # the v3 rebuild has it
                 if columns and "index_version" not in columns:
                     db.execute(_V3_TO_V4)
+                for column in ("generation", "storage_id"):
+                    if columns and column not in columns:
+                        db.execute(f"ALTER TABLE documents ADD COLUMN {column} TEXT")
                 for statement in _SCHEMA:
                     db.execute(statement)
+                db.execute("INSERT OR IGNORE INTO document_generations (doc_id, generation, published)"
+                           " SELECT doc_id, 'legacy', 1 FROM documents WHERE n_chunks > 0 AND generation IS NULL")
                 db.execute(f"PRAGMA user_version = {SCHEMA_VERSION}")
             db.execute("COMMIT")
         except BaseException:
@@ -226,6 +236,8 @@ class Registry:
             updated_at=row["updated_at"],
             owner_id=row["owner_id"],
             run_id=row["run_id"],
+            generation=row["generation"],
+            storage_id=row["storage_id"],
         )
 
     # --- the one place a status changes ---------------------------------------------------------
@@ -280,19 +292,21 @@ class Registry:
     # --- ingest-api -----------------------------------------------------------------------------
 
     def add(self, doc_id: str, owner_id: str, name: str, doc_type: DocType, ext: str,
-            size: int) -> tuple[DocumentInfo, bool]:
+            size: int, storage_id: str | None = None) -> tuple[DocumentInfo, bool]:
         """Insert a queued document; returns (info, created). The same bytes from the same owner map to one
         doc_id (derive_doc_id salts it with the owner, so other owners never collide). OwnerDeleted when the
         owner's account was deleted (checked in the same statement as the insert); StillDeleting while an
         earlier upload of the same file is being deleted."""
         now = self._now()
+        if storage_id is not None:
+            checked_generation(storage_id)
         with self._connect() as db:
             db.execute("BEGIN IMMEDIATE")
             cur = db.execute(
                 "INSERT OR IGNORE INTO documents (doc_id, owner_id, name, doc_type, ext, size, status, created_at,"
-                " updated_at) SELECT ?, ?, ?, ?, ?, ?, ?, ?, ?"
+                " updated_at, storage_id) SELECT ?, ?, ?, ?, ?, ?, ?, ?, ?, ?"
                 " WHERE NOT EXISTS (SELECT 1 FROM deleted_users WHERE user_id = ?)",
-                (doc_id, _owner(owner_id), name, doc_type.value, ext, size, Q.value, now, now, owner_id),
+                (doc_id, _owner(owner_id), name, doc_type.value, ext, size, Q.value, now, now, storage_id, owner_id),
             )
             row = db.execute("SELECT * FROM documents WHERE doc_id = ? AND owner_id = ?", (doc_id, owner_id)).fetchone()
             deleted = self._deleted(db, owner_id)
@@ -353,6 +367,28 @@ class Registry:
             rows = db.execute("SELECT * FROM documents WHERE owner_id = ? AND status != ? ORDER BY created_at DESC",
                               (_owner(owner_id), D.value)).fetchall()
         return [self._info(r) for r in rows]
+
+    def is_published(self, doc_id: str, generation: str | None) -> bool:
+        with self._connect() as db:
+            found = db.execute("SELECT 1 FROM document_generations WHERE doc_id = ? AND generation = ?"
+                               " AND published = 1", (doc_id, generation or "legacy")).fetchone()
+            # Old callers can still complete a pre-generation fixture/document.
+            legacy = generation is None and db.execute(
+                "SELECT 1 FROM documents WHERE doc_id = ? AND generation IS NULL AND n_chunks > 0", (doc_id,)).fetchone()
+        return bool(found or legacy)
+
+    def deletion_targets(self, doc_id: str, claim: str) -> tuple[DocumentInfo, list[str | None]] | None:
+        """Capture source lifetime and generations under the renewed claim; a former holder gets none."""
+        with self._connect() as db:
+            db.execute("BEGIN IMMEDIATE")
+            owned = db.execute("UPDATE documents SET lease_until = ? WHERE doc_id = ? AND status = ? AND run_id = ?"
+                               " RETURNING *", (self._lease(), doc_id, D.value, claim)).fetchone()
+            values = [r[0] for r in db.execute("SELECT generation FROM document_generations WHERE doc_id = ?",
+                                               (doc_id,))] if owned else []
+            db.execute("COMMIT")
+        if owned is None:
+            return None
+        return self._info(owned), list(dict.fromkeys([None, *(None if v == "legacy" else v for v in values)]))
 
     def requeue(self, doc_id: str, owner_id: str, versions: bool = True) -> bool:
         """Re-index a ready or failed document; False for a queued, processing or missing one. With versions
@@ -465,8 +501,12 @@ class Registry:
     def finish_deleting(self, doc_id: str, claim: str) -> bool:
         """Remove a deleting row whose points and files are gone; only the holder of the claim can."""
         with self._connect(secure=True) as db:
+            db.execute("BEGIN IMMEDIATE")
             cur = db.execute("DELETE FROM documents WHERE doc_id = ? AND status = ? AND run_id = ?",
                              (doc_id, D.value, claim))
+            if cur.rowcount:
+                db.execute("DELETE FROM document_generations WHERE doc_id = ?", (doc_id,))
+            db.execute("COMMIT")
         return cur.rowcount == 1
 
     # --- ingest-worker: one run of one job --------------------------------------------------------
@@ -490,6 +530,8 @@ class Registry:
                     row = self._transition(db, pick[0], P, sources=(Q,), live_owner=True, attempts=Sql("attempts + 1"),
                                            run_id=new_run(), lease_until=self._lease(), claimed_by=self.holder,
                                            progress="starting", error=None)
+                    db.execute("INSERT INTO document_generations (doc_id, generation) VALUES (?, ?)",
+                               (row["doc_id"], row["run_id"]))
                 db.execute("COMMIT")
             except BaseException:
                 db.execute("ROLLBACK")
@@ -512,19 +554,26 @@ class Registry:
         return self._run_write(doc_id, run, "progress = ?, updated_at = ?", (text, self._now()))
 
     def complete(self, doc_id: str, run: str | None, n_chunks: int, n_images: int, warnings: list[str],
-                 tables: list[TableSchema], supersede: bool = False, index_version: int = 1) -> Completed | None:
+                 tables: list[TableSchema], supersede: bool = False, index_version: int = 1,
+                 generation: str | None = None) -> Completed | None:
         """Mark the run's document ready; None when the run no longer holds it (deleted, taken by another run,
         or its owner's account was deleted). With supersede, the same transaction moves the owner's earlier
         ready or failed versions of the document's name (inserted before it) to deleting: there is never a
         moment with both versions listed or with neither, and the name is the row's own, not the run's copy.
         index_version: the version of what built the index (pipeline.INDEX_VERSION), for requeue_stale."""
+        if generation is not None and checked_generation(generation) != run:
+            raise ValueError("only this run's generation may be published")
         with self._connect(secure=True) as db:
             db.execute("BEGIN IMMEDIATE")
             try:
                 row = self._transition(
                     db, doc_id, R, run=run, live_owner=True, progress="", n_chunks=n_chunks, n_images=n_images,
                     warnings=json.dumps(warnings), tables=json.dumps([t.model_dump() for t in tables]), run_id=None,
-                    lease_until=None, claimed_by=None, index_version=index_version)
+                    lease_until=None, claimed_by=None, index_version=index_version, generation=generation)
+                if row is not None:
+                    db.execute("INSERT INTO document_generations (doc_id, generation, published) VALUES (?, ?, 1)"
+                               " ON CONFLICT(doc_id, generation) DO UPDATE SET published = 1",
+                               (doc_id, generation or "legacy"))
                 old = self._supersede(db, doc_id) if row is not None and supersede else []
                 db.execute("COMMIT")
             except BaseException:
@@ -593,6 +642,8 @@ class Registry:
             db.execute("INSERT OR IGNORE INTO deleted_users (user_id, deleted_at) VALUES (?, ?)",
                        (_owner(owner_id), self._now()))
             rows = db.execute("DELETE FROM documents WHERE owner_id = ? RETURNING doc_id", (owner_id,)).fetchall()
+            for (doc_id,) in rows:
+                db.execute("DELETE FROM document_generations WHERE doc_id = ?", (doc_id,))
             db.execute("COMMIT")
             truncate_wal(db, log, purge="owner")
         return [r[0] for r in rows]

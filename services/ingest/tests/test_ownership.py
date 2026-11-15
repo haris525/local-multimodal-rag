@@ -205,8 +205,8 @@ def test_the_same_bytes_from_two_users_are_two_documents(api):
     first, again = upload(client, a, "same.txt", b"identical bytes"), upload(client, a, "same.txt", b"identical bytes")
     other = upload(client, b, "same.txt", b"identical bytes")
     assert first["doc_id"] == again["doc_id"] != other["doc_id"]
-    assert paths.source_path(api.settings, a, first["doc_id"], ".txt").exists()
-    assert paths.source_path(api.settings, b, other["doc_id"], ".txt").exists()
+    assert api_source(api, a, first["doc_id"]).exists()
+    assert api_source(api, b, other["doc_id"]).exists()
     assert [(e[0], e[2]) for e in api.audit.events] == [("document.uploaded", a)] * 2 + [("document.uploaded", b)]
 
 
@@ -217,8 +217,48 @@ def test_delete_scopes_the_index_delete_to_the_owner(api):
     make_ready(api.registry, d)
     assert client.delete(f"/v1/documents/{d}", headers=KEYS.headers(a)).status_code == 204
     (flt,) = api.qdrant.deleted
-    assert {(c.key, getattr(c.match, "value", None)) for c in flt.must} == {(USER_FIELD, a), ("doc_id", d)}
-    assert not paths.source_path(api.settings, a, d, ".txt").parent.exists()
+    assert {(c.key, getattr(c.match, "value", None)) for c in flt.must[:2]} == {(USER_FIELD, a), ("doc_id", d)}
+    assert flt.must[2].should[0].is_empty.key == "generation"
+    assert not api_source(api, a, d).parent.exists()
+
+
+def test_chunk_grep_and_figure_reads_select_only_published_generations(api):
+    owner, foreign = new_user_id(), new_user_id()
+    client = TestClient(api.app)
+    doc_id = upload(client, owner, "snapshots.txt", b"generation read fixture")["doc_id"]
+    from ingest import chunkstore
+    from rag_common.index import point_id
+    old = api.registry.transition(doc_id, DocStatus.PROCESSING, sources=(DocStatus.QUEUED,), run_id="1" * 32)
+    asset_name = "a" * 16 + ".png"
+
+    def write_generation(generation, text):
+        chunkstore.write(paths.chunk_path(api.settings, owner, doc_id, generation), [
+            {"id": point_id(doc_id, 0, generation), "chunk_index": 0, "text": text}])
+        figure = paths.asset_dir(api.settings, owner, doc_id, generation) / asset_name
+        figure.parent.mkdir(parents=True)
+        figure.write_bytes(text.encode())
+
+    write_generation(old.run_id, "old needle")
+    assert api.registry.complete(doc_id, old.run_id, 1, 1, [], [], generation=old.run_id) is not None
+    assert api.registry.requeue(doc_id, owner)
+    new = api.registry.transition(doc_id, DocStatus.PROCESSING, sources=(DocStatus.QUEUED,), run_id="2" * 32)
+    write_generation(new.run_id, "new needle")
+    headers = KEYS.headers(owner)
+    url = f"/v1/documents/{doc_id}"
+    assert client.get(url + "/chunks", headers=headers).json()[0]["text"] == "old needle"
+    assert client.get(url + "/chunks", params={"generation": new.run_id}, headers=headers).status_code == 404
+    assert api.registry.complete(doc_id, new.run_id, 1, 1, [], [], generation=new.run_id) is not None
+    for generation, text in ((old.run_id, "old needle"), (new.run_id, "new needle")):
+        params = {"generation": generation}
+        assert client.get(url + "/chunks", params=params, headers=headers).json()[0]["text"] == text
+        assert client.get(url + "/assets/" + asset_name, params=params, headers=headers).content == text.encode()
+        result = client.post("/v1/grep", json={"doc_ids": [doc_id], "terms": ["needle"],
+                                               "generations": {doc_id: generation}}, headers=headers)
+        assert [hit["id"] for hit in result.json()] == [point_id(doc_id, 0, generation)]
+        assert client.get(url + "/chunks", params=params, headers=KEYS.headers(foreign)).status_code == 404
+    assert client.get(url + "/chunks", headers=headers).json()[0]["text"] == "new needle"
+    for params in ({"offset": -1}, {"limit": 0}, {"limit": -1}, {"generation": "../private"}):
+        assert client.get(url + "/chunks", params=params, headers=headers).status_code == 422
 
 
 def test_routes_need_an_identity_and_internal_routes_need_system(api):
@@ -242,8 +282,13 @@ def test_account_purge_removes_rows_points_and_files_and_can_be_repeated(api):
     assert client.delete(f"/internal/users/{a}", headers=system).json() == {"documents": 0}
     assert api.registry.all(a) == [] and [d.doc_id for d in api.registry.all(b)] == [kept]
     assert not any(paths.owner_root(api.settings, kind, a).exists() for kind in paths.KINDS)
-    assert paths.source_path(api.settings, b, kept, ".txt").exists()
+    assert api_source(api, b, kept).exists()
     assert all(len(f.must) == 1 and f.must[0].match.value == a for f in api.qdrant.deleted)
+
+
+def api_source(api, owner, doc_id):
+    doc = api.registry.get_for_worker(doc_id)
+    return paths.source_path(api.settings, owner, doc_id, ".txt", doc.storage_id if doc else None)
 
 
 class FakeRunner:
@@ -267,7 +312,7 @@ class FakeIndexer:
         if self.on_replace:
             self.on_replace()
 
-    async def delete(self, user_id, doc_id):
+    async def delete(self, user_id, doc_id, generations=None):
         self.deleted.append((user_id, doc_id))
 
 
@@ -297,7 +342,8 @@ def test_processing_writes_under_the_owner_and_supersedes_only_the_owners_file(t
     assert [d.doc_id for d in replaced] == [old_a] and reg.get(old_a, A) is None  # hidden at once
     asyncio.run(pipe.remove_superseded(replaced))
     assert indexer.replaced == [(A, new_a, [A])] and indexer.deleted == [(A, old_a)]
-    assert paths.chunk_path(s, A, new_a).exists() and not paths.source_path(s, A, old_a, ".txt").exists()
+    assert paths.chunk_path(s, A, new_a, reg.get(new_a, A).generation).exists()
+    assert not paths.source_path(s, A, old_a, ".txt").exists()
     assert reg.get(b_doc, B) is not None and paths.source_path(s, B, b_doc, ".txt").exists()  # B's file stays
 
 

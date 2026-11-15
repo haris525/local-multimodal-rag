@@ -1,5 +1,5 @@
 version = 1
-revision = 5
+revision = 3
 requires-python = "==3.12.*"
 resolution-markers = [
     "sys_platform == 'win32'",
@@ -657,6 +657,7 @@ dependencies = [
     { name = "openpyxl" },
     { name = "pandas" },
     { name = "pillow" },
+    { name = "psutil" },
     { name = "python-multipart" },
     { name = "rag-common", extra = ["qdrant"] },
     { name = "tokenizers" },
@@ -679,6 +680,7 @@ requires-dist = [
     { name = "openpyxl", specifier = ">=3.1.5" },
     { name = "pandas", specifier = ">=3.1" },
     { name = "pillow", specifier = ">=13.0" },
+    { name = "psutil", specifier = ">=7.0" },
     { name = "python-multipart", specifier = ">=0.0.33" },
     { name = "rag-common", extras = ["qdrant"], editable = "../../libs/common" },
     { name = "tokenizers", specifier = ">=0.23" },

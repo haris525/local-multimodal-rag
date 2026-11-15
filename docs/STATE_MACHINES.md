@@ -70,9 +70,9 @@ Machine risk is the highest rank among the machine's failure modes, handled or o
 ## 2. Main failure modes
 
 The [November 2026 review](REVIEW.md) adds regression coverage for placement-lock lifetime, queued-thread
-cancellation, shutdown writers, and same-filename worker ordering. Registry run-token checks do not fence
-external storage writes after lease expiry; the remaining publication risk P5 below also applies while a
-multi-batch reindex is still running, not only after it fails.
+cancellation, shutdown writers and same-filename worker ordering. Immutable per-run generations now
+fence external writes after lease expiry, and request-pinned publication fixes P5 during successful and
+failed reindexing. Old published generations remain until deletion; monitor the additional disk use.
 
 The failure modes the machines are built to prevent, by rank. "Handled" means the current code guards
 against it; the machine's section says how.
@@ -86,7 +86,7 @@ against it; the machine's section says how.
 | medium | A sign-in whose password check overlaps a password change could keep a working session after the change | M3 | A2 | handled |
 | medium | A session created while an admin disables the account could come back to life when the account is enabled | M1 | A3 | handled |
 | low | The hourly throttle purge could erase the doubling history right after a 24 h lock, so the cap would fall back to 15 minutes | M4 | A1 | handled |
-| low | A failed re-index leaves a document `failed` but usable on a mix of old and new tables, points and chunks | M5 | P5 | open (M5 failure mode 5) |
+| low | A failed or in-progress re-index exposes mixed tables, points and chunks | M5 | P5 | handled: immutable generations and request-pinned reads |
 | low | `reset-password` and `unlock` on an account stuck in `deleting` | M1 | A4 | handled |
 | low | A cancelled caller could release the GPU gate while its job still runs on the GPU | M14 | G1 | handled |
 | low | A chat-stream client could take a cut stream for a finished one; event names written out in several places drift apart | M12 | code | handled |
@@ -468,12 +468,13 @@ inside the completing transaction).
 
 - Entity: one uploaded file version of one owner. Owners: ingest-api and ingest-worker (two processes on
   one SQLite file); rag reads it.
-- Storage: `registry.db` table `documents`, schema v4 ([ingest/registry.py:57-111](../services/ingest/src/ingest/registry.py#L57-L111)):
+- Storage: `registry.db` table `documents`, schema v5 ([ingest/registry.py](../services/ingest/src/ingest/registry.py)):
   `status` with `CHECK (status IN ('queued','processing','ready','failed','deleting'))`, built from
   `DocStatus` ([contracts.py:20-29](../libs/common/src/rag_common/contracts.py#L20-L29)); `run_id` and
   `lease_until`, the claim on the row, with `CHECK (status <> 'processing' OR run_id IS NOT NULL)`;
   `claimed_by`, who holds the claim (the worker's id, or `ingest-api`); `attempts`,
-  `n_chunks`, `progress`, `error`, `tables`, `owner_id`. The model replies its runs cached, in `llm_cache.db`
+  `n_chunks`, `progress`, `error`, `tables`, `owner_id`, `generation`, `storage_id`; `document_generations`
+  catalogs run generations and whether they were published. The model replies its runs cached, in `llm_cache.db`
   (M23), with a `uses` row per document. Files under `files/`, `assets/`,
   `tables/`, `chunks/` per owner ([ingest/paths.py:1-8](../services/ingest/src/ingest/paths.py#L1-L8)); points
   in the Qdrant collection `chunks`; references in `threads.doc_ids` and in the browser's selection.
@@ -490,7 +491,7 @@ States (a document is usable when `status == ready or n_chunks > 0`, see M18):
 | Processing | processing | the run; lease renewed every 10 s | 0 | listed, no | row, source, partial tables, figures, points |
 | Ready | ready | none | > 0 | listed, yes | everything |
 | Failed | failed | none | 0 | listed, no | row, source, leftovers kept for a retry |
-| Queued, Processing, Failed (re-index) | as above | as above | > 0 | listed, yes (previous index) | everything from the last success, partly replaced (P5) |
+| Queued, Processing, Failed (re-index) | as above | as above | > 0 | listed, yes (previous index) | unchanged published generation plus private artifacts of new runs |
 | Deleting, held by its run | deleting | the run that was processing it | any | hidden | what the run writes until it sees the delete (within one renewal) |
 | Deleting, held by a clean-up | deleting | a claim of ingest-api, of the worker after a supersede, or of the sweep | any | hidden | points and files being removed |
 | Deleting, nobody holds it | deleting | an expired lease, or a claim of this worker's earlier process (at its start) | any | hidden | what a failed clean-up or a dead run left; the worker's sweep finishes it |
@@ -602,16 +603,14 @@ Failure modes:
    cannot touch a row the run no longer holds; the old versions are hidden in `complete`'s transaction and
    removed afterwards (points, files, row) in a step whose failure is logged and retried by the sweep
    (`test_P3_a_failed_supersede_clean_up_leaves_the_new_version_ready`).
-5. **low (proof P5): a failed re-index stays usable on mixed data.** `write_tables` replaces the DuckDB
-   file early ([ingest/pipeline.py:335-337](../services/ingest/src/ingest/pipeline.py#L335-L337)); points
-   are upserted in batches ([ingest/indexer.py:64-65](../services/ingest/src/ingest/indexer.py#L64-L65));
-   the chunk file and the registry's `tables` and `n_chunks` change only at the end. `fail` keeps
-   `n_chunks` and `tables` ([ingest/registry.py:259-266](../services/ingest/src/ingest/registry.py#L259-L266)),
-   so the document stays usable while the planner reads old schemas against the new tables file, and a
-   failure inside the upsert leaves old and new points under the same ids. "Never half-missing" holds;
-   "never half-mixed" does not. This matters mostly after a parser upgrade, which is when people re-index.
-   Open: writing the new index beside the old one (a staging set of point ids and a tables file swapped at
-   completion) is a larger change; the document shows `failed`, which tells the user to re-index again.
+5. **low (proof P5): mixed generations during re-indexing.** Handled: tables, figures, JSONL and point
+   IDs are scoped by the run's random generation. `complete` publishes the generation, schemas and
+   counts in the transaction that checks ownership. Each question pins its initial registry selection
+   across all retrieval arms, SQL, Python downloads and asset reads. A failed run leaves the old
+   published generation unchanged. A delayed stale writer can finish only in its own namespace.
+   Regression tests delay real file writes and Qdrant batches beyond recovery and a newer publication.
+   Previously published generations remain readable until deletion; unpublished leftovers also remain
+   cataloged until deletion. There is no automatic garbage collection of generations.
 6. **low: an unknown `status` value.** Handled: the CHECK on `status` refuses it; the schema upgrade turns
    an unknown status into `failed` with a note.
 7. **low: "superseded" is not a state.** The old id disappears; the browser's selection and the thread's
@@ -1859,7 +1858,7 @@ The five mechanisms that carry most of the guarantees above:
 
 Also in place: one expiry rule for the throttle history (A1), a cancellation-safe GPU gate (G1), busy guards
 and a view counter in the composer (M17), and a token for the side panel (M19). Open: the `created` flag on
-uploads (M22), P5, and the other failure modes marked open in section 3.
+uploads (M22) and the other failure modes marked open in section 3. P5 is handled by generation publication.
 
 ## Appendix A: proof tests
 
@@ -1874,7 +1873,7 @@ services' own classes and asserts the handled behavior.
 | P2c | a stale run supersedes by the old name | M5, 1 | same file, `test_P2c_a_stale_run_never_supersedes_a_document_the_user_kept` |
 | P3 | the clean-up of a superseded version fails | M5, 4 | same file, `test_P3_a_failed_supersede_clean_up_leaves_the_new_version_ready` |
 | P4 | a second worker starts while a job runs | M6, 1 | same file, `test_P4_a_second_worker_start_leaves_a_running_job_alone` |
-| P5 | a failed re-index keeps the old counts and schemas | M5, 5 | none (open) |
+| P5 | failed reindex preserves published artifacts; stale file/Qdrant writers cannot affect another generation; deletion cannot remove a later upload | M5, 5 | `services/ingest/tests/test_generations.py`; request pinning in `services/rag/tests/test_snapshots.py`; SQL/API generation tests |
 | A1 | the hourly purge right after a 24 h lock | M4, 1 | `services/auth/tests/test_lockout.py`, `test_A1_the_hourly_purge_keeps_the_doubling_after_a_24h_lock` |
 | A2 | a sign-in that overlaps a password change | M3, 1 | `services/auth/tests/test_credentials.py`, `test_A2_a_sign_in_that_overlaps_a_password_change_gets_no_session` |
 | A3 | a sign-in that overlaps a disable, then an enable | M1, 1 | same file, `test_A3_a_sign_in_that_overlaps_a_disable_does_not_come_back_on_enable` |

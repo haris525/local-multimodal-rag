@@ -67,9 +67,10 @@ def test_selection_filter_always_requires_the_owner(scope, docs):
     assert (owner.key, owner.match.value) == (USER_FIELD, A)
     assert flt.should is None and flt.must_not is None  # nothing at the top level can bypass the owner
     if scope and len(docs) > 1:  # the RowScope `should` lives inside the owner condition's sibling
-        assert isinstance(inner, qm.Filter) and len(inner.should) == 2
+        assert isinstance(inner, qm.Filter) and len(inner.must[-1].should) == 2
     if scope is None:
-        assert (inner.key, inner.match.any) == ("doc_id", docs)
+        assert [branch.must[0].match.value for branch in inner.should] == docs
+        assert all(branch.must[1].is_empty.key == "generation" for branch in inner.should)
 
 
 def test_selection_filter_refuses_a_missing_or_malformed_user():

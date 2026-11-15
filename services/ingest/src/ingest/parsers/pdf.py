@@ -23,6 +23,7 @@ def _converter(artifacts_path: str | None, num_threads: int):
         do_table_structure=True,
         generate_picture_images=True,
         images_scale=2.0,
+        queue_max_size=8,  # backpressure: the default buffers up to 100 rendered pages per stage
         accelerator_options=AcceleratorOptions(device="cpu", num_threads=num_threads),
     )
     options.table_structure_options.mode = TableFormerMode.ACCURATE

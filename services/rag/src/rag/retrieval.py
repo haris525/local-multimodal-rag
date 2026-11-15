@@ -25,11 +25,13 @@ from rag_common.index import (
     TEXT_VECTOR,
     USER_FIELD,
     ChunkPayload,
+    generation_condition,
     point_id,
     scope_filter,
     user_condition,
 )
 from rag_common.logging import log_fields
+from rag_common.snapshots import current_generations
 
 from rag.clients import IngestClient, ModelsClient
 from rag.config import Settings
@@ -86,18 +88,25 @@ def selection_filter(user_id: str, doc_ids: list[str], scope: RowScope | None) -
     )
     others = [d for d in doc_ids if d != scope.doc_id]
     inner = qm.Filter(should=[_documents(others), scoped]) if others else scoped
-    return qm.Filter(must=[user_condition(user_id), inner])
+    published = scope_filter(user_id, doc_ids)
+    return qm.Filter(must=[user_condition(user_id), qm.Filter(must=[*published.must[1:], inner])])
 
 
 def by_ids(user_id: str, ids: list[str]) -> qm.Filter:
-    return qm.Filter(must=[qm.HasIdCondition(has_id=ids), user_condition(user_id)])
+    pinned = current_generations.get()
+    conditions = scope_filter(user_id, list(pinned)).must[1:] if pinned is not None else [generation_condition(None)]
+    return qm.Filter(must=[qm.HasIdCondition(has_id=ids), user_condition(user_id), *conditions])
 
 
 def owned(points: list, user_id: str) -> list:
-    """Drop points of another owner (they cannot match the filters; if one does, it is a bug worth an ERROR)."""
-    keep = [p for p in points if (p.payload or {}).get(USER_FIELD) == user_id]
+    """Drop points outside the owner or pinned generation, even if a backend violates the filter."""
+    pinned = current_generations.get()
+    keep = [p for p in points if (p.payload or {}).get(USER_FIELD) == user_id and
+            (pinned is None and not (p.payload or {}).get("generation") or
+             pinned is not None and (p.payload or {}).get("doc_id") in pinned and
+             (p.payload or {}).get("generation") == pinned[(p.payload or {}).get("doc_id")])]
     if len(keep) != len(points):
-        log_fields(log, "dropped points of another owner", logging.ERROR, count=len(points) - len(keep))
+        log_fields(log, "dropped points outside the owner or published snapshot", logging.ERROR, count=len(points) - len(keep))
     return keep
 
 
@@ -272,7 +281,8 @@ class Retrieval:
         for c in cands:
             if c.payload.kind == "text":
                 p = c.payload
-                wanted[c.id] = (point_id(p.doc_id, p.chunk_index - 1), point_id(p.doc_id, p.chunk_index + 1))
+                wanted[c.id] = (point_id(p.doc_id, p.chunk_index - 1, p.generation),
+                                point_id(p.doc_id, p.chunk_index + 1, p.generation))
         if not wanted:
             return {}
         ids = sorted({i for pair in wanted.values() for i in pair})
