@@ -1,5 +1,9 @@
 # Deployment
 
+Apple Silicon Mac installation and operation use [MACOS.md](MACOS.md). The NVIDIA deployment below
+has different inference isolation and memory requirements. See [REVIEW.md](REVIEW.md) for current
+concurrency fixes and remaining index-publication limitations before enabling concurrent reindex/query work.
+
 This guide is for whoever runs the app: on one workstation for yourself, or on a Linux server that
 other people reach over the network. First-time setup on your own machine is in
 [GETTING_STARTED.md](GETTING_STARTED.md). How the system works is in [HOW_IT_WORKS.md](HOW_IT_WORKS.md)

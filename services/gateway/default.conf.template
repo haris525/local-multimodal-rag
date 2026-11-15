@@ -71,12 +71,24 @@ server {
     add_header X-Content-Type-Options "nosniff" always;
     add_header Referrer-Policy "no-referrer" always;
     add_header Content-Security-Policy "default-src 'self'; img-src 'self' data: blob:; style-src 'self'; script-src 'self'; connect-src 'self'; frame-ancestors 'none'; form-action 'self'; base-uri 'none'" always;
-    # Do not use add_header in any location below: that would drop these server-level headers there.
+    # Locations normally inherit these headers. The isolated diagram document repeats all three to
+    # give Mermaid styles its own policy without relaxing the chat/login pages.
 
     # Server level, so it runs before any (nested) location: nested locations do not inherit `if`.
     if ($origin_ok = 0) { return 403; }
 
     location = /healthz { access_log off; return 200 "ok\n"; }
+    # Revalidate UI files on refresh, so a browser does not mix pages/scripts from different updates.
+    location ~ ^/(?:[^/]+\.(?:html|js|css)|vendor/[^/]+\.js)$ {
+        expires -1;
+        try_files $uri =404;
+    }
+    location = /diagram.html {
+        expires -1;
+        add_header X-Content-Type-Options "nosniff" always;
+        add_header Referrer-Policy "no-referrer" always;
+        add_header Content-Security-Policy "default-src 'none'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'none'; connect-src 'none'; font-src 'none'; frame-ancestors 'self'; form-action 'none'; base-uri 'none'; sandbox allow-scripts" always;
+    }
     location / { try_files $uri /index.html; }
 
     # auth_request target: validates the session or API token and returns a signed X-Identity.

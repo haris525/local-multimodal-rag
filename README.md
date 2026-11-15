@@ -1,8 +1,11 @@
 # Local Multimodal RAG
 
 Ask questions about your own documents (PDFs with tables and figures, Excel and CSV files, text,
-Markdown and images) and get cited answers, entirely on one machine with one NVIDIA GPU. Nothing
-leaves the computer.
+Markdown and images) and get cited answers, entirely on one machine. Use an NVIDIA workstation or
+the [Apple Silicon Mac setup](docs/MACOS.md) (native Metal inference with the application in Docker).
+
+Answers can include **inline Mermaid diagrams**, with legends and source citations. Rendering stays
+on this machine; diagrams also appear when saved chats are reopened.
 
 - **Accounts:** everyone signs in with an account an admin created. Each user's documents, search
   index entries, chats, memories and audit trail are their own; admins manage accounts but cannot read
@@ -36,6 +39,9 @@ leaves the computer.
 | Read | For |
 |---|---|
 | [Getting started](docs/GETTING_STARTED.md) | the first install and your first questions |
+| [Apple Silicon Mac setup](docs/MACOS.md) | install, build, launch, memory limits, stop/restart and troubleshooting on macOS |
+| [Code review](docs/REVIEW.md) | confirmed concurrency bugs, fixes, validation and remaining risks |
+| [Analysis performance](docs/ANALYSIS_PERFORMANCE.md) | ReAct tools, Python sandbox, and measured DuckDB/Polars/pandas comparison |
 | [How it works](docs/HOW_IT_WORKS.md) | what happens inside the app, in plain words |
 | [Sample documents](examples/documents/README.md) | openly licensed files to try, with questions and expected answers |
 | [Deployment](docs/DEPLOYMENT.md) | running it on a server, backups, updates and security |
@@ -44,6 +50,9 @@ leaves the computer.
 | [Changelog](CHANGELOG.md) | what changed |
 
 ## Quick start
+
+**Apple Silicon Mac:** follow [MACOS.md](docs/MACOS.md). The commands below use NVIDIA CUDA and do not
+run unchanged on a Mac.
 
 Requirements: Docker with NVIDIA GPU support (Docker Engine 26 or newer, Docker Desktop 4.29 or newer)
 and Compose v2.24 or newer, [uv](https://docs.astral.sh/uv/), a GPU with 32 GB of memory, 80 GB of free
@@ -90,10 +99,11 @@ uv run --directory services/sql pytest
 uv run --directory services/audit pytest
 uv run --directory services/threads pytest
 uv run --directory services/auth pytest
-uv run --directory services/sandbox pytest   # POSIX tests: docker build --target test -f services/sandbox/Dockerfile .
+docker build --target test -f services/sandbox/Dockerfile .  # sandbox: Linux resource limits, also on Mac/Windows
 uv run --directory libs/common pytest
 uv run --directory services/models pytest    # installs PyTorch, several GB
 uv run --directory eval pytest
+node --test services/gateway/tests/*.test.mjs
 ```
 
 Live checks against a running stack. They run as the user of an API token (your username >

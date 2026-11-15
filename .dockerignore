@@ -21,6 +21,10 @@ docker-compose.override.yml
 .gitignore
 .gitattributes
 data
+models
+.runtime
+**/*.gguf
+**/*.safetensors
 samples
 examples
 backups

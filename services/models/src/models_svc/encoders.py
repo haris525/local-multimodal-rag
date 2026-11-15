@@ -13,7 +13,8 @@ from models_svc.config import Settings
 class Encoders:
     def __init__(self, s: Settings):
         self.s = s
-        dtype = torch.bfloat16 if s.device.startswith("cuda") else torch.float32
+        dtype = (torch.bfloat16 if s.device.startswith("cuda") else
+                 torch.float16 if s.device.startswith("mps") else torch.float32)
         kwargs = {"dtype": dtype}
         self.text = SentenceTransformer(str(s.text_model_path), device=s.device, model_kwargs=kwargs)
         self.text.max_seq_length = s.max_seq_tokens
@@ -57,6 +58,8 @@ class Encoders:
         finally:
             if torch.cuda.is_available():
                 torch.cuda.empty_cache()  # image batches spike memory; give it back to the LLM's headroom
+            elif self.s.device.startswith("mps"):
+                torch.mps.empty_cache()  # return unused Metal allocations to the native answer model
         return vectors.tolist()
 
     def rerank(self, query: str, documents: list[str]) -> list[float]:

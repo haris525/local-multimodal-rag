@@ -1,0 +1,24 @@
+graph TD
+    A[Bill Originates in House of Representatives<br>for Revenue Bills] --> B[Passed by House of Representatives]
+    A2[Bill Originates in Senate<br>for Non-Revenue Bills] --> B2[Passed by Senate]
+    B --> C{Passed by Both Houses?}
+    B2 --> C
+    C -- No --> D[Bill Fails]
+    C -- Yes --> E[Presented to President]
+    E --> F{President Approves?}
+    F -- Yes --> G[President Signs Bill]
+    G --> H[Becomes Law]
+    F -- No --> I[President Returns Bill with Objections<br>to Originating House]
+    I --> J[Originating House Reconsiders]
+    J --> K{Two-thirds of Originating House<br>Agree to Pass?}
+    K -- No --> D
+    K -- Yes --> L[Sent to Other House with Objections]
+    L --> M[Other House Reconsiders]
+    M --> N{Two-thirds of Other House<br>Agree to Pass?}
+    N -- No --> D
+    N -- Yes --> H
+    E --> O{President Does Not Return Bill<br>within 10 Days<br>Sundays excepted?}
+    O -- Yes --> P{Congress Adjourned?}
+    P -- No --> H
+    P -- Yes --> D
+    O -- No --> F

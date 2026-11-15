@@ -94,6 +94,94 @@ function markdown(text) {
   });
 }
 
+function createDiagramRenderer() {
+  // Each diagram runs in an opaque-origin frame, with no access to the chat, cookies or network.
+  const diagramFrames = new WeakMap();
+  const DIAGRAM_LIMIT = 4;
+  const DIAGRAM_TEXT_LIMIT = 20000;
+
+  function sendDiagram(frame) {
+    const item = diagramFrames.get(frame.contentWindow);
+    if (!item || !frame.isConnected) return;
+    frame.contentWindow.postMessage({ type: "render-mermaid", source: item.source,
+      dark: document.documentElement.dataset.theme === "dark" }, "*");  // opaque sandbox origin
+  }
+
+  addEventListener("message", (event) => {
+    const item = diagramFrames.get(event.source);
+    if (!item || !item.frame.isConnected || event.origin !== "null") return;
+    if (event.data?.type === "mermaid-rendered" && Number.isFinite(event.data.height)) {
+      clearTimeout(item.timer);
+      item.frame.hidden = false;
+      item.frame.setAttribute("height", Math.max(120, Math.min(640, Math.ceil(event.data.height))));
+      item.status.hidden = true;
+    } else if (event.data?.type === "mermaid-error") {
+      item.fail();
+    }
+  });
+
+  addEventListener("themechange", () => {
+    for (const frame of document.querySelectorAll("iframe.mermaid-frame")) sendDiagram(frame);
+  });
+
+  // Run after the answer settles or a saved answer is opened. Re-rendering Markdown for each streamed token
+  // must not recreate frames or ask Mermaid to parse incomplete fences on every token.
+  function renderDiagrams(root) {
+    let count = 0;
+    for (const code of root.querySelectorAll("pre > code.language-mermaid")) {
+      const pre = code.parentElement;
+      if (pre.closest(".mermaid-card")) continue;
+      const source = code.textContent;
+      const status = h("div", { class: "mermaid-status", role: "status" }, "Rendering diagram…");
+      const details = h("details", { class: "mermaid-code" }, h("summary", {}, "View diagram code"));
+      const card = h("figure", { class: "mermaid-card" }, status, details);
+      pre.replaceWith(card);
+      details.append(pre);  // retain the exact, text-only code and its fallback
+      if (++count > DIAGRAM_LIMIT || source.length > DIAGRAM_TEXT_LIMIT) {
+        status.textContent = count > DIAGRAM_LIMIT ? "Only the first four diagrams are displayed. More diagrams are available as code."
+          : "This diagram is too large to display here. Its code is below.";
+        details.open = true;
+        continue;
+      }
+      const frame = h("iframe", { class: "mermaid-frame", src: "/diagram.html", sandbox: "allow-scripts",
+        title: "Mermaid diagram", height: "180", loading: "lazy", referrerpolicy: "no-referrer" });
+      const item = { frame, source, status, timer: null, fail() {
+        clearTimeout(item.timer);
+        frame.hidden = true;
+        status.hidden = false;
+        status.textContent = "This diagram could not be displayed. Its code is below.";
+        details.open = true;
+      } };
+      frame.addEventListener("load", () => {
+        if (!frame.isConnected) return;
+        clearTimeout(item.timer);
+        item.timer = setTimeout(item.fail, 15000);
+        sendDiagram(frame);
+      });
+      card.insertBefore(frame, details);
+      diagramFrames.set(frame.contentWindow, item);
+    }
+  }
+
+  return renderDiagrams;
+}
+
+const renderMermaid = createDiagramRenderer();
+
+function renderChatDiagrams(root) {
+  try {
+    renderMermaid(root);
+  } catch {
+    // Diagram enhancement must never prevent opening a chat or settling a streamed answer.
+    for (const frame of root.querySelectorAll(".mermaid-frame")) frame.hidden = true;
+    for (const details of root.querySelectorAll(".mermaid-code")) details.open = true;
+    for (const status of root.querySelectorAll(".mermaid-status")) {
+      status.hidden = false;
+      status.textContent = "This diagram could not be displayed. Its code is below.";
+    }
+  }
+}
+
 /* ---------- service status ---------- */
 
 async function refreshStatus() {
@@ -505,15 +593,67 @@ async function* sse(response) {
 }
 
 function assistantView() {
+  const activityLabel = h("span", { class: "activity-label", role: "status" });
+  // The timer is visual only: screen readers announce stage changes, not every elapsed second.
+  const activityTime = h("span", { class: "activity-time", "aria-hidden": "true" });
+  const activityHint = h("div", { class: "activity-hint" });
+  const activity = h("div", { class: "answer-activity", hidden: true },
+    h("span", { class: "activity-spinner", "aria-hidden": "true" }),
+    h("div", { class: "activity-copy" }, h("div", { class: "activity-line" }, activityLabel, activityTime), activityHint));
   const steps = h("ol", { class: "steps", hidden: true });
   const reasoningText = h("div");
   const reasoning = h("details", { class: "reasoning", hidden: true }, h("summary", {}, "Reasoning"), reasoningText);
   const memory = h("div", { class: "mem-chips", hidden: true });
-  const answer = h("div", { class: "answer typing" });
+  const answer = h("div", { class: "answer" });
   const notes = h("ul", { class: "answer-notes", hidden: true });
   const meta = h("div", { class: "meta" });
-  const el = h("div", { class: "msg assistant" }, steps, reasoning, memory, answer, notes, meta);
-  return { el, steps, reasoning, reasoningText, memory, answer, notes, meta };
+  const el = h("div", { class: "msg assistant" }, steps, reasoning, memory, answer, activity, notes, meta);
+  return { el, steps, reasoning, reasoningText, memory, answer, activity, activityLabel, activityTime, activityHint, notes, meta };
+}
+
+// Visible from Send until the stream settles, including long gaps between tool results and answer tokens.
+// Elapsed time measures this request; it is not a completion estimate or a model heartbeat.
+function startActivity(view, turn) {
+  const started = Date.now();
+  let timer;
+  let stopped = false;
+  let sourced = false;
+  view.activity.hidden = false;
+  view.activityLabel.textContent = "Preparing your answer…";
+  const tick = () => {
+    const seconds = Math.max(0, Math.floor((Date.now() - started) / 1000));
+    const elapsed = seconds < 60 ? `${seconds}s` : `${Math.floor(seconds / 60)}m ${String(seconds % 60).padStart(2, "0")}s`;
+    view.activityTime.textContent = `${elapsed} elapsed`;
+    view.activityHint.textContent = turn.mode === "exhaustive" ? "Read all may take several minutes."
+      : turn.mode === "deep" ? "Deep search may take several minutes."
+      : turn.think || seconds >= 60 ? "The local model may take a few minutes." : "";
+    view.activityHint.hidden = !view.activityHint.textContent;
+    timer = setTimeout(tick, 1000);
+  };
+  tick();
+  return {
+    update(event, data) {
+      if (stopped) return;
+      let label;
+      if (event === "step") {
+        if (["sections", "map"].includes(data.tool)) label = "Reading your documents…";
+        else if (data.tool === "reduce") label = "Combining what I found…";
+        else if (data.tool === "verify") label = "Checking the evidence…";
+        else label = "Reviewing what I found…";
+      } else if (event === "sources") {
+        sourced = true;
+        label = "Preparing your answer…";
+      } else if (event === "reasoning") label = "Thinking…";
+      // A mixed memory/document request can send a memory confirmation before retrieval starts.
+      else if (event === "token" && sourced) label = "Writing your answer…";
+      if (label && view.activityLabel.textContent !== label) view.activityLabel.textContent = label;
+    },
+    stop() {
+      stopped = true;
+      clearTimeout(timer);
+      view.activity.hidden = true;
+    },
+  };
 }
 
 function refreshMemoryPanel() {
@@ -627,7 +767,6 @@ function showHistory(detail) {
     }
     const meta = msg.meta || {};
     const view = assistantView();
-    view.answer.classList.remove("typing");
     for (const step of meta.steps || []) {
       view.steps.hidden = false;
       view.steps.append(stepItem(step));
@@ -640,6 +779,7 @@ function showHistory(detail) {
     else if (meta.error) view.answer.append(failure(`Error: ${meta.error}`, question, turn));
     renderFooter(view, meta, meta.sources || []);
     box.append(view.el);
+    renderChatDiagrams(view.answer);
   }
   if (!detail.messages.length) box.append(h("div", { class: "empty" }, "Empty chat. Ask a question."));
   box.scrollTop = box.scrollHeight;
@@ -656,12 +796,16 @@ async function ask(question) {
   state.busy = true;
   updateSend();
   const turn = { doc_ids: [...state.selected], mode: chatMode(), think: $("#think").checked };
+  const activity = startActivity(view, turn);
   let text = "";
   let sources = [];
   let info = {};
   let frame = 0;
   let finished = false;  // set by "done" or "error"; a stream that just stops was interrupted
   const render = () => {
+    // A synchronous final/error render supersedes the pending token frame. Otherwise that frame can
+    // erase the failure and Retry button after the stream has already settled.
+    if (frame) cancelAnimationFrame(frame);
     frame = 0;
     renderAnswer(view, text, sources);
     box.scrollTop = box.scrollHeight;
@@ -699,6 +843,7 @@ async function ask(question) {
       throw new Error(typeof detail === "string" ? detail : JSON.stringify(detail));
     }
     for await (const [event, data] of sse(response)) {
+      activity.update(event, data);
       if (event === "step") {
         view.steps.hidden = false;
         view.steps.append(stepItem(data));
@@ -718,6 +863,7 @@ async function ask(question) {
         if (!frame) frame = requestAnimationFrame(render);
       } else if (event === "done") {
         finished = true;
+        activity.stop();
         render();
         renderFooter(view, { ...info, ...data }, sources);
       } else if (event === "error") {
@@ -730,9 +876,11 @@ async function ask(question) {
       view.answer.append(failure("The answer was interrupted before it finished.", question, turn));
     }
   } catch (err) {
+    render();
     view.answer.append(failure(`Error: ${err.message}`, question, turn));
   } finally {
-    view.answer.classList.remove("typing");
+    activity.stop();
+    renderChatDiagrams(view.answer);
     state.busy = false;
     updateSend();
     refreshThreads();

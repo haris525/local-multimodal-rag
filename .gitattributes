@@ -18,3 +18,6 @@
 
 # Data files kept byte-for-byte (sample CSVs may use CRLF)
 *.csv -text
+
+# Retain the upstream minified Mermaid bundle byte-for-byte, including whitespace in its literals.
+services/gateway/static/vendor/mermaid.min.js -text -whitespace linguist-vendored=true

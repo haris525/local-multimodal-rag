@@ -194,6 +194,31 @@ def test_long_texts_are_read_page_by_page():
     assert d.sandbox.runs[0][2]["data/1_report.pdf/text.jsonl"].count(b"\n") == 2500
 
 
+def test_python_tool_advertises_the_exact_selected_input_paths_before_fetching():
+    d = deps()
+    ctx = context(d)
+    tool = next(t for t in _tools(ctx) if t.name == "run_python")
+    advertised = json.loads(tool.description.rsplit("\n", 1)[1])
+    assert d.sql.files == [] and d.ingest.pages == [] and d.sandbox.runs == []
+    run_python(ctx, "print(42)")
+    files = d.sandbox.runs[0][2]
+    manifest = json.loads(files["data/manifest.json"])
+    assert advertised == [{key: entry[key] for key in ("doc_id", "tables_file", "text_file")}
+                          for entry in manifest["documents"]]
+    assert all(entry[key] in files for entry in advertised for key in ("tables_file", "text_file") if entry[key])
+    assert OTHER not in tool.description
+
+
+def test_missing_input_file_returns_the_manifest_and_pandas_recovery_guidance():
+    trace = "FileNotFoundError: [Errno 2] No such file or directory: 'data/guessed-id/orders.xlsx'"
+    ctx = context(deps(Sandbox(reply(exit_code=1, stderr=trace))))
+    message, _ = run_python(ctx, "import pandas as pd; pd.read_excel('data/guessed-id/orders.xlsx')")
+    assert message.status == "error" and trace in message.content
+    assert "data/manifest.json" in message.content and "Original uploads are not present" in message.content
+    assert "read_only=True" in message.content and ".df()" in message.content
+    assert ctx.book.sources == []
+
+
 def test_the_data_is_fetched_once_per_request_and_identical_code_is_not_run_again():
     d = deps(Sandbox(reply("1\n"), reply("2\n")))
     ctx = context(d)

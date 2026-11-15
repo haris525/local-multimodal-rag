@@ -106,7 +106,7 @@ class Pipeline:
     counter: TokenCounter
     runner: IsolatedRunner
     cache: LlmCache | None = None  # the LLM cache for jobs; None, or no model identity: every reply from the model
-    _threads: set[threading.Event] = field(default_factory=set, init=False, repr=False)
+    _threads: dict[threading.Event, asyncio.Task] = field(default_factory=dict, init=False, repr=False)
 
     async def in_thread(self, fn: Callable, /, *args, **kwargs):
         """asyncio.to_thread that is remembered: cancelling the run does not stop the thread, which may still
@@ -119,18 +119,29 @@ class Pipeline:
             finally:
                 finished.set()
 
-        self._threads.add(finished)
+        job = asyncio.create_task(asyncio.to_thread(run))
+        self._threads[finished] = job  # retain shielded jobs after their callers are cancelled
+        # Shield queued executor work as well as running work. Cancelling a queued Future would
+        # prevent run() from ever setting finished, leaving settle() blocked forever.
+        def done(task):
+            self._threads.pop(finished, None)
+            if not task.cancelled():
+                task.exception()  # retrieve failures even after the caller was cancelled
+
+        job.add_done_callback(done)
         try:
-            return await asyncio.to_thread(run)
+            return await asyncio.shield(job)
         finally:
             if finished.is_set():
-                self._threads.discard(finished)
+                self._threads.pop(finished, None)
 
     async def settle(self) -> None:
         """Wait until every thread a cancelled run started has returned."""
-        for finished in list(self._threads):
-            await asyncio.to_thread(finished.wait)
-            self._threads.discard(finished)
+        for finished, job in list(self._threads.items()):
+            # Do not consume another executor slot just to wait for its writer. Remove completed
+            # entries here too: awaiting an already-done task need not run its callbacks first.
+            await asyncio.gather(asyncio.shield(job), return_exceptions=True)
+            self._threads.pop(finished, None)
 
     async def parse(self, doc: DocumentInfo, ext: str) -> ParsedDocument:
         """Every format is parsed in the isolated child, with the timeout and crash detection."""

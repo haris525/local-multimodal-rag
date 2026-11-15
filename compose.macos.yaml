@@ -1,0 +1,90 @@
+# Apple Silicon: Metal inference runs on macOS; only small, bounded proxies replace the CUDA services.
+# Always use scripts/macos.py compose ... so the host paths and context budget match native inference.
+name: local-rag-mac
+
+services:
+  llm:
+    image: local-rag/mac-proxy:dev
+    build: { context: ., dockerfile: services/mac-proxy/Dockerfile }
+    deploy:
+      resources:
+        reservations:
+          devices: !reset []
+    command: !reset []
+    volumes: !reset []
+    networks: !override [compute, mac-host]
+    environment:
+      PROXY_PORT: "8080"
+      PROXY_UPSTREAM: http://host.docker.internal:18080
+    mem_limit: 64m
+    cpus: 0.5
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://127.0.0.1:8080/health"]
+
+  models:
+    image: local-rag/mac-proxy:dev
+    build: { context: ., dockerfile: services/mac-proxy/Dockerfile }
+    deploy:
+      resources:
+        reservations:
+          devices: !reset []
+    volumes: !reset []
+    networks: !override [compute, mac-host]
+    environment:
+      PROXY_PORT: "8003"
+      PROXY_UPSTREAM: http://host.docker.internal:18083
+    mem_limit: 64m
+    cpus: 0.5
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://127.0.0.1:8003/readyz"]
+
+  qdrant:
+    mem_limit: 2g
+    cpus: 2
+
+  ingest-api:
+    mem_limit: 1g
+    cpus: 2
+
+  ingest-worker:
+    environment:
+      INGEST_PARSE_THREADS: "4"
+      OMP_NUM_THREADS: "4"
+    volumes: !override
+      - ingest-data:/data
+      - ${MAC_MODELS_DIR:?Use scripts/macos.py compose}:/models:ro
+    mem_limit: ${MAC_WORKER_MEM_LIMIT:-4g}
+    cpus: 4
+
+  rag:
+    environment:
+      RAG_THINK_TOKENS: ${RAG_THINK_TOKENS:-4096}
+      RAG_SOURCE_BUDGET: ${RAG_SOURCE_BUDGET:-8000}
+      RAG_VERIFY_EVIDENCE_TOKENS: ${RAG_VERIFY_EVIDENCE_TOKENS:-8000}
+      RAG_EXHAUSTIVE_GROUP_TOKENS: ${RAG_EXHAUSTIVE_GROUP_TOKENS:-4000}
+      RAG_EXHAUSTIVE_NOTES_TOKENS: ${RAG_EXHAUSTIVE_NOTES_TOKENS:-8000}
+    volumes: !override
+      - ${MAC_MODELS_DIR:?Use scripts/macos.py compose}/hf/Qwen3-Embedding-0.6B:/models/hf/Qwen3-Embedding-0.6B:ro
+    mem_limit: ${MAC_RAG_MEM_LIMIT:-2g}
+    cpus: 2
+
+  sql:
+    mem_limit: 1g
+
+  audit:
+    mem_limit: 512m
+    cpus: 1
+
+  threads:
+    mem_limit: 512m
+    cpus: 1
+
+  gateway:
+    environment:
+      NGINX_ENTRYPOINT_WORKER_PROCESSES_AUTOTUNE: "1"
+    mem_limit: 128m
+    cpus: 1
+
+networks:
+  # Only the two fixed-upstream proxies join this bridge to reach macOS. No published ports.
+  mac-host: {}

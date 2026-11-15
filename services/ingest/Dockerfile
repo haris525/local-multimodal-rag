@@ -18,7 +18,11 @@ COPY --from=build /app/.venv /app/.venv
 ENV PATH=/app/.venv/bin:$PATH PYTHONUNBUFFERED=1 HF_HOME=/tmp/hf \
     OMP_NUM_THREADS=8 DO_NOT_TRACK=1 HF_HUB_DISABLE_TELEMETRY=1
 # Docling layout, table and OCR weights are baked in, then verified with the network disabled.
-RUN docling-tools models download layout tableformer rapidocr -o /opt/docling-models \
+RUN for attempt in 1 2 3; do \
+        docling-tools models download layout tableformer rapidocr -o /opt/docling-models && break; \
+        if [ "$attempt" = 3 ]; then exit 1; fi; \
+        sleep 3; \
+    done \
     && HF_HUB_OFFLINE=1 TRANSFORMERS_OFFLINE=1 python -m ingest.warmup /opt/docling-models \
     && chmod -R a+rX /opt/docling-models && rm -rf /tmp/hf
 ENV HF_HUB_OFFLINE=1 TRANSFORMERS_OFFLINE=1

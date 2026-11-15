@@ -1,5 +1,8 @@
 # Getting started
 
+**Using an Apple Silicon Mac?** Follow [the Mac guide](MACOS.md) for complete installation, build and
+launch instructions. This guide's commands below are for NVIDIA workstations on Windows/Linux.
+
 This guide takes you from nothing to asking questions about your own documents. It assumes you have
 never run the app. Everything runs on your computer. Setup downloads the models and the app's building
 blocks once (about 50 GB in all); after that nothing goes to the internet.
@@ -17,7 +20,7 @@ memories.
 | GPU | NVIDIA, 32 GB VRAM | the 27B model and three small models stay loaded together, using about 27 GB |
 | RAM | 32 GB (64 GB recommended) | Docker on Windows needs at least 24 GB of it |
 | Disk | 80 GB free | models about 25 GB, images about 23 GB, plus your documents |
-| OS | Windows 11 or Linux | macOS cannot run the NVIDIA containers |
+| OS | Windows 11 or Linux | Apple Silicon uses the separate [Mac guide](MACOS.md) with native Metal inference |
 | Software | Docker Desktop (Windows) or Docker Engine and the NVIDIA Container Toolkit (Linux), a recent NVIDIA driver, Git, [uv](https://docs.astral.sh/uv/) | Docker Desktop 4.29 or newer, or Docker Engine 26 or newer; Docker Compose v2.24 or newer (`docker compose version`). On Linux the driver must support CUDA 13.2 |
 
 ## 2. Check that Docker can see your GPU

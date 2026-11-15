@@ -477,8 +477,14 @@ class Registry:
         with self._connect() as db:
             db.execute("BEGIN IMMEDIATE")
             try:
+                # Versions of one owner's filename must finish in upload order. Otherwise a short
+                # v2 can finish before v1 and v1 later becomes ready beside it (supersede looks back).
                 pick = db.execute(f"SELECT doc_id FROM documents WHERE status = ? AND owner_id IS NOT NULL"
-                                  f" AND {_LIVE_OWNER} ORDER BY created_at LIMIT 1", (Q.value,)).fetchone()
+                                  f" AND {_LIVE_OWNER} AND NOT EXISTS ("
+                                  "SELECT 1 FROM documents AS prior WHERE prior.owner_id = documents.owner_id"
+                                  " AND prior.name = documents.name AND (prior.status = ? OR"
+                                  " (prior.status = ? AND prior.rowid < documents.rowid)))"
+                                  " ORDER BY created_at, rowid LIMIT 1", (Q.value, P.value, Q.value)).fetchone()
                 row = None
                 if pick is not None:
                     row = self._transition(db, pick[0], P, sources=(Q,), live_owner=True, attempts=Sql("attempts + 1"),

@@ -14,6 +14,7 @@ import re
 import time
 import uuid
 from contextlib import asynccontextmanager
+from dataclasses import dataclass, field
 
 from fastapi import Depends, File, HTTPException, Path as PathParam, Response, UploadFile
 from fastapi.responses import FileResponse, JSONResponse
@@ -99,19 +100,27 @@ def _get(doc_id: str, user: Identity) -> DocumentInfo:
     return doc
 
 
-_placing: dict[str, asyncio.Lock] = {}  # one upload at a time places a given document's file (one process)
+@dataclass
+class _Placement:
+    lock: asyncio.Lock = field(default_factory=asyncio.Lock)
+    users: int = 0  # the holder AND waiters keep this entry alive
+
+
+_placing: dict[str, _Placement] = {}  # one process; run one ingest-api replica
 
 
 @asynccontextmanager
 async def _one_placement(doc_id: str):
     """Uploads of the same file take turns from the first look at the registry to the inserted row, so one of
     them never removes or replaces the file another has placed."""
-    lock = _placing.setdefault(doc_id, asyncio.Lock())
+    placement = _placing.setdefault(doc_id, _Placement())
+    placement.users += 1
     try:
-        async with lock:
+        async with placement.lock:
             yield
     finally:
-        if not lock.locked() and _placing.get(doc_id) is lock:
+        placement.users -= 1
+        if placement.users == 0:
             del _placing[doc_id]
 
 

@@ -69,6 +69,11 @@ Machine risk is the highest rank among the machine's failure modes, handled or o
 
 ## 2. Main failure modes
 
+The [November 2026 review](REVIEW.md) adds regression coverage for placement-lock lifetime, queued-thread
+cancellation, shutdown writers, and same-filename worker ordering. Registry run-token checks do not fence
+external storage writes after lease expiry; the remaining publication risk P5 below also applies while a
+multi-batch reindex is still running, not only after it fails.
+
 The failure modes the machines are built to prevent, by rank. "Handled" means the current code guards
 against it; the machine's section says how.
 
@@ -641,7 +646,9 @@ out and of the rows this worker's earlier process held (its id, `INGEST_WORKER_I
 which a container keeps across restarts), heartbeat task, wait for the models service (retry every 5 s),
 create the collection if needed, open the LLM cache ([ingest/worker.py:173-189](../services/ingest/src/ingest/worker.py#L173-L189): checked, a damaged file
 started again, bounded; it serves jobs only when on and llama-server runs the configured weights file, M23),
-then the sweeper task (`recover`, then finish every deleting row nobody holds, then remove the cached replies of
+then complete own-holder startup cleanup **before any new claims**. The background sweeper uses lease
+expiry only, so it cannot reclaim a fresh job of this process. Start that task (`recover`, then finish
+every deleting row nobody holds, then remove the cached replies of
 documents that no longer exist, at once and every `sweep_interval_s`, 60 s, also while a job runs,
 [ingest/worker.py:139-170](../services/ingest/src/ingest/worker.py#L139-L170)) and the loop: `claim_next`, run one job. While a job runs, its lease is
 renewed every 10 s ([ingest/worker.py:70-94](../services/ingest/src/ingest/worker.py#L70-L94)); a renewal that finds the row no longer
