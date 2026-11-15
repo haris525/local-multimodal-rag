@@ -14,6 +14,8 @@ MAX_SELECTED_DOCS = 10
 DOC_ID = r"^[0-9a-f]{32}$"
 DocId = Annotated[str, Field(pattern=DOC_ID)]
 DocIdPath = Annotated[str, PathParam(pattern=DOC_ID)]  # FastAPI path parameters need Path(), not Field()
+Generation = Annotated[str, Field(pattern=DOC_ID)]
+GenerationParameter = Annotated[str, Field(pattern=r"^(?:[0-9a-f]{32}|legacy)$")]
 RESERVED_AUDIT_USERS = ("legacy", "anonymous", "unattributed")
 
 
@@ -149,6 +151,8 @@ class DocumentInfo(BaseModel):
     created_at: str
     updated_at: str
     owner_id: str | None = None
+    generation: Generation | None = None  # published files/points; None is the legacy layout
+    storage_id: Generation | None = None  # immutable lifetime of the source upload; None is legacy
     # The worker's claim on the row (a processing run, or a clean-up of a deleting row). Internal to ingest:
     # never serialized, so no API answer carries it.
     run_id: str | None = Field(default=None, exclude=True)
@@ -160,6 +164,7 @@ class DocIdsRequest(BaseModel):
 
 class SqlQuery(BaseModel):
     doc_id: DocId  # also guards the file path in the sandbox
+    generation: GenerationParameter | None = None
     sql: str = Field(min_length=1, max_length=4000)
     max_rows: int = Field(default=200, ge=1, le=5000)
 
@@ -174,6 +179,7 @@ class GrepRequest(BaseModel):
     doc_ids: list[DocId] = Field(min_length=1, max_length=MAX_SELECTED_DOCS)
     terms: list[str] = Field(min_length=1, max_length=10)
     limit: int = Field(default=20, ge=1, le=200)
+    generations: dict[DocId, Generation | None] | None = None
 
     @model_validator(mode="after")
     def bounded_terms(self) -> "GrepRequest":

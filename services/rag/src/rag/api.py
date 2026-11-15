@@ -37,6 +37,7 @@ from rag_common.identity import (
 from rag_common.secrets import redact_secrets
 from rag_common.index import COLLECTION, qdrant_client
 from rag_common.service import create_app
+from rag_common.snapshots import current_generations, published_snapshots
 
 from rag.chat import (ChatRequest, Deps, Event, deep_agent, deep_fanout, deep_python, deep_think, request_problem,
                       research_calls)
@@ -291,8 +292,18 @@ async def _sse(events: AsyncIterator[Event], req: ChatRequest, docs: list[Docume
     steps: list[dict] = []
     memory: list[dict] = []
     error = None
+    snapshots = {doc.doc_id: doc.generation for doc in docs}
     try:
-        async for name, data in events:
+        while True:
+            # Bind only while advancing the agent. Never leave a ContextVar token across a yield:
+            # stream finalization may happen in a different task/context on disconnect.
+            snapshot_token = current_generations.set(snapshots)
+            try:
+                name, data = await anext(events)
+            except StopAsyncIteration:
+                break
+            finally:
+                current_generations.reset(snapshot_token)
             if name == ChatEvent.TOKEN:
                 answer.append(data["text"])
             elif name == ChatEvent.STEP:
@@ -316,10 +327,17 @@ async def _sse(events: AsyncIterator[Event], req: ChatRequest, docs: list[Docume
             yield f"event: {ChatEvent.NOTICE.value}\ndata: {json.dumps(note, ensure_ascii=False)}\n\n"
         yield f"event: {ChatEvent.ERROR.value}\ndata: {json.dumps({'message': error})}\n\n"
     finally:
-        saving = _track(_finish(req, docs, "".join(answer), retrieved, done, steps, memory, error,
-                                [{"code": n["code"], "message": n["message"]} for n in notes]))
-        if error != DISCONNECTED:
-            await asyncio.shield(saving)
+        snapshot_token = current_generations.set(snapshots)
+        try:
+            close = getattr(events, "aclose", None)
+            if close is not None:
+                await close()
+        finally:
+            current_generations.reset(snapshot_token)
+            saving = _track(_finish(req, docs, "".join(answer), retrieved, done, steps, memory, error,
+                                    [{"code": n["code"], "message": n["message"]} for n in notes]))
+            if error != DISCONNECTED:
+                await asyncio.shield(saving)
 
 
 @app.post("/v1/chat")
@@ -356,9 +374,15 @@ class SearchRequest(BaseModel):
 
 @app.post("/v1/search")
 async def search(req: SearchRequest, _user: Identity = Depends(require_user)) -> dict:
-    deps: Deps = state["deps"]
     doc_ids = list(dict.fromkeys(req.doc_ids))
     docs = await _ready_documents(doc_ids)
+    with published_snapshots(docs):
+        return await _search_snapshot(req, docs)
+
+
+async def _search_snapshot(req: SearchRequest, docs: list[DocumentInfo]) -> dict:
+    deps: Deps = state["deps"]
+    doc_ids = [doc.doc_id for doc in docs]
     plan = await deps.planner.plan(req.question, docs) if req.planner and any(d.tables for d in docs) else None
     opts = SearchOptions(retrievers=tuple(dict.fromkeys(req.retrievers)), rerank=req.rerank, threshold=req.threshold,
                          coverage=req.coverage, mmr=req.mmr, top_k=req.top_k)
@@ -376,6 +400,7 @@ async def search(req: SearchRequest, _user: Identity = Depends(require_user)) ->
                 "chunk_index": c.payload.chunk_index, "kind": c.payload.kind, "location": location(c.payload),
                 "page": c.payload.page, "page_end": c.payload.page_end, "sheet": c.payload.sheet,
                 "row_start": c.payload.row_start, "row_end": c.payload.row_end, "asset": c.payload.asset,
+                "generation": c.payload.generation,
                 "text_sha": c.payload.text_sha,
                 "ranks": c.ranks, "rrf": round(c.rrf, 5), "score": c.score, "text": c.payload.text,
             }

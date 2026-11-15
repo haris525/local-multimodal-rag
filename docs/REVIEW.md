@@ -35,45 +35,53 @@ retries for the OCR provider's observed download timeout. The Mac override also 
 and saved-chat containers, which otherwise inherited no memory cap. Cache export/interrupted-copy behavior has
 two additional regression tests in [`test_fetch_models.py`](../scripts/tests/test_fetch_models.py).
 
-## Remaining consistency risks
+## Reindex consistency fixes
 
-### P2: reindex publication is not an atomic snapshot (existing P5)
+The former P5 publication defect and external writes after lease expiry are fixed with immutable run
+generations. A run writes its DuckDB file, JSONL chunks, figures and Qdrant point IDs into its own UUID
+namespace. Only `Registry.complete()` publishes that generation, together with its counts, warnings and
+table schemas, in one transaction that checks the run still owns the document. A failed or late run can
+leave private artifacts; it cannot replace the previous published artifacts.
 
-[`Indexer.replace`](../services/ingest/src/ingest/indexer.py) upserts deterministic point IDs in batches,
-then removes surplus chunks. [`_ready_documents`](../services/rag/src/rag/api.py) deliberately accepts
-reindexing/failed documents that already have `n_chunks > 0`. If a later batch fails, earlier batches
-have already replaced part of the old index. Even a successful multi-batch reindex has an interval
-where reads can combine generations. Tables, JSONL chunk files, and index points also publish separately.
+Each question captures the published generation of every selected document once. Dense/BM25/image
+search, grep, neighbour reads, exhaustive reads, SQL, Python input downloads and figure URLs preserve
+that selection. Owner checks remain mandatory. Legacy documents retain their existing paths and IDs;
+their first new reindex creates a generation without removing the legacy copy.
 
-The existing state-machine documentation already lists failed-reindex mixing as open issue P5. The
-review also identifies the interval during a successful reindex. This invalidates a strict interpretation
-of “the previous index stays usable unchanged until ready.”
-The review established it from the write/read paths; it was not exercised against a live failing
-Qdrant server during this pass. The new worker-ordering fix does not make publication atomic.
+Deletion captures its source lifetime and generations under the matching deletion claim, including
+when a sweeper's earlier document listing is stale. Source uploads also have unique
+storage IDs, so a delayed cleanup cannot remove a later re-upload of the same bytes. The regression
+tests hold an uncancellable file writer and a Qdrant batch until after a replacement run publishes,
+and overlap old cleanup with a new upload. See
+[`test_generations.py`](../services/ingest/tests/test_generations.py),
+[`test_snapshots.py`](../services/rag/tests/test_snapshots.py) and the versioned SQL/API tests.
 
-The durable solution is immutable per-run table/chunk/index generations, followed by a registry
-transaction that switches the published generation. Every retrieval arm, SQL/file read, and cleanup
-must honor that generation. Rollback after an exception alone does not protect reads already in flight.
-Until then, avoid reindexing while users query the affected documents, and retry a failed reindex before
-relying on its answers. This is a real remaining limitation, not a completed fix.
+Published generations are retained until document/account deletion so an in-flight question never needs
+an expiring reader lease. Disk usage therefore grows with reindexing; unpublished leftovers of failed or
+crashed runs are also removed at deletion. There is no automatic generation garbage collector. Monitor
+the data volume and Qdrant disk space. Keep the supported single ingest-api process and single worker;
+these regressions do not certify a horizontally replicated deployment.
 
-### P2 under lease expiry: run tokens do not fence external writes
+Paging and grep now stream JSONL records and retain only the page/top hits. The former 64-file cache
+retained 73.6 MiB in a probe that requested only 100 rows from each of eight 10,000-row synthetic files.
+The same probe after the change peaked at about 0.1 MiB of traced Python allocations for paging and
+grep. These are allocation measurements for that probe, not whole-service RSS figures. Reproduce the
+broader live workload using [WORKLOAD_VALIDATION.md](WORKLOAD_VALIDATION.md).
 
-Registry updates check `run_id`, but table/chunk paths and Qdrant point IDs use `doc_id` without the run.
-A process paused beyond its lease, or an already-issued request to Qdrant that completes after ownership
-changes, can therefore write to storage even though its later `complete()` is refused. Renewing before a
-write cannot make a separate network/filesystem operation atomic with the registry. Versioning external
-artifacts as described above is also needed here.
+The sustained workload then reproduced a parser OOM at the Mac worker's existing 4 GiB cap after
+successive large files. Model requests were batched, but the pipeline retained all returned vectors
+until indexing. It now embeds and upserts one bounded batch at a time. PDF stage queues are capped
+at eight items, and parsers exceeding 1,024 MiB idle RSS are recycled before embedding/the next file,
+including after failed parses. The cache threshold is configurable and does not limit a single parse's
+peak. A separate regression also fixes an idle parser death poisoning the process pool for every
+following document: errors from `submit()` now clear the broken pool just like errors while awaiting
+a parse. See [`test_isolation.py`](../services/ingest/tests/test_isolation.py).
 
-The shipped one-worker topology reduces the ordinary overlap, but leases are recovery coordination,
-not full storage fencing. Do not interpret the existing state-machine proofs as proof of external-write
-isolation across arbitrary process pauses, network delays, or multiple hosts.
-
-### P2 if replicated: upload placement is local to ingest-api
-
-The upload fix coordinates one event loop/process. Two `ingest-api` replicas, or multiple Uvicorn workers,
-still have different lock dictionaries. Keep the default single API process. Horizontal scaling needs a
-cross-process placement claim or a storage design where each upload lifetime has an immutable path.
+Snapshot context is bound while advancing or closing the answer generator and reset before yielding
+an event. A regression finalizes a stream in another task, proving it can still save the interrupted
+answer without resetting a context token created elsewhere. These fixes live in shared application
+code and the Linux containers used on both Windows and macOS; this follow-up was run on macOS,
+not on a Windows host.
 
 ## Mac support and model inventory
 
@@ -138,7 +146,17 @@ run timeouts, memory-limit killing and successful execution afterward. The other
 
 ## Validation
 
-The supported test runs total **1,779 passed and 2 skipped**. Completed checks:
+The generation/memory follow-up passed **1,739 automated tests, with 1 skipped**, across ingestion,
+RAG, SQL, auth, shared code, threads, audit, scripts, UI and evaluation. The real browser Mermaid check
+also passed. Standard Mac Docker builds and the offline parser-model warmup passed; the updated
+process-memory dependency was already pinned transitively, and no model weights/version changed.
+The 14.7-minute live workload passed, including repeated PDF parsing, concurrent reindex/search and
+old/new pandas inputs, without new OOMs or service restarts. Its measurements and limits are recorded
+in [the benchmark report](benchmarks/reindex-memory-mac-2026-11-14.md); reproduce it using
+[WORKLOAD_VALIDATION.md](WORKLOAD_VALIDATION.md).
+
+The original Mac support pass totaled **1,779 passed and 2 skipped**, including Linux sandbox and model
+queue checks that were not repeated for the generation follow-up. Those earlier completed checks:
 
 - Ingestion: 654 tests, including all five new race regressions.
 - Retrieval/chat: 336 tests; authentication: 143; shared library: 140 passed, 1 skipped.
@@ -214,9 +232,10 @@ Static UI files require cache revalidation; the former helper URL remains availa
 Two regressions cover the missing helper and answer completion after a rendering error. The real
 browser check also opens saved diagrams with the former helper explicitly absent.
 
-**Not established:** sustained memory peaks, large or messy user-document performance, broad model
-quality, horizontal scaling, and atomic reindex publication. The remaining consistency risks above
-still apply. Passing unit tests and a small live fixture set is not a general correctness guarantee.
+**Limits:** broad model quality, horizontal scaling and arbitrary user-document performance remain
+unestablished. Generation isolation has targeted regression coverage; the finite synthetic workload
+is described in [WORKLOAD_VALIDATION.md](WORKLOAD_VALIDATION.md). Passing those checks does not establish
+general correctness or memory leak freedom.
 
 ## Public repository audit
 

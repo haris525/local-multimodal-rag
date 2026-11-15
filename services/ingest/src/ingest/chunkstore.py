@@ -1,9 +1,11 @@
 """Per-document JSONL copy of every chunk payload: serves chunk listings and exact-match grep."""
 
+import heapq
 import json
 import os
 import re
-from functools import lru_cache
+from collections.abc import Iterator
+from itertools import islice
 from pathlib import Path
 
 from rag_common.contracts import GrepHit
@@ -18,16 +20,23 @@ def write(path: Path, records: list[dict]) -> None:
     os.replace(tmp, path)
 
 
-@lru_cache(maxsize=64)
-def _load(path: str, mtime: float) -> tuple[dict, ...]:
-    with open(path, encoding="utf-8") as f:
-        return tuple(json.loads(line) for line in f)
+def records(path: Path) -> Iterator[dict]:
+    """Read one record at a time; published files are immutable and never cached in full."""
+    try:
+        f = path.open(encoding="utf-8")
+    except FileNotFoundError:
+        return
+    with f:
+        for line in f:
+            yield json.loads(line)
 
 
 def read(path: Path) -> tuple[dict, ...]:
-    if not path.exists():
-        return ()
-    return _load(str(path), path.stat().st_mtime)
+    return tuple(records(path))
+
+
+def page(path: Path, offset: int, limit: int) -> list[dict]:
+    return list(islice(records(path), offset, offset + limit))
 
 
 def _term_pattern(term: str) -> re.Pattern:
@@ -42,15 +51,13 @@ def _term_pattern(term: str) -> re.Pattern:
 def grep(paths: dict[str, Path], terms: list[str], limit: int) -> list[GrepHit]:
     """Rank chunks by distinct terms matched, then by total occurrences."""
     patterns = [_term_pattern(t) for t in terms]
-    hits: list[GrepHit] = []
-    for doc_id, path in paths.items():
-        for record in read(path):
-            counts = [len(p.findall(record["text"])) for p in patterns]
-            matched = sum(1 for c in counts if c)
-            if matched:
-                hits.append(
-                    GrepHit(id=record["id"], doc_id=doc_id, chunk_index=record["chunk_index"],
-                            matched=matched, count=sum(counts))
-                )
-    hits.sort(key=lambda h: (-h.matched, -h.count, h.doc_id, h.chunk_index))
-    return hits[:limit]
+    def hits():
+        for doc_id, path in paths.items():
+            for record in records(path):
+                counts = [sum(1 for _ in p.finditer(record["text"])) for p in patterns]
+                matched = sum(1 for c in counts if c)
+                if matched:
+                    yield GrepHit(id=record["id"], doc_id=doc_id, chunk_index=record["chunk_index"],
+                                  matched=matched, count=sum(counts))
+
+    return heapq.nsmallest(limit, hits(), key=lambda h: (-h.matched, -h.count, h.doc_id, h.chunk_index))

@@ -105,7 +105,7 @@ def on_disk(path) -> bytes:
     return b"".join(p.read_bytes() for p in (path, path.with_name(path.name + "-wal")) if p.exists())
 
 
-async def no_points(owner_id, doc_id):
+async def no_points(owner_id, doc_id, generations=None):
     pass
 
 
@@ -598,7 +598,7 @@ class RecordingIndexer:
         if self.on_replace:
             self.on_replace()
 
-    async def delete(self, user_id, doc_id):
+    async def delete(self, user_id, doc_id, generations=None):
         pass
 
 

@@ -16,13 +16,13 @@ import uuid
 from contextlib import asynccontextmanager
 from dataclasses import dataclass, field
 
-from fastapi import Depends, File, HTTPException, Path as PathParam, Response, UploadFile
+from fastapi import Depends, File, HTTPException, Path as PathParam, Query, Response, UploadFile
 from fastapi.responses import FileResponse, JSONResponse
 from pydantic import BaseModel
 from qdrant_client import models as qm
 
 from rag_common.audit import AuditClient
-from rag_common.contracts import DocIdPath, DocIdsRequest, DocStatus, DocumentInfo, GrepHit, GrepRequest, MigrateLegacy
+from rag_common.contracts import DocIdPath, DocIdsRequest, DocStatus, DocumentInfo, GenerationParameter, GrepHit, GrepRequest, MigrateLegacy
 from rag_common.identity import USER_ID, Identity, Verifier, require_system, require_user
 from rag_common.index import COLLECTION, USER_FIELD, ensure_user_index, qdrant_client
 from rag_common.logging import log_fields
@@ -49,8 +49,8 @@ STILL_DELETING = "this file is still being deleted; upload it again in a minute"
 NEWER_VERSION = "a newer version of this file is being processed; it replaces this one when it is ready"
 
 
-async def _drop_points(owner_id: str, doc_id: str) -> None:
-    await delete_points(qdrant, owner_id, doc_id)
+async def _drop_points(owner_id: str, doc_id: str, generations: list[str | None] | None = None) -> None:
+    await delete_points(qdrant, owner_id, doc_id, generations)
 
 
 class UploadResult(BaseModel):
@@ -172,17 +172,21 @@ async def _store(upload: UploadFile, owner_id: str) -> UploadResult:
                 return UploadResult(name=name, document=existing, existing=True)
             if not await _finish_earlier_deletion(doc_id, owner_id):
                 return UploadResult(name=name, error=STILL_DELETING)
-            target = paths.source_path(settings, owner_id, doc_id, ext)
+            storage_id = uuid.uuid4().hex
+            target = paths.source_path(settings, owner_id, doc_id, ext, storage_id)
             target.parent.mkdir(parents=True, exist_ok=True)
             os.replace(tmp, target)  # the file is in place before the job becomes visible
             try:
-                info, _ = registry.add(doc_id, owner_id, name, doc_type, ext, size)
+                info, created = registry.add(doc_id, owner_id, name, doc_type, ext, size, storage_id=storage_id)
             except OwnerDeleted:  # the account was deleted while this upload streamed: keep nothing of it
                 paths.remove_owner(settings, owner_id)
                 raise
             except StillDeleting:  # a deletion of the same file holds the row: the file placed here is not wanted
                 target.unlink(missing_ok=True)
                 return UploadResult(name=name, error=STILL_DELETING)
+            if not created:
+                target.unlink(missing_ok=True)
+                return UploadResult(name=name, document=info, existing=True)
             replaces = settings.replace_same_name and registry.has_older_version(doc_id, owner_id)
             return UploadResult(name=name, document=info, replaces=replaces)
     finally:
@@ -270,28 +274,43 @@ async def reindex(doc_id: DocIdPath, user: Identity = Depends(require_user)) -> 
     return _get(doc_id, user)
 
 
+def _generation(doc: DocumentInfo, requested: str | None) -> str | None:
+    generation = doc.generation if requested is None else (None if requested == "legacy" else requested)
+    if generation != doc.generation and not registry.is_published(doc.doc_id, generation):
+        raise HTTPException(404, "document generation not found")
+    return generation
+
+
 @app.get("/v1/documents/{doc_id}/assets/{name}")
-def asset(doc_id: DocIdPath, name: str, user: Identity = Depends(require_user)) -> FileResponse:
-    _get(doc_id, user)
-    path = paths.asset_dir(settings, user.user_id, doc_id) / name
+def asset(doc_id: DocIdPath, name: str, generation: GenerationParameter | None = None,
+          user: Identity = Depends(require_user)) -> FileResponse:
+    doc = _get(doc_id, user)
+    path = paths.asset_dir(settings, user.user_id, doc_id, _generation(doc, generation)) / name
     if not _ASSET_NAME.match(name) or not path.is_file():
         raise HTTPException(404, "asset not found")
     return FileResponse(path, media_type="image/png", headers={"Cache-Control": ASSET_CACHE})
 
 
 @app.get("/v1/documents/{doc_id}/chunks")
-def chunks(doc_id: DocIdPath, offset: int = 0, limit: int = 100, user: Identity = Depends(require_user)) -> list[dict]:
-    _get(doc_id, user)
-    records = chunkstore.read(paths.chunk_path(settings, user.user_id, doc_id))
-    return list(records[offset : offset + min(limit, 1000)])
+def chunks(doc_id: DocIdPath, offset: int = Query(default=0, ge=0), limit: int = Query(default=100, ge=1),
+           generation: GenerationParameter | None = None,
+           user: Identity = Depends(require_user)) -> list[dict]:
+    doc = _get(doc_id, user)
+    return chunkstore.page(paths.chunk_path(settings, user.user_id, doc_id, _generation(doc, generation)),
+                           offset, min(limit, 1000))
 
 
 @app.post("/v1/grep")
 def grep(body: GrepRequest, user: Identity = Depends(require_user)) -> list[GrepHit]:
     wanted = list(dict.fromkeys(body.doc_ids))
-    if len(registry.many(wanted, user.user_id)) != len(wanted):
+    docs = registry.many(wanted, user.user_id)
+    if len(docs) != len(wanted):
         raise HTTPException(404, "document not found")
-    files = {d: paths.chunk_path(settings, user.user_id, d) for d in wanted}
+    if body.generations is not None and set(body.generations) != set(wanted):
+        raise HTTPException(422, "generations must name exactly the selected documents")
+    files = {d.doc_id: paths.chunk_path(settings, user.user_id, d.doc_id,
+             _generation(d, (body.generations[d.doc_id] or "legacy") if body.generations is not None else None))
+             for d in docs}
     return chunkstore.grep(files, body.terms, body.limit)
 
 

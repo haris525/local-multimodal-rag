@@ -229,6 +229,11 @@ together as described in [Deployment](DEPLOYMENT.md#6-data-backups-and-restore).
 After pulling code updates, stop this project, rerun setup, and start again. Setup retains model files
 and existing keys. The pinned inference revision is recorded in `scripts/macos.py`.
 
+The generation-storage update requires a coordinated restart of ingest, RAG, SQL and gateway; follow
+[the reindex upgrade directions](DEPLOYMENT.md#consistent-reindex-upgrade) and take a backup first.
+For a reproducible larger synthetic test after starting the app, see
+[Workload validation](WORKLOAD_VALIDATION.md).
+
 ## 7. Settings and troubleshooting
 
 ### Waiting for an answer

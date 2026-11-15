@@ -275,9 +275,10 @@ flowchart LR
    *Why:* passages with similar meanings get similar numbers, so the app can later find passages that
    mean what you asked even when they use other words.
 9. **Index.** Each chunk is saved in Qdrant with its embeddings, its text and its location, and Qdrant
-   adds it to a keyword index. The chunk texts are also saved to a file for exact-word search. New
-   entries are written first and old ones removed afterwards, so a document that is being re-processed
-   is never half missing.
+   adds it to a keyword index. The chunk texts are also saved to a file for exact-word search. A new
+   run writes its own version of the index and files, then publishes them together. An existing
+   question keeps reading the version it started with. Earlier versions stay until you delete the
+   document, so repeated re-processing uses additional disk space.
    *Why:* this is what makes the document searchable.
 
 **Ready.** The document can now be ticked and searched. If you upload a file with the same name but new

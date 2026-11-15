@@ -385,7 +385,7 @@ flowchart LR
 ```
 
 The document's states and every allowed move are one table in `ingest/registry.py` (`NEXT`): queued,
-processing, ready, failed and deleting, with a CHECK on the column (registry schema v4). Diagrams and the
+processing, ready, failed and deleting, with a CHECK on the column (registry schema v5). Diagrams and the
 full transition table: [STATE_MACHINES.md, M5 and M6](STATE_MACHINES.md#m5-document).
 
 - **Durability.** The file is on the volume before its registry row exists. The registry (SQLite,
@@ -399,13 +399,26 @@ full transition table: [STATE_MACHINES.md, M5 and M6](STATE_MACHINES.md#m5-docum
   restarted worker takes back at once the job its own earlier process held (`claimed_by`, the worker's
   id: `INGEST_WORKER_ID`, the host name by default, which a container keeps across restarts). A clean stop (SIGTERM) cancels the
   file in progress and puts it back in the queue without counting the attempt. Every format is
-  parsed in a long-lived child process (Docling's models stay loaded there): it is killed on timeout
-  (30 min), recycled every 50 documents, and a child that dies (out of memory, a native fault) fails
+  parsed in a child process (small parser caches stay loaded there): it is killed on timeout
+  (30 min), recycled every 50 documents or when its idle RSS exceeds `INGEST_PARSER_CACHE_MB`
+  (1,024 MiB; 0 disables reuse), and a child that dies (out of memory, a native fault) fails
   that document at once instead of after the timeout. Chunking runs in a thread, so the worker's
   heartbeat keeps ticking on large sheets.
-- **Never half-missing.** Re-indexing upserts new points first, then deletes IDs beyond the new chunk
-  count. A document with a complete index (`n_chunks > 0`) stays selectable and searchable while it is
-  re-indexed or retried.
+- **Memory bounds.** PDF pipeline stage queues hold at most eight items. Embeddings and point writes
+  progress in `INGEST_UPSERT_BATCH` batches (128 by default), retaining only that batch's vectors.
+  Chunk pages stream JSONL, and grep retains only its top hits. The parser RSS threshold releases
+  retained native caches after parsing; it does not cap a single parse's peak memory.
+- **Published generations.** Each run writes tables, chunks, figures and point IDs into a private
+  generation named by its random `run_id`. Completion checks ownership and switches the registry's
+  `generation`, schemas and counts in one SQLite transaction. A question pins that selection for all
+  retrieval, SQL, Python and asset reads, even if a reindex publishes while it runs. Failed/stale runs
+  cannot overwrite published files or points. A document with `n_chunks > 0` stays searchable on its
+  previous generation during a retry. Previous published generations remain until deletion, which also
+  removes unpublished failed-run artifacts; repeated reindexing consumes additional disk space.
+- **Upload lifetimes.** New sources live at `files/<owner>/<doc>/<storage_id>/source<ext>`; derived
+  tables/chunks at `<kind>/<owner>/<doc>/<generation>.<ext>`, figures under
+  `assets/<owner>/<doc>/<generation>/`. Cleanup captures its targets under its deletion claim and never
+  removes a later upload's directories. Pre-generation documents remain readable at their old paths.
 - **Index versions.** Each ready document records the version of the parser and chunker that built its
   index (`index_version`, registry schema v4). A fix that leaves older indexes missing content raises
   `INDEX_VERSION` in `ingest/pipeline.py`; at its next start the worker re-queues every ready document of a

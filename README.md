@@ -117,6 +117,9 @@ uv run --with httpx scripts/smoke_test.py --samples samples [--deep]   # all 11 
 uv run --with httpx scripts/memory_smoke.py --samples samples          # 23 memory and routing checks
 ```
 
+For large synthetic CSVs, messy workbooks, long documents, concurrent reindexing and sustained memory
+measurements in a disposable account, follow [Workload validation](docs/WORKLOAD_VALIDATION.md).
+
 The isolation test signs in as an admin (password from `RAG_ADMIN_PASSWORD`) and checks that two
 temporary accounts cannot reach each other's data:
 `uv run --with httpx scripts/multiuser_smoke.py --admin-user <admin> [--docker]`

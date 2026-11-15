@@ -146,7 +146,7 @@ class SourceBook:
             if c.id not in self._by_id:
                 p = c.payload
                 src = Source(len(self.sources) + 1, c.id, p.doc_id, p.doc_name, p.kind, location(p), p.text,
-                             p.n_tokens, p.asset, c.score, dict(c.ranks), p.chunk_index)
+                             p.n_tokens, p.asset, c.score, dict(c.ranks), p.chunk_index, p.generation)
                 self.sources.append(src)
                 self._by_id[c.id] = src
             out.append(self._by_id[c.id])
@@ -259,7 +259,7 @@ def read_tool(ctx: ToolContext) -> StructuredTool:
                     "before or after it. Use sql or search instead."), []
 
         async def run():
-            ids = [point_id(src.doc_id, src.chunk_index + d) for d in (-1, 1) if src.chunk_index + d >= 0]
+            ids = [point_id(src.doc_id, src.chunk_index + d, src.generation) for d in (-1, 1) if src.chunk_index + d >= 0]
             return ctx.found(ctx.book.add_candidates(await ctx.deps.retrieval.fetch(ids)))
         return await ctx.once(_key("read", source=src.n), run)
     return _tool(read, "Read the passages just before and after a numbered passage from search or grep (not for "

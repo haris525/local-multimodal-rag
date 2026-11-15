@@ -12,7 +12,7 @@ from qdrant_client import models as qm
 from qdrant_client.http.exceptions import UnexpectedResponse
 
 from rag_common.contracts import ModelsInfo
-from rag_common.index import COLLECTION, IMAGE_VECTOR, TEXT_VECTOR, ChunkPayload, point_id, user_condition
+from rag_common.index import COLLECTION, IMAGE_VECTOR, TEXT_VECTOR, ChunkPayload, generation_condition, point_id, user_condition
 from rag_common.retry import retry_once
 
 log = logging.getLogger("ingest.indexer")
@@ -62,11 +62,14 @@ class Indexer:
         text_vectors: list[list[float]],
         image_vectors: dict[int, list[float]],
     ) -> None:
-        """Upsert the new points first, then delete chunk indexes beyond the new count, so a
-        re-indexed document is never partly missing."""
+        """Write only this run's private generation. Publication is the registry's atomic pointer switch."""
+        generations = {p.generation for p in payloads}
+        if len(generations) > 1:
+            raise ValueError("one index write must contain exactly one generation")
+        generation = next(iter(generations), None)
         points = [
             qm.PointStruct(
-                id=point_id(doc_id, p.chunk_index),
+                id=point_id(doc_id, p.chunk_index, p.generation),
                 vector={TEXT_VECTOR: tv} | ({IMAGE_VECTOR: image_vectors[p.chunk_index]} if p.chunk_index in image_vectors else {}),
                 payload=p.model_dump(exclude_none=True),
             )
@@ -74,17 +77,20 @@ class Indexer:
         ]
         for i in range(0, len(points), self.upsert_batch):
             await self.qdrant.upsert(COLLECTION, points[i : i + self.upsert_batch], wait=True)
+        if generation is not None:
+            return  # old published generations remain available to readers already using them
         stale = qm.Filter(
             must=[
                 user_condition(user_id),
+                generation_condition(None),
                 qm.FieldCondition(key="doc_id", match=qm.MatchValue(value=doc_id)),
                 qm.FieldCondition(key="chunk_index", range=qm.Range(gte=len(payloads))),
             ]
         )
         await self.qdrant.delete(COLLECTION, points_selector=qm.FilterSelector(filter=stale), wait=True)
 
-    async def delete(self, user_id: str, doc_id: str) -> None:
-        await delete_points(self.qdrant, user_id, doc_id)
+    async def delete(self, user_id: str, doc_id: str, generations: list[str | None] | None = None) -> None:
+        await delete_points(self.qdrant, user_id, doc_id, generations)
 
 
 async def _delete(qdrant: AsyncQdrantClient, flt: qm.Filter) -> None:
@@ -95,9 +101,14 @@ async def _delete(qdrant: AsyncQdrantClient, flt: qm.Filter) -> None:
             raise
 
 
-async def delete_points(qdrant: AsyncQdrantClient, user_id: str, doc_id: str) -> None:
-    await _delete(qdrant, qm.Filter(must=[user_condition(user_id),
-                                          qm.FieldCondition(key="doc_id", match=qm.MatchValue(value=doc_id))]))
+async def delete_points(qdrant: AsyncQdrantClient, user_id: str, doc_id: str,
+                        generations: list[str | None] | None = None) -> None:
+    must = [user_condition(user_id), qm.FieldCondition(key="doc_id", match=qm.MatchValue(value=doc_id))]
+    if generations is not None:
+        if not generations:
+            return
+        must.append(qm.Filter(should=[generation_condition(generation) for generation in generations]))
+    await _delete(qdrant, qm.Filter(must=must))
 
 
 async def delete_user_points(qdrant: AsyncQdrantClient, user_id: str) -> None:

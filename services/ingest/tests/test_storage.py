@@ -51,6 +51,24 @@ def test_grep_matches_whole_terms_and_ranks_by_distinct_terms(tmp_path):
     assert [(h.id, h.matched, h.count) for h in hits] == [("2", 2, 3), ("1", 1, 1)]
 
 
+def test_chunk_page_does_not_decode_the_rest_of_a_large_file(tmp_path):
+    path = tmp_path / "large.jsonl"
+    chunkstore.write(path, [{"id": str(i)} for i in range(200)])
+    with path.open("a") as f:
+        f.write("this tail must not be parsed for the first page\n")
+    assert chunkstore.page(path, 50, 3) == [{"id": "50"}, {"id": "51"}, {"id": "52"}]
+    assert chunkstore.page(tmp_path / "missing.jsonl", 0, 10) == []
+
+
+def test_grep_keeps_best_hits_across_large_files_with_stable_ties(tmp_path):
+    paths = {name: tmp_path / (name + ".jsonl") for name in ("b", "a")}
+    for name, path in paths.items():
+        chunkstore.write(path, [{"id": name + str(i), "chunk_index": i,
+                                "text": "needle " * (1 + i // 1000)} for i in range(10001)])
+    hits = chunkstore.grep(paths, ["needle"], limit=3)
+    assert [(h.id, h.count) for h in hits] == [("a10000", 11), ("b10000", 11), ("a9000", 10)]
+
+
 def test_only_older_finished_versions_are_superseded(tmp_path):
     reg = Registry(tmp_path / "r.db")
     v1, v2, v3 = "1" * 32, "2" * 32, "3" * 32  # three versions of report.pdf, uploaded in this order
@@ -68,12 +86,12 @@ class Qdrant:
     def __init__(self, down: bool):
         self.down = down
 
-    async def drop(self, owner, doc_id):
+    async def drop(self, owner, doc_id, generations=None):
         if self.down:
             raise ConnectionError("qdrant is down")
 
 
-async def _no_points(owner, doc_id):
+async def _no_points(owner, doc_id, generations=None):
     return None
 
 

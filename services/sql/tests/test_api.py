@@ -76,6 +76,32 @@ def test_a_document_id_cannot_leave_the_owners_folder(client):
     assert r.status_code == 422
 
 
+def test_versioned_sql_and_python_downloads_keep_old_new_and_legacy_inputs_separate(client):
+    for generation, value in (("1" * 32, 21), ("2" * 32, 42)):
+        folder = TABLES / A / DOC
+        folder.mkdir(exist_ok=True)
+        path = folder / f"{generation}.duckdb"
+        with duckdb.connect(str(path)) as con:
+            con.execute(f"CREATE TABLE sales AS SELECT {value} AS amount")
+        headers = KEYS.headers(A, issuer="rag")
+        response = client.post("/v1/query", json={"doc_id": DOC, "generation": generation,
+                                                  "sql": "SELECT amount FROM sales"}, headers=headers)
+        assert response.status_code == 200 and response.json()["rows"] == [[value]]
+        response = client.get(f"/v1/tables/{DOC}", params={"generation": generation}, headers=headers)
+        assert response.status_code == 200 and response.content == path.read_bytes()
+        assert client.get(f"/v1/tables/{DOC}", params={"generation": generation},
+                          headers=KEYS.headers(B, issuer="rag")).status_code == 404
+    assert query(client, KEYS.headers(A, issuer="rag")).json()["rows"] == [["North", 10.0]]
+
+
+@pytest.mark.parametrize("generation", ["../other", "..%2Fother", "x" * 32, "1" * 31])
+def test_generation_paths_reject_traversal_and_malformed_ids(client, generation):
+    headers = KEYS.headers(A, issuer="rag")
+    assert client.get(f"/v1/tables/{DOC}", params={"generation": generation}, headers=headers).status_code == 422
+    assert client.post("/v1/query", json={"doc_id": DOC, "generation": generation, "sql": "SELECT 1"},
+                       headers=headers).status_code == 422
+
+
 def test_the_owner_gets_the_whole_tables_file_through_rag(client):
     r = client.get(f"/v1/tables/{DOC}", headers=KEYS.headers(A, issuer="rag"))
     assert r.status_code == 200 and r.content == (TABLES / A / f"{DOC}.duckdb").read_bytes()

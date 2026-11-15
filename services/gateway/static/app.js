@@ -431,7 +431,7 @@ function showSources(sources, focus) {
       h("div", { class: "src-head" }, h("span", { class: "src-n" }, `[${s.n}]`), h("span", { class: "src-doc" }, s.doc_name)),
       h("div", { class: "src-loc" }, s.location ? `${s.kind}, ${s.location}` : s.kind),
       ranks.length ? h("div", { class: "src-ranks" }, ranks) : null,
-      s.asset ? h("img", { src: `/api/documents/${s.doc_id}/assets/${s.asset}`, alt: `Figure from ${s.doc_name}`, loading: "lazy",
+      s.asset ? h("img", { src: `/api/documents/${s.doc_id}/assets/${s.asset}?generation=${s.generation || "legacy"}`, alt: `Figure from ${s.doc_name}`, loading: "lazy",
         // a saved chat keeps its source text, but the figure goes with its document
         onerror: (e) => e.target.replaceWith(h("div", { class: "muted" }, "Figure not available: its document was deleted or replaced by a new version.")) }) : null,
       text);

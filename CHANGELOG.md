@@ -3,6 +3,25 @@
 Newest first. Each entry says under "Data changes" whether it changes what is stored in the Docker volumes
 and what to do about it (see [DEPLOYMENT.md, section 4.8](docs/DEPLOYMENT.md#48-updates)).
 
+## Unreleased: consistent reindexing
+
+- Reindex into immutable run generations; publish files, point selection and metadata through one
+  registry pointer switch. Questions preserve their selected generations across every retrieval tool,
+  SQL, Python input download and figure read. Stale workers cannot overwrite a published generation.
+- Give each upload lifetime a unique source directory and scope deletion to captured generations.
+- Stream chunk pages and retain only top grep hits instead of caching entire files in memory.
+- Embed and publish vectors one bounded batch at a time; cap PDF inter-stage buffers and recycle
+  idle parser processes above a configurable memory budget after a sustained workload exposed an OOM.
+- Add a reproducible isolated large/messy document workload and memory measurements.
+- Keep snapshot context scoped to each streamed operation so disconnect cleanup can save partial
+  answers even when the stream is finalized in another task.
+
+**Data changes:** registry schema v5 adds `generation`, `storage_id` and a generation catalog. Existing
+documents keep their paths/point IDs and remain readable without reindexing. New derived data uses
+generation directories/IDs. Retain old generations until deletion, so repeated reindexing grows disk
+usage. Use the coordinated upgrade in [Deployment](docs/DEPLOYMENT.md#consistent-reindex-upgrade);
+rolling back after new generations are published requires the matching data backup.
+
 ## 0.1.0: initial public release
 
 The first public version. Data changes: none (a new install). Its features:

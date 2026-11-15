@@ -21,7 +21,7 @@ from fastapi import Depends, HTTPException
 from fastapi.responses import StreamingResponse
 from starlette.types import Receive, Scope, Send
 
-from rag_common.contracts import DocIdPath, SqlQuery, SqlResult
+from rag_common.contracts import DocIdPath, GenerationParameter, SqlQuery, SqlResult
 from rag_common.identity import Identity, Verifier, require_user
 from rag_common.service import create_app
 
@@ -40,10 +40,11 @@ PUBLIC_KEYS = Path(os.getenv("SQL_PUBLIC_KEYS_FILE", "/run/secrets/identity_publ
 app = create_app("sql", log_level=os.getenv("SQL_LOG_LEVEL", "INFO"), verifier=Verifier.from_file(PUBLIC_KEYS, {"rag"}))
 
 
-def table_file(user_id: str, doc_id: str) -> Path | None:
+def table_file(user_id: str, doc_id: str, generation: str | None = None) -> Path | None:
     """The caller's DuckDB file for a document, or None. Both ids are validated (uuid, 32 hex characters);
     the resolved path must still sit under TABLES."""
-    path = TABLES / user_id / f"{doc_id}.duckdb"
+    path = (TABLES / user_id / doc_id / f"{generation}.duckdb" if generation and generation != "legacy" else
+            TABLES / user_id / f"{doc_id}.duckdb")
     if not path.resolve().is_relative_to(TABLES.resolve()) or not path.is_file():
         return None
     return path
@@ -51,7 +52,7 @@ def table_file(user_id: str, doc_id: str) -> Path | None:
 
 @app.post("/v1/query")
 async def query(body: SqlQuery, user: Identity = Depends(require_user)) -> SqlResult:
-    path = table_file(user.user_id, body.doc_id)
+    path = table_file(user.user_id, body.doc_id, body.generation)
     if path is None:
         raise HTTPException(404, "document has no tables")
     try:
@@ -114,10 +115,11 @@ async def _stream_place(user_id: str):
 
 
 @app.get("/v1/tables/{doc_id}")
-async def tables_file(doc_id: DocIdPath, user: Identity = Depends(require_user)) -> StreamingResponse:
+async def tables_file(doc_id: DocIdPath, generation: GenerationParameter | None = None,
+                      user: Identity = Depends(require_user)) -> StreamingResponse:
     """The caller's DuckDB file of a document, whole. Opened before its size is read, so a reindex that replaces
     the file meanwhile cannot mix two versions: the reply is the version that was opened."""
-    path = table_file(user.user_id, doc_id)
+    path = table_file(user.user_id, doc_id, generation)
     if path is None:
         raise HTTPException(404, "document has no tables")
     give_back = await _stream_place(user.user_id)
