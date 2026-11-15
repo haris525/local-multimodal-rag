@@ -25,11 +25,16 @@ and what to do about it (see [DEPLOYMENT.md, section 4.8](docs/DEPLOYMENT.md#48-
 - Files picked while an upload is being sent join it: sent one after another in the order picked,
   counted together ("Uploading 2 of 3") and listed together. Before, the page's message showed only
   the upload that finished last, and the first file looked gone while it was still on its way.
+- Keep PDF text in the top and bottom margins unless it repeats on another page (digits ignored), is a
+  page number, or has fewer than 3 words. Docling marks margin text as page headers and footers, and all
+  of it was dropped, so content running into a margin (such as the last line of a document) was never
+  indexed. `INDEX_VERSION` 3 reindexes every ready document once at the worker's next start.
 
 **Data changes:** registry schema v5 adds `generation`, `storage_id` and a generation catalog. Existing
 documents keep their paths/point IDs and remain readable without reindexing. New derived data uses
 generation directories/IDs. Schema v6 adds `retired_at` and `collected_at` to the catalog; generations
-replaced before it count as retired from its first start. Use the coordinated upgrade in [Deployment](docs/DEPLOYMENT.md#consistent-reindex-upgrade);
+replaced before it count as retired from its first start. Index version 3 reindexes
+every ready document once (DEPLOYMENT.md section 4.21). Use the coordinated upgrade in [Deployment](docs/DEPLOYMENT.md#consistent-reindex-upgrade);
 rolling back after new generations are published requires the matching data backup.
 
 ## 0.1.0: initial public release

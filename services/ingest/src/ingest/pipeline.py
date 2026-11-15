@@ -57,7 +57,8 @@ DropPoints = Callable[[str, str, list[str | None]], Awaitable[None]]
 # The version of what builds a document's index. Bump it when a parsing or chunking fix leaves documents
 # indexed before it missing content: the worker re-queues every ready document of a lower version at start.
 # 1: before versions were kept. 2: text after a figure or table in the same section is no longer dropped.
-INDEX_VERSION = 2
+# 3: PDF text in the top or bottom margin that is not a running header, footer or page number is kept.
+INDEX_VERSION = 3
 
 
 class RunLost(Exception):

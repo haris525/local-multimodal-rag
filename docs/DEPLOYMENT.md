@@ -1042,6 +1042,26 @@ the `describe_table` step's result ends with `possible totals in column ...` and
 adding up the rows or columns it covers; use it when the total is asked for)`. Rollback: the `previous` image
 (section 4.9); nothing stored changed.
 
+### 4.21 Update: text in PDF margins (index version 3)
+
+This update ([CHANGELOG](../CHANGELOG.md)) fixes PDF text that was left out of the search index. Docling marks
+text in the top and bottom margins as page headers and footers, and all of it was dropped. Text that is part of
+the document but runs into a margin was lost with it, for example the last line of a resume's education section
+at the foot of its last page. Now a margin line is dropped only when it repeats on another page (a running
+title, digits ignored), is a page number, or has fewer than 3 words. **Data changes: every ready document is
+reindexed, on its own**, the same way as in section 4.15: the worker re-queues them at its first start and logs
+`re-queued documents an older index version built`. They stay searchable on their current index until the new
+one is ready, and the replaced index is removed after `INGEST_GENERATION_RETAIN_H` hours. Figure descriptions
+come from the model reply cache (section 4.17), so the reindex is much faster than the first ingest.
+
+```bash
+docker tag local-rag/ingest:dev local-rag/ingest:previous
+docker compose build ingest-api            # ingest-worker runs the same image
+docker compose stop ingest-worker ingest-api
+docker compose up -d --no-deps ingest-api ingest-worker
+docker compose logs ingest-worker | grep "re-queued"
+```
+
 ## 5. Network exposure
 
 > **Keep the gateway port on 127.0.0.1** (`GATEWAY_BIND`, the default). Give other computers access

@@ -216,7 +216,8 @@ flowchart LR
    *Why:* uploads return at once, and a restart never loses work.
 3. **Parse.** The worker reads the file and splits it into a stream of pieces: text, tables and images.
    PDFs go through Docling, which works out the page layout, reads tables, recognises text in scanned
-   pages (OCR) and cuts out figures. Spreadsheets are read sheet by sheet (formulas are never run).
+   pages (OCR) and cuts out figures. Running headers, footers and page numbers are left out; other text
+   in the top or bottom margin, such as a last section that runs to the foot of the page, is kept. Spreadsheets are read sheet by sheet (formulas are never run).
    Many real workbooks start with a title, notes (`Source, Census Bureau`, `Units, Thousands`) and a header
    of two or more rows, and end with footnotes; the worker finds where the table really starts, joins the
    header rows into short column names (keeping each column's full header text), keeps the title and

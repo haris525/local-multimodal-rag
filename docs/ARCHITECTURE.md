@@ -493,7 +493,7 @@ full transition table: [STATE_MACHINES.md, M5 and M6](STATE_MACHINES.md#m5-docum
 | Input | Parser | Output |
 |-------|--------|--------|
 | `.txt`, `.md` | charset detection; Markdown headings give the section path; hard-wrapped lines joined; lists and code fences kept intact | text elements |
-| `.pdf` | Docling: layout, TableFormer (accurate), OCR for bitmap regions, figure crops at 2x, reading order, heading levels from numbering, bookmarks and font style (the first heading on page 1 is the title) | text (consecutive list items merged), table (header + rows, caption, `table_index`), image (figures of at least 120 px, with caption) |
+| `.pdf` | Docling: layout, TableFormer (accurate), OCR for bitmap regions, figure crops at 2x, reading order, heading levels from numbering, bookmarks and font style (the first heading on page 1 is the title); page headers and footers dropped only when they repeat on another page (digits ignored), are a page number or have fewer than 3 words, otherwise kept in place (`margin_text_kept`) | text (consecutive list items merged), table (header + rows, caption, `table_index`), image (figures of at least 120 px, with caption) |
 | `.xlsx`, `.csv` | openpyxl (`data_only=True`) or `csv` with dialect sniffing, then the layout detector below | one frame per sheet, indexed by Excel row number, with its title, notes, units, full header texts and layout |
 | `.png`, `.jpg`, `.jpeg`, `.webp` | Pillow: verify, EXIF orientation, re-encode as PNG | one image element |
 
