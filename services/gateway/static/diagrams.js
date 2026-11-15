@@ -38,7 +38,7 @@ function renderDiagrams(root) {
     const pre = code.parentElement;
     if (pre.closest(".mermaid-card")) continue;
     const source = code.textContent;
-    const status = h("div", { class: "mermaid-status", role: "status" }, "Rendering diagram…");
+    const status = h("div", { class: "mermaid-status", role: "status" }, "Rendering diagram...");
     const details = h("details", { class: "mermaid-code" }, h("summary", {}, "View diagram code"));
     const card = h("figure", { class: "mermaid-card" }, status, details);
     pre.replaceWith(card);

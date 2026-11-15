@@ -1,4 +1,4 @@
-# Repository review — November 14, 2026
+# Repository review, November 14, 2026
 
 Scope: ingestion/job ownership, cancellation, version replacement, model loading, service boundaries,
 account/session handling, SQL execution, chat persistence, and the Docker/first-install path. This is a
@@ -185,7 +185,7 @@ queue checks that were not repeated for the generation follow-up. Those earlier 
 - All default Mac application images built successfully (inference proxies, ingestion, RAG, SQL,
   accounts, saved chats, audit, and gateway).
 - The complete `python3 scripts/macos.py setup` command finished, reusing completed files and keys.
-- Real Qwen text generation returned `4` for `2 + 2`; the vision model read the sample sign as `27 °C`.
+- Real Qwen text generation returned `4` for `2 + 2`; the vision model read the sample sign as 27 degrees C.
 - All three retrieval models loaded on MPS. Text and image/query vectors were finite and approximately
   unit length (1,024 and 2,048 dimensions); reranking assigned the relevant passage 0.9999 and the
   unrelated passage about 0.00006.
@@ -200,7 +200,7 @@ queue checks that were not repeated for the generation follow-up. Those earlier 
   The full request took about **402 s** while other smoke questions were also running. This verifies
   tool execution and citation; it does not establish generally correct model reasoning.
 - SciPy and statsmodels also reproduced the known regression in a direct sandbox check.
-- Sample question latency ranged from roughly **22–275 s** in this run, including concurrent agent
+- Sample question latency ranged from roughly **22-275 s** in this run, including concurrent agent
   work. Model reasoning, prefill and generation dominate the millisecond-scale dataframe operations.
 - The final rollout rebuilt all Mac images through the repository's normal Dockerfiles, including
   the real offline OCR warm-up, then recreated the application containers. All 12 services became
@@ -221,7 +221,7 @@ then renders answer tokens as they arrive. It stops the loader on completion, er
 streams, and never animates saved answers. Three additional UI tests cover these behaviors, including
 rendering tokens before the server closes its stream. This UI change does not improve model throughput.
 After changing the Mac's power mode, the same live request's recent generation rate rose
-to roughly 14–15 tokens/second. This is an observed rate change, not a controlled benchmark.
+to roughly 14-15 tokens/second. This is an observed rate change, not a controlled benchmark.
 
 Mermaid 12.3.0 is bundled locally, with its package integrity verified and licenses retained. Diagrams
 render after streaming finishes and when saved answers are opened. Lazy-loaded opaque-origin frames

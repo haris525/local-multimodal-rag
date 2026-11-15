@@ -51,7 +51,7 @@ there is no hard-coded rule forcing every Python calculation into one engine.
 [Polars documents its lazy predicate/projection pushdown](https://docs.pola.rs/user-guide/lazy/optimizations/).
 [pandas' performance guide recommends removing Python loops and using vectorization](https://pandas.pydata.org/docs/user_guide/enhancingperf.html).
 
-## Measurements on this Mac — November 14, 2026
+## Measurements on this Mac, November 14, 2026
 
 Apple M5 Pro / 64 GB unified memory; Docker Desktop Linux ARM64. The real sandbox was capped at
 **2 GiB and two CPUs**, with two library threads. Installed versions: DuckDB 2.0.0, Polars 2.1.0,
@@ -76,7 +76,7 @@ Median query time for **1,000,000 rows**, milliseconds:
 
 Linux process peak RSS for the join workload: DuckDB **120 MiB**, Polars **166 MiB**, pandas **275 MiB**.
 This includes the child's imports and temporary allocations; it is not the entire container's memory.
-Imports alone took about 0.19–0.20 s / 0.22–0.24 s / 0.33–0.35 s, respectively, in these runs.
+Imports alone took about 0.19-0.20 s / 0.22-0.24 s / 0.33-0.35 s, respectively, in these runs.
 The [raw results](benchmarks/analysis-mac-2026-11-14.json) include every timing, process duration,
 peak RSS, package version, and checked output.
 

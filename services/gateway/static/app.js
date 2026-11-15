@@ -132,7 +132,7 @@ function createDiagramRenderer() {
       const pre = code.parentElement;
       if (pre.closest(".mermaid-card")) continue;
       const source = code.textContent;
-      const status = h("div", { class: "mermaid-status", role: "status" }, "Rendering diagram…");
+      const status = h("div", { class: "mermaid-status", role: "status" }, "Rendering diagram...");
       const details = h("details", { class: "mermaid-code" }, h("summary", {}, "View diagram code"));
       const card = h("figure", { class: "mermaid-card" }, status, details);
       pre.replaceWith(card);
@@ -619,7 +619,7 @@ function startActivity(view, turn) {
   let stopped = false;
   let sourced = false;
   view.activity.hidden = false;
-  view.activityLabel.textContent = "Preparing your answer…";
+  view.activityLabel.textContent = "Preparing your answer...";
   const tick = () => {
     const seconds = Math.max(0, Math.floor((Date.now() - started) / 1000));
     const elapsed = seconds < 60 ? `${seconds}s` : `${Math.floor(seconds / 60)}m ${String(seconds % 60).padStart(2, "0")}s`;
@@ -636,16 +636,16 @@ function startActivity(view, turn) {
       if (stopped) return;
       let label;
       if (event === "step") {
-        if (["sections", "map"].includes(data.tool)) label = "Reading your documents…";
-        else if (data.tool === "reduce") label = "Combining what I found…";
-        else if (data.tool === "verify") label = "Checking the evidence…";
-        else label = "Reviewing what I found…";
+        if (["sections", "map"].includes(data.tool)) label = "Reading your documents...";
+        else if (data.tool === "reduce") label = "Combining what I found...";
+        else if (data.tool === "verify") label = "Checking the evidence...";
+        else label = "Reviewing what I found...";
       } else if (event === "sources") {
         sourced = true;
-        label = "Preparing your answer…";
-      } else if (event === "reasoning") label = "Thinking…";
+        label = "Preparing your answer...";
+      } else if (event === "reasoning") label = "Thinking...";
       // A mixed memory/document request can send a memory confirmation before retrieval starts.
-      else if (event === "token" && sourced) label = "Writing your answer…";
+      else if (event === "token" && sourced) label = "Writing your answer...";
       if (label && view.activityLabel.textContent !== label) view.activityLabel.textContent = label;
     },
     stop() {

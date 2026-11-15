@@ -22,7 +22,7 @@ configuration remains in `compose.yaml`; the Mac changes are in `compose.macos.y
 - [Docker Desktop for Mac](https://docs.docker.com/desktop/setup/install/mac-install/), running.
   Use Linux ARM64 containers. Compose must be **2.24.4 or newer** (`docker compose version`), and Docker
   Engine must be **28 or newer** (`docker version`), for the Compose tags and isolated sandbox network.
-- Apple's Command Line Tools. In **Terminal** (Applications → Utilities → Terminal), run
+- Apple's Command Line Tools. In **Terminal** (Applications > Utilities > Terminal), run
   `xcode-select --install` and finish the installer if they are missing. This supplies Git and the compiler.
 - [uv](https://docs.astral.sh/uv/getting-started/installation/). Install it with the official command
   below, then open a new Terminal and check `uv --version`. uv installs the required Python version
@@ -32,14 +32,14 @@ configuration remains in `compose.yaml`; the Mac changes are in `compose.macos.y
 curl -LsSf https://astral.sh/uv/install.sh | sh
 ```
 
-In Docker Desktop → Settings → Resources, give the Linux VM **16 GB memory** to start. The container
+In Docker Desktop > Settings > Resources, give the Linux VM **16 GB memory** to start. The container
 limits total about 12 GB without the optional Python sandbox; their actual use is usually lower.
-The model servers use **additional host memory outside that VM**. Allow roughly 20–25 GB for the LLM
-and 7–12 GB for the embedding/reranking service as initial estimates, not measured guarantees.
+The model servers use **additional host memory outside that VM**. Allow roughly 20-25 GB for the LLM
+and 7-12 GB for the embedding/reranking service as initial estimates, not measured guarantees.
 Keep room for macOS and other applications. Model weights, context, document parsing, and concurrent
 requests all contribute. A container memory cap can terminate a busy service; it does not make a model smaller.
 
-Before starting, inspect `docker ps` and Activity Monitor → Memory. Stop other large workloads yourself
+Before starting, inspect `docker ps` and Activity Monitor > Memory. Stop other large workloads yourself
 if needed. The launcher does not stop other projects or change Docker Desktop's global settings.
 Start with one user, one small document, and no optional Python sandbox.
 
@@ -104,7 +104,7 @@ past an error on an existing installation. An incomplete secrets folder needs re
 Use **two Terminal tabs** and leave both running. In each tab, first enter the repository folder with
 `cd /the/path/to/local-multimodal-rag` (replace this with your actual path).
 
-**Tab 1 — answers and image reading:**
+**Tab 1: answers and image reading:**
 
 ```sh
 python3 scripts/macos.py llm
@@ -114,7 +114,7 @@ Wait for the server to listen on port 18080. It loads the GGUF weights once. It 
 with a total context of 32,768 tokens, so each request gets 16,384. A token is a small piece of text;
 larger context means more memory. Only this one answer model should be running for this project.
 
-**Tab 2 — search models:**
+**Tab 2: search models:**
 
 ```sh
 python3 scripts/macos.py models
@@ -155,8 +155,8 @@ Enter the password twice when prompted (at least 12 characters; typing is hidden
 Open **[http://localhost:8000](http://localhost:8000)** and sign in.
 
 For a first test, upload `examples/documents/reference/us-constitution-1787.txt`, wait for **ready**,
-select it, turn **Deep search** off for the first question, and ask “What are the three branches of
-government?” Open a citation to check its source. Then try the
+select it, turn **Deep search** off for the first question, and ask "What are the three branches of
+government?" Open a citation to check its source. Then try the
 [sample documents and questions](../examples/documents/README.md). PDFs and images take longer.
 For the automated smoke test and API tokens, follow [Getting started, section 7](GETTING_STARTED.md#7-check-that-it-works-optional).
 
@@ -279,9 +279,9 @@ they do not resize Docker Desktop's VM. The optional Python sandbox adds its own
 
 | Symptom | What to do |
 |---|---|
-| “Cannot connect to Docker” / socket error | Open Docker Desktop and wait for the engine, then rerun `doctor`. |
+| "Cannot connect to Docker" / socket error | Open Docker Desktop and wait for the engine, then rerun `doctor`. |
 | Image-registry lookup times out during a build | Check internet/proxy access to Docker Hub and `ghcr.io`; retry setup when the connection works. Completed models and keys are reused. |
-| “unknown tag !override” | Update Docker Desktop/Compose; the Mac override requires Compose 2.24.4+. |
+| "unknown tag !override" | Update Docker Desktop/Compose; the Mac override requires Compose 2.24.4+. |
 | Model/proxy stays unhealthy | Keep both model tabs open; inspect their errors and the two `curl` checks above. Docker Desktop must resolve `host.docker.internal`. |
 | Port already in use | Check which application owns 8000, 18080 or 18083; stop that application's service yourself. The launcher refuses to replace it. |
 | CUDA/NVIDIA error on Mac | Use `python3 scripts/macos.py compose ...`; plain Compose is the NVIDIA path. |
@@ -302,7 +302,7 @@ versions of the same filename, but this is a workstation deployment, not a distr
 
 Setup needs internet access. Runtime model loading is offline and documents go to local processes.
 Unlike the NVIDIA deployment, the native model processes are outside Docker's network and filesystem
-isolation; the two proxies join a bridge that can reach the host. Docker's “no network egress” guarantee
+isolation; the two proxies join a bridge that can reach the host. Docker's "no network egress" guarantee
 does not extend to those native processes. Use the NVIDIA deployment or an OS-enforced network policy
 if enforced isolation of inference is a requirement.
 

@@ -1,4 +1,4 @@
-# Reindex and memory validation — 2026-11-14
+# Reindex and memory validation, 2026-11-14
 
 **Passed:** a 14.7-minute synthetic workload on Apple Silicon with 64 GiB host memory and a 16 GiB
 Docker VM. Ingest-worker retained its 4 GiB cap; inference ran natively using the models/settings in

@@ -248,15 +248,15 @@ test("a waiting answer shows a loader, elapsed time and real stage changes until
     };
     await send(["memory", { action: "saved", items: [{ memory_id: "m1", text: "new to the constitution" }] }],
       ["token", { text: "Saved to memory. " }]);
-    assert.equal(label.textContent, "Preparing your answer…", "a memory confirmation is not the answer stream");
+    assert.equal(label.textContent, "Preparing your answer...", "a memory confirmation is not the answer stream");
     await send(["step", { tool: "sections", args: { plan: "2 map calls" } }]);
-    assert.equal(label.textContent, "Reading your documents…");
+    assert.equal(label.textContent, "Reading your documents...");
     await send(["step", { tool: "reduce", args: {} }]);
-    assert.equal(label.textContent, "Combining what I found…");
+    assert.equal(label.textContent, "Combining what I found...");
     await send(["sources", { route: "exhaustive", sources: [] }], ["reasoning", { text: "Considering the sources" }]);
-    assert.equal(label.textContent, "Thinking…");
+    assert.equal(label.textContent, "Thinking...");
     await send(["token", { text: "The Constitution" }]);
-    assert.equal(label.textContent, "Writing your answer…");
+    assert.equal(label.textContent, "Writing your answer...");
     assert.equal(activity.hidden, false, "the loader remains while the answer streams");
     assert.equal(b.run("diagramRenders"), 0, "streaming tokens do not recreate diagram frames");
     assert.equal(find(b.$("#messages"), (el) => el.className === "answer").textContent, "Saved to memory. The Constitution",

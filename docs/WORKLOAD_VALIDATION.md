@@ -24,7 +24,7 @@ The defaults generate:
 
 | Fixture | Checks |
 |---|---|
-| 250,000-row CSV | Exact full-table row count and integer sums through the real signed RAG → SQL client, including rows beyond the 20,000-row retrieval indexing cap |
+| 250,000-row CSV | Exact full-table row count and integer sums through the real signed RAG-to-SQL client, including rows beyond the 20,000-row retrieval indexing cap |
 | 50,000-row UTF-16 CSV | Semicolon delimiter, Unicode, quoted multiline fields, decimal commas and blank values; successful ingestion and subsequent reads |
 | 12,000-row workbook | Merged title, notes, repeated headers, leading-zero IDs, dates, currency formats, missing values and uncached formulas; successful ingestion and warnings recorded |
 | 100-page text PDF | Repeated headers and table-like text, plus a searchable marker on the final page |
@@ -58,7 +58,7 @@ test does not count as a new OOM during this workload.
 The runner exits unsuccessfully for incorrect aggregates, mixed search generations, missing final
 content, unexpected parsing outcomes, monitoring failures, an unhealthy/restarted service or incomplete
 cleanup. A normal interruption runs cleanup. If the process is killed forcibly or Docker stops, it may
-leave its `validation-…` account; use the app's admin Users page to delete that account and its data.
+leave its `validation-...` account; use the app's admin Users page to delete that account and its data.
 Never bulk-delete other accounts to clean up a test.
 
 The worker embeds and upserts one batch at a time; its vector memory no longer grows with every row.
