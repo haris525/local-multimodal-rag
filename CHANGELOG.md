@@ -29,6 +29,8 @@ and what to do about it (see [DEPLOYMENT.md, section 4.8](docs/DEPLOYMENT.md#48-
   page number, or has fewer than 3 words. Docling marks margin text as page headers and footers, and all
   of it was dropped, so content running into a margin (such as the last line of a document) was never
   indexed. `INDEX_VERSION` 3 reindexes every ready document once at the worker's next start.
+- Add a plan, not implemented, for video, audio and more file formats:
+  [docs/design/video-and-new-formats.md](docs/design/video-and-new-formats.md).
 
 **Data changes:** registry schema v5 adds `generation`, `storage_id` and a generation catalog. Existing
 documents keep their paths/point IDs and remain readable without reindexing. New derived data uses

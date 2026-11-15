@@ -47,6 +47,7 @@ on this machine; diagrams also appear when saved chats are reopened.
 | [Deployment](docs/DEPLOYMENT.md) | running it on a server, backups, updates and security |
 | [Architecture](docs/ARCHITECTURE.md) | the technical design, settings and measurements |
 | [State machines](docs/STATE_MACHINES.md) | every entity that moves through states (documents, accounts, sessions, the chat stream and more), with diagrams and known limitations |
+| [Plan: video, audio and more formats](docs/design/video-and-new-formats.md) | not built yet: how videos, audio and other file types could be ingested |
 | [Changelog](CHANGELOG.md) | what changed |
 
 ## Quick start

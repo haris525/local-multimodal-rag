@@ -497,6 +497,9 @@ full transition table: [STATE_MACHINES.md, M5 and M6](STATE_MACHINES.md#m5-docum
 | `.xlsx`, `.csv` | openpyxl (`data_only=True`) or `csv` with dialect sniffing, then the layout detector below | one frame per sheet, indexed by Excel row number, with its title, notes, units, full header texts and layout |
 | `.png`, `.jpg`, `.jpeg`, `.webp` | Pillow: verify, EXIF orientation, re-encode as PNG | one image element |
 
+Planned, not built: video and audio (timestamped transcripts, keyframes, clip vectors) and more formats
+(DOCX, PPTX, HTML, older spreadsheets, data files, email), in [design/video-and-new-formats.md](design/video-and-new-formats.md).
+
 Formula cells without a saved value (files written by a library and never recalculated) are counted
 and reported as a warning, never indexed silently as blanks.
 
