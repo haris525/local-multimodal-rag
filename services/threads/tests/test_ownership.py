@@ -84,8 +84,8 @@ def test_purge_user_deletes_only_that_user_and_can_be_repeated(tmp_path):
         t = store.create(user, "chat", []).thread_id
         store.append(user, t, turn("q", "a"), None)
         store.add_memory(user, "A fact.", "user", t)
-    assert store.purge_user(A) == {"threads": 1, "messages": 2, "memories": 1}
-    assert store.purge_user(A) == {"threads": 0, "messages": 0, "memories": 0}
+    assert store.purge_user(A) == {"threads": 1, "messages": 2, "memories": 1, "search_tasks": 0}
+    assert store.purge_user(A) == {"threads": 0, "messages": 0, "memories": 0, "search_tasks": 0}
     assert store.recent(A, 10) == [] and store.memories(A) == []
     assert len(store.recent(B, 10)) == 1 and len(store.memories(B)) == 1
     assert store.get(B, store.recent(B, 10)[0].thread_id).thread.message_count == 2
@@ -166,7 +166,7 @@ def test_internal_routes_are_for_auth_system_calls(client):
     system = KEYS.headers(new_user_id(), role="system")
     client.post("/v1/memories", json={"text": "Uses EUR."}, headers=KEYS.headers(A))
     assert client.get("/internal/capabilities", headers=system).json() == {"service": "threads", "multi_user": 1,
-                                                                           "schema": 2}
+                                                                           "schema": 3}
     assert client.get("/internal/capabilities", headers=KEYS.headers(A)).status_code == 403
     assert client.delete(f"/internal/users/{A}", headers=KEYS.headers(A, role="admin")).status_code == 403
     assert client.delete(f"/internal/users/{A}", headers=system).json()["memories"] == 1
@@ -190,7 +190,7 @@ def test_nothing_can_be_created_for_a_deleted_account(tmp_path):
         with pytest.raises(OwnerDeleted):
             write()
     assert store.recent(A, 10) == [] and store.memories(A) == []
-    assert store.purge_user(A) == {"threads": 0, "messages": 0, "memories": 0}  # repeatable
+    assert store.purge_user(A) == {"threads": 0, "messages": 0, "memories": 0, "search_tasks": 0}  # repeatable
     assert store.create(B, "B is fine", []).title == "B is fine" and store.add_memory(B, "B fact.", "user", None)
 
 
@@ -204,7 +204,7 @@ def test_a_v1_database_gets_the_tombstone_table(tmp_path):
         db.execute("PRAGMA user_version = 1")
     store = Store(path)
     with sqlite3.connect(path) as db:
-        assert db.execute("PRAGMA user_version").fetchone()[0] == 2
+        assert db.execute("PRAGMA user_version").fetchone()[0] == 3
     store.purge_user(A)
     assert Store(path) and store.recent(A, 1) == []
 

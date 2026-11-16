@@ -17,6 +17,7 @@
     <div class="brand">Local RAG <span class="brand-sub">private, on this machine</span></div>
     <div class="top-actions">
       <button id="memory-open" type="button" class="link">Memory</button>
+      <button id="tasks-open" type="button" class="link">Search tasks</button>
       <button id="audit-open" type="button" class="link">Audit log</button>
       <details id="user-menu" class="user-menu">
         <summary id="user-name" class="link"></summary>
@@ -72,6 +73,8 @@
           <label class="toggle" title="Let the model reason before answering (slower)"><input id="think" type="checkbox"> Think</label>
           <label class="toggle" title="Enables step-by-step search, SQL and optional Python analysis tools (slower)"><input id="deep" type="checkbox"> Deep search</label>
           <label class="toggle" title="Reads every section of the selected documents before answering (slowest; for questions about the documents as a whole, such as listing every item or counting mentions)"><input id="exhaustive" type="checkbox"> Read all</label>
+          <label class="toggle task-pick" title="The instruction your question is searched with (Search tasks in the top bar lists them)">Search task <select id="search-task"><option value="general">General</option></select></label>
+          <span id="search-task-note" class="task-note" role="status" hidden></span>
           <button id="new-chat" type="button" class="link">New chat</button>
           <button id="send" type="submit" class="primary">Send</button>
         </div>

@@ -10,6 +10,11 @@ from sentence_transformers import CrossEncoder, SentenceTransformer
 from models_svc.config import Settings
 
 
+def query_prompt(instruction: str) -> str:
+    """Qwen3-Embedding's query prompt for an instruction; an empty instruction embeds the bare question."""
+    return f"Instruct: {instruction}\nQuery:" if instruction else ""
+
+
 class Encoders:
     def __init__(self, s: Settings):
         self.s = s
@@ -40,8 +45,13 @@ class Encoders:
     def dims(self) -> tuple[int, int]:
         return self.text.get_sentence_embedding_dimension(), self.image.get_sentence_embedding_dimension()
 
-    def embed_text(self, texts: list[str], role: str) -> list[list[float]]:
-        prompt = f"Instruct: {self.s.query_instruction}\nQuery:" if role == "query" else ""
+    def query_instruction(self, instruction: str | None) -> str:
+        """The instruction a query is embedded with: the request's, else MODELS_QUERY_INSTRUCTION (empty: none)."""
+        return self.s.query_instruction if instruction is None else instruction
+
+    def embed_text(self, texts: list[str], role: str, instruction: str | None = None) -> list[list[float]]:
+        """Documents as they are; queries after query_instruction(instruction)."""
+        prompt = query_prompt(self.query_instruction(instruction)) if role == "query" else ""
         vectors = self.text.encode(texts, prompt=prompt, batch_size=self.s.text_batch, normalize_embeddings=True)
         return vectors.tolist()
 

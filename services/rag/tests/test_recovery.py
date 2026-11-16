@@ -90,7 +90,7 @@ def test_models_busy_is_retried_and_a_sql_timeout_is_not():
     def models(request):
         calls["models"] += 1
         return httpx.Response(503, json={"detail": "queue full"}) if calls["models"] == 1 else \
-            httpx.Response(200, json={"vectors": [[1.0]], "dim": 1})
+            httpx.Response(200, json={"vectors": [[1.0]], "dim": 1, "instruction": ""})
 
     def sql(request):
         calls["sql"] += 1
@@ -98,7 +98,7 @@ def test_models_busy_is_retried_and_a_sql_timeout_is_not():
 
     m = ModelsClient(httpx.AsyncClient(base_url="http://m", transport=httpx.MockTransport(models)), FAST)
     s = SqlClient(httpx.AsyncClient(base_url="http://s", transport=httpx.MockTransport(sql)), FAST)
-    assert asyncio.run(m.embed_query("q")) == [1.0] and calls["models"] == 2
+    assert asyncio.run(m.embed_query("q", "")) == [1.0] and calls["models"] == 2
     with pytest.raises(ServiceError):
         asyncio.run(s.query("d" * 32, "SELECT 1"))
     assert calls["sql"] == 1

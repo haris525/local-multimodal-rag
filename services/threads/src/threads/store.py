@@ -1,10 +1,10 @@
-"""Conversations, their running summaries, and long-term memories in SQLite (WAL), per user.
+"""Conversations, their running summaries, long-term memories and custom search tasks in SQLite (WAL), per user.
 
 Messages are never deleted when a conversation is compacted: the summary only replaces older turns in
 what the model sees, the full history stays here.
 
-Every thread and memory belongs to one user, and every query has the owner in its WHERE clause, so another
-user's thread or memory reads exactly like a missing one. Messages have no owner column: each message read
+Every thread, memory and search task belongs to one user, and every query has the owner in its WHERE clause, so
+another user's thread, memory or search task reads exactly like a missing one. Messages have no owner column: each message read
 or write checks the thread's owner on the same connection first. Rows written before accounts existed have
 no owner and are visible to nobody until adopt_legacy gives them one.
 
@@ -12,6 +12,10 @@ Deleted accounts (schema v2) leave a tombstone in deleted_users, written in the 
 their rows. A chat authorized before the deletion can still be running (rag signs a fresh identity for each
 call while it lasts), so every write that creates something (a thread, a message, a memory) checks the
 tombstone in its own transaction and raises OwnerDeleted: nothing can be created for a purged account.
+
+Custom search tasks (schema v3) are a user's own instructions for embedding the question (rag.search_tasks): a
+name and an instruction, at most THREADS_MAX_SEARCH_TASKS per user. rag reads one by id for the user in the
+chat request's identity, so no user can search with another user's task.
 """
 
 import json
@@ -23,14 +27,23 @@ from contextlib import contextmanager
 from datetime import UTC, datetime
 from pathlib import Path
 
-from rag_common.contracts import MemoryItem, NewMessage, ThreadContext, ThreadDetail, ThreadInfo, ThreadMessage
+from rag_common.contracts import (
+    MemoryItem,
+    NewMessage,
+    SearchTaskItem,
+    ThreadContext,
+    ThreadDetail,
+    ThreadInfo,
+    ThreadMessage,
+)
 from rag_common.identity import USER_ID_RE
+from rag_common.logging import log_fields
 from rag_common.secrets import redact_secrets
 from rag_common.sqlite import truncate_wal
 
 log = logging.getLogger("threads.store")
 
-SCHEMA_VERSION = 2
+SCHEMA_VERSION = 3
 _SCHEMA = [
     """CREATE TABLE IF NOT EXISTS threads (
         thread_id    TEXT PRIMARY KEY,
@@ -64,6 +77,15 @@ _SCHEMA = [
     )""",
     "CREATE INDEX IF NOT EXISTS memories_user ON memories (user_id)",
     "CREATE TABLE IF NOT EXISTS deleted_users (user_id TEXT PRIMARY KEY, deleted_at TEXT NOT NULL)",  # v2
+    """CREATE TABLE IF NOT EXISTS search_tasks (
+        task_id     TEXT PRIMARY KEY,
+        user_id     TEXT NOT NULL,
+        name        TEXT NOT NULL,
+        instruction TEXT NOT NULL,
+        created_at  TEXT NOT NULL,
+        updated_at  TEXT NOT NULL
+    )""",  # v3
+    "CREATE INDEX IF NOT EXISTS search_tasks_user ON search_tasks (user_id)",
 ]
 # v0 -> v1: memories were unique across all users; rebuilt with a per-user unique key, order kept.
 _MEMORIES_V1 = [
@@ -115,13 +137,15 @@ def _refuse_deleted(db: sqlite3.Connection, user_id: str) -> None:
 
 
 class Store:
-    def __init__(self, path: Path, max_memories: int = 50):
+    def __init__(self, path: Path, max_memories: int = 50, max_search_tasks: int = 50):
         path.parent.mkdir(parents=True, exist_ok=True)
         self._path = path
         self.max_memories = max_memories  # per user
+        self.max_search_tasks = max_search_tasks  # per user
         with self._connect() as db:
             db.execute("PRAGMA journal_mode=WAL")
             self._upgrade(db)
+            self._sweep_deleted_accounts(db)
 
     @contextmanager
     def _connect(self) -> Iterator[sqlite3.Connection]:
@@ -136,7 +160,7 @@ class Store:
     @staticmethod
     def _upgrade(db: sqlite3.Connection) -> None:
         """Bring the schema to SCHEMA_VERSION in one transaction (additive; a second run does nothing).
-        v1 added the owners (and rebuilt memories); v2 adds deleted_users.
+        v1 added the owners (and rebuilt memories); v2 adds deleted_users; v3 adds search_tasks.
         Foreign keys are off during the memories rebuild; the pragma only takes effect outside a transaction."""
         if db.execute("PRAGMA user_version").fetchone()[0] >= SCHEMA_VERSION:
             return
@@ -160,6 +184,21 @@ class Store:
                 raise
         finally:
             db.execute("PRAGMA foreign_keys=ON")
+
+    @staticmethod
+    def _sweep_deleted_accounts(db: sqlite3.Connection) -> None:
+        """At start: delete the search tasks of accounts already deleted. A threads from before schema v3 (after a
+        rollback) purges an account without them; this finishes that purge, the same way (zeroed pages, then the
+        WAL truncated). A second start finds nothing."""
+        if not db.execute("SELECT 1 FROM search_tasks WHERE user_id IN (SELECT user_id FROM deleted_users)"
+                          " LIMIT 1").fetchone():
+            return
+        db.execute("PRAGMA secure_delete=ON")
+        db.execute("BEGIN IMMEDIATE")
+        swept = db.execute("DELETE FROM search_tasks WHERE user_id IN (SELECT user_id FROM deleted_users)").rowcount
+        db.execute("COMMIT")
+        truncate_wal(db, log, purge="deleted accounts' search tasks")
+        log_fields(log, "deleted the search tasks of accounts deleted before", search_tasks=swept)
 
     # --- threads ----------------------------------------------------------------------------
 
@@ -335,12 +374,66 @@ class Store:
             return db.execute("DELETE FROM memories WHERE memory_id = ? AND user_id = ?",
                               (memory_id, _owner(user_id))).rowcount == 1
 
+    # --- custom search tasks ----------------------------------------------------------------
+
+    @staticmethod
+    def _search_task(row: sqlite3.Row) -> SearchTaskItem:
+        return SearchTaskItem(task_id=row["task_id"], name=row["name"], instruction=row["instruction"],
+                              created_at=row["created_at"], updated_at=row["updated_at"])
+
+    def search_tasks(self, user_id: str) -> list[SearchTaskItem]:
+        """The user's search tasks, oldest first."""
+        with self._connect() as db:
+            rows = db.execute("SELECT * FROM search_tasks WHERE user_id = ? ORDER BY rowid", (_owner(user_id),)).fetchall()
+        return [self._search_task(r) for r in rows]
+
+    def search_task(self, user_id: str, task_id: str) -> SearchTaskItem | None:
+        with self._connect() as db:
+            row = db.execute("SELECT * FROM search_tasks WHERE task_id = ? AND user_id = ?",
+                             (task_id, _owner(user_id))).fetchone()
+        return self._search_task(row) if row else None
+
+    def add_search_task(self, user_id: str, name: str, instruction: str) -> SearchTaskItem:
+        """Store a new search task (name and instruction already checked: SearchTaskWrite). ValueError at the user's
+        limit (max_search_tasks); OwnerDeleted for a deleted account."""
+        _owner(user_id)
+        now = _now()
+        item = SearchTaskItem(task_id=uuid.uuid4().hex, name=name, instruction=instruction, created_at=now,
+                              updated_at=now)
+        with self._connect() as db:
+            db.execute("BEGIN IMMEDIATE")
+            _refuse_deleted(db, user_id)
+            count = db.execute("SELECT COUNT(*) FROM search_tasks WHERE user_id = ?", (user_id,)).fetchone()[0]
+            if count >= self.max_search_tasks:
+                db.execute("ROLLBACK")
+                raise ValueError(f"you have {count} search tasks, the most allowed ({self.max_search_tasks}); "
+                                 "delete one first")
+            db.execute("INSERT INTO search_tasks (task_id, user_id, name, instruction, created_at, updated_at)"
+                       " VALUES (?, ?, ?, ?, ?, ?)", (item.task_id, user_id, name, instruction, now, now))
+            db.execute("COMMIT")
+        return item
+
+    def update_search_task(self, user_id: str, task_id: str, name: str, instruction: str) -> SearchTaskItem | None:
+        """Rewrite a search task in place (it keeps its id, so chats that used it ask with it again); None when it is
+        gone or not the user's. One statement returns the row it wrote, so a delete at the same moment cannot
+        leave it half done."""
+        with self._connect() as db:
+            rows = db.execute("UPDATE search_tasks SET name = ?, instruction = ?, updated_at = ?"
+                              " WHERE task_id = ? AND user_id = ? RETURNING *",
+                              (name, instruction, _now(), task_id, _owner(user_id))).fetchall()
+        return self._search_task(rows[0]) if rows else None
+
+    def delete_search_task(self, user_id: str, task_id: str) -> bool:
+        with self._connect() as db:
+            return db.execute("DELETE FROM search_tasks WHERE task_id = ? AND user_id = ?",
+                              (task_id, _owner(user_id))).rowcount == 1
+
     # --- accounts ---------------------------------------------------------------------------
 
     def purge_user(self, user_id: str) -> dict:
-        """Delete every thread (messages cascade) and memory of a user, and tombstone the account in the same
-        transaction, so a chat still running cannot write anything for it afterwards. Freed pages are zeroed
-        and the WAL is truncated, so the text does not linger in the file. Repeatable: a second run deletes
+        """Delete every thread (messages cascade), memory and search task of a user, and tombstone the account in
+        the same transaction, so a chat still running cannot write anything for it afterwards. Freed pages are
+        zeroed and the WAL is truncated, so the text does not linger in the file. Repeatable: a second run deletes
         nothing."""
         _owner(user_id)
         with self._connect() as db:
@@ -351,9 +444,10 @@ class Store:
                                   " (SELECT thread_id FROM threads WHERE user_id = ?)", (user_id,)).fetchone()[0]
             threads = db.execute("DELETE FROM threads WHERE user_id = ?", (user_id,)).rowcount
             memories = db.execute("DELETE FROM memories WHERE user_id = ?", (user_id,)).rowcount
+            search_tasks = db.execute("DELETE FROM search_tasks WHERE user_id = ?", (user_id,)).rowcount
             db.execute("COMMIT")
             truncate_wal(db, log, purge="user")
-        return {"threads": threads, "messages": messages, "memories": memories}
+        return {"threads": threads, "messages": messages, "memories": memories, "search_tasks": search_tasks}
 
     def adopt_legacy(self, user_id: str, dry_run: bool = False) -> dict:
         """Give the threads and memories from before accounts existed to one user. A legacy memory that says what

@@ -3,7 +3,7 @@
 Newest first. Each entry says under "Data changes" whether it changes what is stored in the Docker volumes
 and what to do about it (see [DEPLOYMENT.md, section 4.8](docs/DEPLOYMENT.md#48-updates)).
 
-## Unreleased: consistent reindexing
+## Unreleased: consistent reindexing and search tasks
 
 - Reindex into immutable run generations; publish files, point selection and metadata through one
   registry pointer switch. Questions preserve their selected generations across every retrieval tool,
@@ -34,13 +34,38 @@ and what to do about it (see [DEPLOYMENT.md, section 4.8](docs/DEPLOYMENT.md#48-
 - Show the MMR formula in ARCHITECTURE.md section 7.4 as math on github.com. GitHub leaves a ` ```math `
   block inside a list as a code block when the list also holds inline formulas, so the block now sits
   between items 4 and 5 and the list goes on at 5.
+- Search tasks: the instruction the question is embedded with before the meaning search is chosen per question
+  ([design](docs/design/search-tasks.md), ARCHITECTURE section 7.2). A *Search task* picker sits next to *Think*,
+  *Deep search* and *Read all*, with three built-in tasks (`services/rag/src/rag/search_tasks.py`):
+  - **General**, the default: `RAG_QUERY_INSTRUCTION`, now `Given a question about the user's documents,
+    retrieve passages with the facts needed to answer it`. The earlier `Given a question, retrieve passages that
+    answer it` measured below no instruction at all.
+  - **Multi-step research**: Qwen's multi-hop instruction.
+  - **Exact lookup**: no instruction, the bare question.
+
+  Each user can add their own in the *Search tasks* panel: private, deleted with the account, at most
+  `THREADS_MAX_SEARCH_TASKS` (50), never holding a credential value. *Retry* and reopened chats use the task an
+  answer was asked with. How General was chosen:
+  [benchmarks/embedding-models-2026-11-15.md](docs/benchmarks/embedding-models-2026-11-15.md).
+- `models` embeds a query with the instruction its request sends and answers with the one it applied; rag
+  refuses a vector made without the one it sent, so an outdated `models` is an error, not a silent fallback. A
+  refused request (422) from any service names the field and the reason without echoing the value sent.
+- New command `rag-eval embed-bench` (`eval/src/rag_eval/embedbench/`): compares text embedders on recall@k,
+  retrieval only, with the app's fusion and reranker, over the example documents' own chunks (gold chunks in
+  `eval/benchmarks/local_passages.jsonl`), HotpotQA and MuSiQue. The larger Qwen3 embedders (4B, 8B, VL-8B) add
+  at most about 3 points of recall@10 after reranking and need 6 to 14 GiB more GPU memory, so the 0.6B stays
+  ([findings](docs/benchmarks/embedding-models-2026-11-15.md)). `bench --search-task` sends a search task with
+  every question. Its chunk export holds an account's document text, so `.gitignore` keeps `chunks*.jsonl` and
+  `candidates*.txt` out of git.
 
 **Data changes:** registry schema v5 adds `generation`, `storage_id` and a generation catalog. Existing
 documents keep their paths/point IDs and remain readable without reindexing. New derived data uses
 generation directories/IDs. Schema v6 adds `retired_at` and `collected_at` to the catalog; generations
 replaced before it count as retired from its first start. Index version 3 reindexes
 every ready document once (DEPLOYMENT.md section 4.21). Use the coordinated upgrade in [Deployment](docs/DEPLOYMENT.md#consistent-reindex-upgrade);
-rolling back after new generations are published requires the matching data backup.
+rolling back after new generations are published requires the matching data backup. Threads schema v3 adds a
+`search_tasks` table, and General's instruction changes on the question's side only, so neither needs a
+reindex (DEPLOYMENT.md section 4.22).
 
 ## 0.1.0: initial public release
 

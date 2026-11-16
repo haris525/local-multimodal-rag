@@ -7,7 +7,8 @@ import uuid
 from collections.abc import Awaitable, Callable
 from contextlib import AbstractAsyncContextManager
 
-from fastapi import FastAPI
+from fastapi import FastAPI, Request
+from fastapi.exceptions import RequestValidationError
 from fastapi.responses import JSONResponse
 
 from rag_common.identity import Verifier, identity_middleware
@@ -83,6 +84,20 @@ class NoStoreDefault:
         await self.app(scope, receive, send_with_default)
 
 
+def _plain(value):
+    """Text that always encodes: a lone surrogate (valid in a JSON string, not in UTF-8) becomes a question mark."""
+    return value.encode("utf-8", "replace").decode("utf-8") if isinstance(value, str) else value
+
+
+async def refused(_request: Request, exc: RequestValidationError) -> JSONResponse:
+    """A request the checks refused (422): where and why for each error (loc, msg, type), never the submitted
+    value or the check's context. So a 422 never echoes a password, a document's text or a search instruction,
+    and a value that cannot be encoded (a lone surrogate) is still a 422, not a 500."""
+    errors = [{"loc": [_plain(part) for part in e.get("loc", ())], "msg": _plain(str(e.get("msg", ""))),
+               "type": e.get("type", "")} for e in exc.errors()]
+    return JSONResponse({"detail": errors}, status_code=422)
+
+
 def create_app(
     title: str,
     lifespan: Callable[[FastAPI], AbstractAsyncContextManager[None]] | None = None,
@@ -92,9 +107,11 @@ def create_app(
     identity_optional: set[tuple[str, str]] | frozenset[tuple[str, str]] = frozenset(),
 ) -> FastAPI:
     """With a verifier, every request except the health probes needs a valid X-Identity (see identity.py).
-    Middleware order, outermost first: access log (sets the request id), no-store default, identity."""
+    Middleware order, outermost first: access log (sets the request id), no-store default, identity. A refused
+    request (422) never echoes what was sent (refused)."""
     configure_logging(log_level)
     app = FastAPI(title=title, lifespan=lifespan)
+    app.add_exception_handler(RequestValidationError, refused)
     if verifier is not None:
         identity_middleware(app, verifier, identity_optional)
     app.add_middleware(NoStoreDefault)

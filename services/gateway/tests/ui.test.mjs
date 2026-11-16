@@ -29,7 +29,7 @@ class El {
   get childElementCount() { return this.children.length; }
   get textContent() { return this.children.map((c) => (typeof c === "string" ? c : c.textContent)).join(""); }
   set textContent(v) { this.children = [String(v)]; }
-  set innerHTML(v) { this.children = [String(v)]; }
+  set innerHTML(v) { this.children = [String(v)]; this.usedHTML = true; }
   before() {} after() {} focus() {} scrollIntoView() {} closest() { return null; }
 }
 
@@ -373,6 +373,255 @@ test("Retry of an exhaustive answer turns Read all back on, Deep search off, and
   assert.equal(b.run("chatMode()"), "single");
 });
 
+// Search tasks: the instruction a question is searched with. Built-in ones from rag, the user's own from threads.
+const MINE = "c".repeat(32);
+const PRESETS = [
+  { id: "general", name: "General", description: "The default, for most questions.", instruction: "Given a question about the user's documents, retrieve passages with the facts needed to answer it", measured: "" },
+  { id: "multi-step", name: "Multi-step research", description: "For questions that chain facts across several passages.",
+    instruction: "Given a multi-hop question, retrieve documents that can help answer the question", measured: "" },
+  { id: "exact", name: "Exact lookup", description: "No instruction: the bare question, close to a keyword search.", instruction: "", measured: "" }];
+const CONTRACTS = { task_id: MINE, name: "Contracts", instruction: "Given a question about an agreement, retrieve the clauses that answer it",
+  created_at: "2026-11-15T10:00:00+00:00", updated_at: "2026-11-15T10:00:00+00:00" };
+const answered = () => [0, events(["sources", { route: "search", sources: [] }], ["token", { text: "Clause 4." }],
+  ["done", { citations: [], invalid_citations: [], timings: {} }])];
+const options = (pick) => pick.children.flatMap((group) => group.children.map((o) => [group.attrs.label, o.attrs.value, text(o)]));
+
+test("the search task picker lists the built-in tasks and the user's own, and a question sends the one picked", async () => {
+  const b = browser({ "/search-tasks/presets": [0, PRESETS], "/search-tasks": [0, [CONTRACTS]], "/threads": threadsRoute(),
+    "/chat": answered() });
+  await b.run("loadSearchTasks()");
+  const pick = b.$("#search-task");
+  assert.deepEqual(options(pick), [["Built-in", "general", "General"], ["Built-in", "multi-step", "Multi-step research"],
+    ["Built-in", "exact", "Exact lookup"], ["Yours", MINE, "Contracts"]]);
+  assert.equal(pick.value, "general");
+  pick.value = MINE;
+  await b.run('ask("which clause covers termination?")');
+  assert.equal(b.requests.find((r) => r.url.endsWith("/chat")).body.search_task, MINE);
+  const footer = find(b.$("#messages"), (el) => el.className === "meta");
+  assert.match(text(footer), /search task: Contracts/);  // the answer shows the task it was asked with
+});
+
+test("the picker moves to General, and says so, only when the loaded list lacks its task", async () => {
+  let mine = [CONTRACTS];
+  const b = browser({ "/search-tasks/presets": [0, PRESETS], "/search-tasks": () => [0, mine] });
+  await b.run("loadSearchTasks()");
+  b.$("#search-task").value = MINE;
+  mine = [];
+  await b.run("loadSearchTasks()");
+  assert.equal(b.$("#search-task").value, "general");
+  assert.equal(b.$("#search-task-note").hidden, false);
+  assert.match(text(b.$("#search-task-note")), /no longer listed, so the picker is on General/);
+});
+
+test("a list that cannot load keeps the task picked, says so next to the picker, and rag decides", async () => {
+  let down = false;
+  const b = browser({ "/search-tasks/presets": [0, PRESETS],
+    "/search-tasks": () => (down ? [0, { detail: "threads is restarting" }, 503] : [0, [CONTRACTS]]),
+    "/threads": threadsRoute(), "/chat": answered() });
+  await b.run("loadSearchTasks()");
+  b.$("#search-task").value = MINE;
+  down = true;
+  const problem = await b.run("loadSearchTasks()");
+  assert.match(problem, /your search tasks \(threads is restarting\)/);
+  assert.equal(b.$("#search-task").value, MINE, "not moved to General on a guess");
+  assert.match(text(b.$("#search-task-note")), /Could not load your search tasks \(threads is restarting\)/);
+  await b.run('ask("which clause?")');
+  assert.equal(b.requests.find((r) => r.url.endsWith("/chat")).body.search_task, MINE);
+  // nothing loaded at all: a turn's task is still kept, with an option of its own
+  const cold = browser({ "/search-tasks/presets": [0, { detail: "rag is starting" }, 503],
+    "/search-tasks": [0, { detail: "threads is starting" }, 503] });
+  await cold.run("loadSearchTasks()");
+  cold.run(`restoreTurn({ search_task: "${MINE}" })`);
+  assert.equal(cold.$("#search-task").value, MINE);
+  assert.ok(options(cold.$("#search-task")).some(([group, id]) => group === "Not loaded" && id === MINE));
+  cold.run('restoreTurn({ search_task: "multi-step" })');
+  assert.equal(cold.$("#search-task").value, "multi-step");
+});
+
+test("a task deleted in another tab: the 422 reloads the lists, moves the picker and says why", async () => {
+  let mine = [CONTRACTS];
+  const b = browser({ "/search-tasks/presets": [0, PRESETS], "/search-tasks": () => [0, mine], "/threads": threadsRoute(),
+    "/chat": [0, { detail: `unknown search task: ${MINE} (deleted, or not one of yours)` }, 422] });
+  await b.run("loadSearchTasks()");
+  b.$("#search-task").value = MINE;
+  mine = [];  // deleted in another tab
+  await b.run('ask("which clause?")');
+  assert.equal(b.requests.filter((r) => r.url === "/api/search-tasks").length, 2, "the lists were loaded again");
+  assert.equal(b.$("#search-task").value, "general");
+  assert.match(text(b.$("#search-task-note")), /no longer listed, so the picker is on General/);
+  assert.match(text(b.$("#messages")), /the search task was deleted meanwhile, perhaps in another tab/);
+});
+
+test("a reopened chat asks follow-ups with its own task, and switching chats switches the task", async () => {
+  const chatX = "1".repeat(32), chatY = "2".repeat(32), old = "3".repeat(32);
+  const saved = (id, task) => ({ thread: { thread_id: id, doc_ids: [] }, messages: [
+    { role: "user", content: "first" },
+    { role: "assistant", content: "a", meta: task === undefined ? { sources: [] } : { sources: [], search_task: task } }] });
+  const b = browser({ "/search-tasks/presets": [0, PRESETS], "/search-tasks": [0, [CONTRACTS]], "/threads": [0, []],
+    [`/threads/${chatX}`]: [0, saved(chatX, MINE)], [`/threads/${chatY}`]: [0, saved(chatY, "exact")],
+    [`/threads/${old}`]: [0, saved(old, undefined)], "/chat": answered() });
+  await b.run("loadSearchTasks()");
+  const sent = () => b.requests.filter((r) => r.url.endsWith("/chat")).map((r) => r.body.search_task);
+  await b.run(`openThread("${chatX}")`);
+  await b.run('ask("and the notice period?")');
+  await b.run(`openThread("${chatY}")`);
+  assert.equal(b.$("#search-task").value, "exact");
+  await b.run('ask("and the penalty?")');
+  await b.run(`openThread("${old}")`);  // a chat from before search tasks: General
+  await b.run('ask("and the start date?")');
+  assert.deepEqual(sent(), [MINE, "exact", "general"]);
+});
+
+test("Retry on an answer from before search tasks asks with General", async () => {
+  const b = browser({ "/search-tasks/presets": [0, PRESETS], "/search-tasks": [0, [CONTRACTS]], "/threads": [0, []],
+    "/chat": answered() });
+  await b.run("loadSearchTasks()");
+  b.$("#search-task").value = MINE;
+  b.run(`state.threadId = "a".repeat(32); showHistory({ messages: [{ role: "user", content: "old question" },
+    { role: "assistant", content: "", meta: { error: "llm: busy", sources: [], mode: "single", think: false } }] })`);
+  find(b.$("#messages"), (el) => el.tagName === "button" && text(el) === "Retry").listeners.click[0]();
+  await b.wait(20);
+  assert.equal(b.requests.find((r) => r.url.endsWith("/chat")).body.search_task, "general");
+});
+
+test("a task name or instruction written as markup is shown as text, never parsed", async () => {
+  const markup = "<img src=x onerror=alert(1)>";
+  const task = { ...CONTRACTS, name: markup, instruction: `${markup} retrieve the clauses` };
+  const b = browser({ "/search-tasks/presets": [0, PRESETS], "/search-tasks": [0, [task]] });
+  await b.run("showSearchTasks()");
+  const walk = (el, out = []) => { if (el && el.children) { out.push(el); el.children.forEach((c) => walk(c, out)); } return out; };
+  const shown = [...walk(b.$("#sources-list")), ...walk(b.$("#search-task"))];
+  assert.ok(shown.every((el) => !el.usedHTML), "no element got its content as HTML");
+  assert.ok(shown.some((el) => el.children.includes(markup)), "the name is a text child");
+  assert.ok(options(b.$("#search-task")).some(([, , label]) => label === markup));
+});
+
+test("a name with only symbols or invisible characters is refused in plain words before sending", async () => {
+  const b = browser({ "/search-tasks/presets": [0, PRESETS], "/search-tasks": [0, []] });
+  await b.run("showSearchTasks()");
+  const form = b.$("#sources-list").children.find((c) => c.tagName === "form");
+  const message = form.children.find((c) => c.attrs.role === "alert");
+  for (const [name, words] of [["---", "The name needs at least one letter or digit."],
+    ["Con\u200btracts", "Leave invisible characters (zero-width spaces, direction marks) out of the name."]]) {
+    form.children[0].value = name;
+    form.children[1].value = "Find clauses";
+    await form.listeners.submit[0]({ preventDefault() {} });
+    assert.equal(text(message), words);
+  }
+  assert.equal(b.requests.filter((r) => r.url === "/api/search-tasks" && r.body).length, 0);
+});
+
+test("Retry asks again with the turn's search task, and with General when that task was deleted since", async () => {
+  const one = "1".repeat(32);
+  const doc = { doc_id: one, name: "a.pdf", doc_type: "pdf", status: "ready", n_chunks: 3, tables: [], warnings: [], progress: "" };
+  const b = browser({ "/search-tasks/presets": [0, PRESETS], "/search-tasks": [0, [CONTRACTS]], "/threads": [0, []],
+    "/chat": answered() });
+  await b.run("loadSearchTasks()");
+  const failed = (task) => ({ role: "assistant", content: "", meta: { error: "llm: busy", sources: [], mode: "single",
+    think: false, doc_ids: [one], search_task: task, search_task_kind: task === MINE ? "custom" : `preset:${task}` } });
+  b.run(`state.docs = [${JSON.stringify(doc)}]; state.selected = new Set(["${one}"]); state.threadId = "a".repeat(32);
+    showHistory({ messages: [{ role: "user", content: "which clause?" }, ${JSON.stringify(failed(MINE))},
+      { role: "user", content: "and the notice period?" }, ${JSON.stringify(failed("f".repeat(32)))}] })`);
+  const retries = [];
+  (function walk(el) { if (el.tagName === "button" && text(el) === "Retry") retries.push(el); (el.children || []).forEach((c) => c instanceof Object && walk(c)); })(b.$("#messages"));
+  assert.equal(retries.length, 2);
+  retries[0].listeners.click[0]();
+  await b.wait(20);
+  retries[1].listeners.click[0]();
+  await b.wait(20);
+  assert.deepEqual(b.requests.filter((r) => r.url.endsWith("/chat")).map((r) => [r.body.question, r.body.search_task]),
+    [["which clause?", MINE], ["and the notice period?", "general"]]);
+});
+
+test("a saved answer names its search task, unless it is General or the answer read every section", () => {
+  const b = browser();
+  b.run(`state.presets = ${JSON.stringify(PRESETS)}; showHistory({ messages: [
+    { role: "user", content: "q1" }, { role: "assistant", content: "a1", meta: { route: "search", sources: [], search_task: "multi-step" } },
+    { role: "user", content: "q2" }, { role: "assistant", content: "a2", meta: { route: "search", sources: [], search_task: "general" } },
+    { role: "user", content: "q3" }, { role: "assistant", content: "a3", meta: { route: "exhaustive", sources: [], search_task: "exact" } },
+    { role: "user", content: "q4" }, { role: "assistant", content: "a4", meta: { route: "deep", sources: [], search_task: "${"9".repeat(32)}" } }] })`);
+  const footers = b.$("#messages").children.filter((el) => el.className === "msg assistant")
+    .map((el) => text(find(el, (c) => c.className === "meta")));
+  assert.match(footers[0], /search task: Multi-step research/);
+  assert.doesNotMatch(footers[1], /search task/);
+  assert.doesNotMatch(footers[2], /search task/);
+  assert.match(footers[3], /search task: one of yours that is no longer listed/);
+});
+
+test("the Search tasks panel shows the built-in tasks read-only and checks a new one in plain words before sending it", async () => {
+  let mine = [];
+  const b = browser({ "/search-tasks/presets": [0, PRESETS],
+    "/search-tasks": (opts) => (opts.method === "POST" ? [0, CONTRACTS, 201] : [0, mine]) });
+  await b.run("showSearchTasks()");
+  const list = b.$("#sources-list");
+  assert.equal(b.$("#panel-title").textContent, "Search tasks");
+  const builtIn = list.children.filter((c) => c.className === "src task" && text(c).includes("built-in"));
+  assert.equal(builtIn.length, 3);
+  assert.ok(builtIn.every((card) => !find(card, (el) => el.tagName === "button")), "built-in tasks cannot be edited");
+  assert.match(text(builtIn[2]), /No instruction: the bare question\./);
+  const form = list.children.find((c) => c.tagName === "form");
+  const [name, instruction] = form.children;
+  const message = form.children.find((c) => c.attrs.role === "alert");
+  const submit = async () => { await form.listeners.submit[0]({ preventDefault() {} }); };
+  const posts = () => b.requests.filter((r) => r.url === "/api/search-tasks" && r.body).length;
+  for (const [n, i, words] of [["  ", "x", "Give the search task a name."],
+    ["n".repeat(41), "x", "The name can be at most 40 characters long; it has 41."],
+    ["Contracts", " ", "Write the instruction your questions are searched with."],
+    ["Contracts", "y".repeat(301), "The instruction can be at most 300 characters long; it has 301."],
+    ["Contracts", "two\nlines", "Use one line of text, without line breaks or tabs."]]) {
+    name.value = n;
+    instruction.value = i;
+    await submit();
+    assert.equal(message.hidden, false);
+    assert.equal(text(message), words);
+  }
+  assert.equal(posts(), 0, "nothing the page refused was sent");
+  name.value = " Contracts ";
+  instruction.value = ` ${CONTRACTS.instruction} `;
+  mine = [CONTRACTS];
+  await submit();
+  await b.wait(10);
+  assert.deepEqual(b.requests.find((r) => r.url === "/api/search-tasks" && r.body).body,
+    { name: "Contracts", instruction: CONTRACTS.instruction });
+  assert.ok(b.$("#sources-list").children.some((c) => c.className === "src task" && text(c).includes(CONTRACTS.instruction)));
+  assert.ok(options(b.$("#search-task")).some(([, id]) => id === MINE), "the picker lists the new task");
+});
+
+test("a task is edited in its card and deleted after a confirmation, and a refusal is shown in plain words", async () => {
+  const b = browser({ "/search-tasks/presets": [0, PRESETS], "/search-tasks": [0, [CONTRACTS]],
+    [`/search-tasks/${MINE}`]: (opts) => (opts.method === "PUT"
+      ? [0, { detail: [{ type: "value_error", loc: ["body", "name"], msg: "Value error, the name must be at most 40 characters, not 41" }] }, 422]
+      : [0, null, 204]) });
+  await b.run("showSearchTasks()");
+  const list = b.$("#sources-list");
+  const card = list.children.find((c) => c.className === "src task" && text(c).includes("Contracts") && !text(c).includes("built-in"));
+  find(card, (el) => el.tagName === "button" && text(el) === "Edit").listeners.click[0]();
+  const form = list.children.find((c) => c.tagName === "form" && c.children[0].value === "Contracts");
+  assert.equal(form.children[1].value, CONTRACTS.instruction);
+  form.children[0].value = "Agreements";
+  await form.listeners.submit[0]({ preventDefault() {} });
+  assert.deepEqual(b.requests.find((r) => r.url === `/api/search-tasks/${MINE}`).body,
+    { name: "Agreements", instruction: CONTRACTS.instruction });
+  assert.equal(text(form.children.find((c) => c.attrs.role === "alert")),
+    "Could not save the search task: the name must be at most 40 characters, not 41");
+  find(form, (el) => el.tagName === "button" && text(el) === "Cancel").listeners.click[0]();
+  assert.ok(list.children.includes(card), "Cancel puts the card back");
+  await find(card, (el) => el.tagName === "button" && text(el) === "Delete").listeners.click[0]();
+  assert.equal(b.requests.filter((r) => r.url === `/api/search-tasks/${MINE}`).length, 2);
+});
+
+test("the gateway sends search tasks to threads and the built-in list, read-only, to rag", () => {
+  const nginx = readFileSync(new URL("../default.conf.template", STATIC), "utf8");
+  const presets = nginx.match(/location = \/api\/search-tasks\/presets \{([\s\S]*?)\n        \}/)[1];
+  assert.match(presets, /limit_except GET \{ deny all; \}/);
+  assert.match(presets, /proxy_pass \$rag;/);
+  const own = nginx.match(/location \/api\/search-tasks \{([\s\S]*?)\n        \}/)[1];
+  assert.match(own, /rewrite \^\/api\/\(\.\*\)\$ \/v1\/\$1 break;/);
+  assert.match(own, /proxy_pass \$threads;/);
+  const api = nginx.indexOf("    location /api/ {");
+  assert.ok(nginx.indexOf("location /api/search-tasks {") > api, "behind auth_request, like memories");
+});
+
 test("a failed document's Retry sends one reindex however often it is clicked (L18)", async () => {
   let reindexed = 0;
   const id = "1".repeat(32);
@@ -410,8 +659,8 @@ test("the pages load only files that exist, nothing inline (CSP), and the top ba
   }
   const bar = readFileSync(new URL("index.html", STATIC), "utf8").match(/<header class="topbar">([\s\S]*?)<\/header>/);
   assert.ok(bar, "index.html has the plain top bar");
-  for (const id of ["memory-open", "audit-open", "user-menu", "user-name", "password-open", "tokens-open", "users-open",
-    "signout", "theme-toggle", "status", "status-text"]) {
+  for (const id of ["memory-open", "tasks-open", "audit-open", "user-menu", "user-name", "password-open", "tokens-open",
+    "users-open", "signout", "theme-toggle", "status", "status-text"]) {
     assert.match(bar[1], new RegExp(`id="${id}"`), `the top bar has #${id}`);
   }
   assert.doesNotMatch(bar[1], /<canvas/);

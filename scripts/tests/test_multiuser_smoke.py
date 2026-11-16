@@ -248,6 +248,21 @@ def test_chat_collects_the_stream_and_reports_a_refusal():
     assert refused["status"] == 404 and "unknown documents" in refused["body"]
 
 
+def test_chat_sends_a_search_task_only_when_given():
+    sent = []
+
+    def handler(request):
+        sent.append(json.loads(request.content))
+        return httpx.Response(422, json={"detail": "unknown search task: x"})
+
+    gw = gateway(handler)
+    acc = smoke.Account("b", cookie="rag_session=c")
+    gw.chat(acc, "q", ["d1"])
+    out = gw.chat(acc, "q", ["d1"], search_task="f" * 32)
+    assert "search_task" not in sent[0] and sent[1]["search_task"] == "f" * 32
+    assert out["status"] == 422 and "unknown search task" in out["body"]
+
+
 def test_cookie_pair_and_detail():
     r = httpx.Response(200, headers={"set-cookie": HTTPS_COOKIE})
     assert smoke.cookie_pair(r) == "__Host-rag_session=tok123"

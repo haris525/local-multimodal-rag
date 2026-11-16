@@ -150,6 +150,10 @@ green with *all services ready*.
      spreadsheets are read through their column summaries, not row by row, so ask figures over their rows
      without it. If the selection is too large to read in one request, the answer says which parts were not
      read. *Read all* and *Deep search* exclude each other.
+   - *Search task*: the instruction your question is searched with. *General* suits most questions; *Multi-step
+     research* helps questions that chain facts across passages; *Exact lookup* searches the bare question. Add
+     your own under **Search tasks** (top right). It changes which passages are found, not how the answer is
+     written.
 5. **Chats** (tab at the top left): every conversation is saved. Reopen one to continue where you left
    off; its document selection comes back too. *New chat* starts a fresh one. Follow-up questions
    ("and the West region?") understand the earlier turns, and long chats are summarized automatically

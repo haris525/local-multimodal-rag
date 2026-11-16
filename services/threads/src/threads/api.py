@@ -1,9 +1,11 @@
-"""threads: conversations (with running summaries) and long-term memories, per user.
+"""threads: conversations (with running summaries), long-term memories and custom search tasks, per user.
 
-The gateway exposes listing, reading, renaming, deleting and memories; appending messages, reading
+The gateway exposes listing, reading, renaming, deleting, memories and search tasks; appending messages, reading
 model context and writing summaries are backend-only (used by rag, so they need an identity signed by rag).
-Every route acts for the user in X-Identity; another user's thread or memory is a 404, like a missing one.
-THREADS_MAX_MEMORIES applies per user. /internal/* is for auth's system calls (capabilities, legacy adoption, account purge).
+Every route acts for the user in X-Identity; another user's thread, memory or search task is a 404, like a missing
+one. rag reads a chat's search task with the chat's identity (rag.search_tasks). THREADS_MAX_MEMORIES and
+THREADS_MAX_SEARCH_TASKS apply per user. /internal/* is for auth's system calls (capabilities, legacy adoption,
+account purge).
 """
 
 import os
@@ -15,11 +17,14 @@ from fastapi.responses import JSONResponse
 
 from rag_common.audit import AuditClient
 from rag_common.contracts import (
+    SEARCH_TASK_ID,
     THREAD_ID,
     MemoryCreate,
     MigrateLegacy,
     MemoryItem,
     NewMessages,
+    SearchTaskItem,
+    SearchTaskWrite,
     SummaryUpdate,
     ThreadContext,
     ThreadCreate,
@@ -29,14 +34,16 @@ from rag_common.contracts import (
     ThreadUpdate,
 )
 from rag_common.identity import USER_ID, Identity, Verifier, require_issuer, require_system, require_user
-from rag_common.secrets import looks_secret
+from rag_common.secrets import looks_secret, redact_secrets
 from rag_common.service import create_app
 
 from threads.store import SCHEMA_VERSION, OwnerDeleted, Store
 
-store = Store(Path(os.getenv("THREADS_DB", "/data/threads.db")), int(os.getenv("THREADS_MAX_MEMORIES", "50")))
+store = Store(Path(os.getenv("THREADS_DB", "/data/threads.db")), int(os.getenv("THREADS_MAX_MEMORIES", "50")),
+              int(os.getenv("THREADS_MAX_SEARCH_TASKS", "50")))
 audit = AuditClient(os.getenv("THREADS_AUDIT_URL", "http://audit:8004") or None, "threads")
 ThreadId = PathParam(pattern=THREAD_ID)
+TaskId = PathParam(pattern=SEARCH_TASK_ID)
 UserId = PathParam(pattern=USER_ID)
 FROM_RAG = Depends(require_issuer("rag"))
 PUBLIC_KEYS = Path(os.getenv("THREADS_PUBLIC_KEYS_FILE", "/run/secrets/identity_public_keys"))
@@ -156,6 +163,55 @@ async def delete_memory(memory_id: str = PathParam(pattern=THREAD_ID),
     return Response(status_code=204)
 
 
+# --- custom search tasks: a user's own instructions for embedding the question ---------------------
+# The audit names the task, never its name or instruction.
+
+
+def _no_credential_values(body: SearchTaskWrite) -> None:
+    """Every search task write passes here: a value that redact_secrets would remove (a password or key after its
+    label, a token, a URL with a password) is refused, so none is stored. Words alone are fine: an instruction
+    about "password reset policies" holds no credential."""
+    if any(redact_secrets(text) != text for text in (body.name, body.instruction)):
+        raise HTTPException(422, "search tasks never hold passwords, keys, tokens or other credentials")
+
+
+@app.get("/v1/search-tasks")
+def list_search_tasks(user: Identity = Depends(require_user)) -> list[SearchTaskItem]:
+    return store.search_tasks(user.user_id)
+
+
+@app.get("/v1/search-tasks/{task_id}")
+def get_search_task(task_id: str = TaskId, user: Identity = Depends(require_user)) -> SearchTaskItem:
+    return _found(store.search_task(user.user_id, task_id), "search task")
+
+
+@app.post("/v1/search-tasks", status_code=201)
+async def add_search_task(body: SearchTaskWrite, user: Identity = Depends(require_user)) -> SearchTaskItem:
+    _no_credential_values(body)
+    try:
+        item = store.add_search_task(user.user_id, body.name, body.instruction)
+    except ValueError as exc:  # at the user's limit (THREADS_MAX_SEARCH_TASKS)
+        raise HTTPException(409, str(exc)) from exc
+    await audit.record("search_task.added", item.task_id, user_id=user.user_id)
+    return item
+
+
+@app.put("/v1/search-tasks/{task_id}")
+async def update_search_task(body: SearchTaskWrite, task_id: str = TaskId,
+                             user: Identity = Depends(require_user)) -> SearchTaskItem:
+    _no_credential_values(body)
+    item = _found(store.update_search_task(user.user_id, task_id, body.name, body.instruction), "search task")
+    await audit.record("search_task.updated", task_id, user_id=user.user_id)
+    return item
+
+
+@app.delete("/v1/search-tasks/{task_id}", status_code=204)
+async def delete_search_task(task_id: str = TaskId, user: Identity = Depends(require_user)) -> Response:
+    _found(store.delete_search_task(user.user_id, task_id) or None, "search task")
+    await audit.record("search_task.deleted", task_id, user_id=user.user_id)
+    return Response(status_code=204)
+
+
 # --- auth's system calls --------------------------------------------------------------------
 
 
@@ -166,7 +222,7 @@ def capabilities(_: Identity = Depends(require_system)) -> dict:
 
 @app.delete("/internal/users/{user_id}")
 def purge_user(user_id: str = UserId, _: Identity = Depends(require_system)) -> dict:
-    """Delete an account's threads, messages and memories. Repeatable (a second call deletes nothing)."""
+    """Delete an account's threads, messages, memories and search tasks. Repeatable (a second call deletes nothing)."""
     return store.purge_user(user_id)
 
 

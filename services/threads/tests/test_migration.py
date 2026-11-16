@@ -42,7 +42,7 @@ def test_upgrade_keeps_memories_in_order_and_hides_everything_until_adopted(tmp_
     store = Store(tmp_path / "t.db")
     owner = new_user_id()
     with sqlite3.connect(tmp_path / "t.db") as db:
-        assert db.execute("PRAGMA user_version").fetchone()[0] == 2
+        assert db.execute("PRAGMA user_version").fetchone()[0] == 3
         rows = db.execute("SELECT memory_id, user_id FROM memories ORDER BY rowid").fetchall()
         assert rows == [(m[0], None) for m in MEMORIES]
         assert db.execute("PRAGMA foreign_key_check").fetchall() == []

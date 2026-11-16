@@ -22,7 +22,7 @@ from pydantic import BaseModel, Field
 
 from rag_common.audit import AuditClient
 from rag_common.chat_events import ChatEvent
-from rag_common.contracts import MAX_SELECTED_DOCS, DocId, DocStatus, DocumentInfo, NewMessage
+from rag_common.contracts import MAX_SELECTED_DOCS, SEARCH_TASK, DocId, DocStatus, DocumentInfo, NewMessage
 from rag_common.http import is_up, make_client
 from rag_common.identity import (
     Identity,
@@ -49,6 +49,7 @@ from rag.guard import SubnetGuard
 from rag.planner import Planner
 from rag.prompts import location
 from rag.retrieval import ALL_RETRIEVERS, Retrieval, SearchOptions
+from rag.search_tasks import BadSearchTask, SearchTask, presets, resolve
 from rag.turn import respond
 
 log = logging.getLogger("rag.api")
@@ -201,6 +202,23 @@ def _track(coro) -> asyncio.Task:
     return task
 
 
+async def _search_task(task_id: str | None) -> SearchTask:
+    """The search task a request names, for the caller (rag.search_tasks): 422 when it is not a preset or one of
+    the caller's own tasks, 502 when threads cannot answer."""
+    try:
+        return await resolve(settings, state["deps"].threads, task_id)
+    except BadSearchTask as exc:
+        raise HTTPException(422, str(exc)) from None
+    except ServiceError as exc:
+        raise HTTPException(502, f"threads service: {exc.detail}") from exc
+
+
+def _task_kind(req: ChatRequest) -> str | None:
+    """What the turn's records name of its search task: preset:<id> or custom, never a custom task's text. None when
+    the turn used none: exhaustive mode embeds nothing, so its task is not even resolved."""
+    return req.task.kind if req.task and req.mode != "exhaustive" else None
+
+
 def _deep(req: ChatRequest) -> dict:
     """Which deep-research implementation answered, whether its plan and verify steps thought, whether it fanned
     out to researchers on reserved budgets, its research-call budget, and whether it could run Python (deep mode)."""
@@ -223,6 +241,8 @@ async def _persist(req: ChatRequest, answer: str, retrieved: dict, done: dict, s
         "sources": retrieved.get("sources", []), "steps": _redacted(steps), "citations": done.get("citations"),
         "invalid_citations": done.get("invalid_citations"), "timings": done.get("timings"),
         "mode": req.mode, "think": req.think, **_deep(req), "doc_ids": req.doc_ids, "error": error,
+        # the task as the request named it (the UI asks follow-ups and Retry with it) and its kind (None: not used)
+        "search_task": req.task.id if req.task else req.search_task, "search_task_kind": _task_kind(req),
         "interrupted": error == DISCONNECTED,
         "notices": [{**n, "message": redact_secrets(n.get("message", ""))} for n in notes],
         "finish_reason": done.get("finish_reason"),
@@ -261,6 +281,7 @@ async def _finish(req: ChatRequest, docs: list[DocumentInfo], answer: str, retri
             mode=req.mode,
             think=req.think,
             **_deep(req),
+            search_task_kind=_task_kind(req),
             route=retrieved.get("route"),
             route_detail=retrieved.get("route_detail"),
             sources=[{k: s.get(k) for k in ("n", "id", "doc_name", "kind", "location", "score")}
@@ -349,6 +370,8 @@ async def chat(req: ChatRequest, _user: Identity = Depends(require_user)) -> Str
     if not req.doc_ids and not req.thread_id:  # only thread chats may run without documents
         raise HTTPException(422, "select at least one document")
     docs = await _ready_documents(req.doc_ids)
+    if req.mode != "exhaustive":  # Read all embeds no question: its task is neither resolved nor used
+        req.use_task(await _search_task(req.search_task))
     try:
         conv: Conversation = await load(state["deps"].threads, req.thread_id, [m.model_dump() for m in req.history])
     except ServiceError as exc:
@@ -370,26 +393,36 @@ class SearchRequest(BaseModel):
     mmr: bool = True
     top_k: int | None = Field(default=None, ge=1, le=50)
     planner: bool = False
+    search_task: str | None = Field(default=None, pattern=SEARCH_TASK)  # as in ChatRequest (rag.search_tasks)
+
+
+@app.get("/v1/search-tasks/presets")
+def search_task_presets(_user: Identity = Depends(require_user)) -> list[dict]:
+    """The built-in search tasks, with the instruction each embeds the question with (General's is
+    RAG_QUERY_INSTRUCTION). A user's own tasks are in the threads service."""
+    return presets(settings)
 
 
 @app.post("/v1/search")
 async def search(req: SearchRequest, _user: Identity = Depends(require_user)) -> dict:
     doc_ids = list(dict.fromkeys(req.doc_ids))
     docs = await _ready_documents(doc_ids)
+    task = await _search_task(req.search_task)
     with published_snapshots(docs):
-        return await _search_snapshot(req, docs)
+        return await _search_snapshot(req, docs, task)
 
 
-async def _search_snapshot(req: SearchRequest, docs: list[DocumentInfo]) -> dict:
+async def _search_snapshot(req: SearchRequest, docs: list[DocumentInfo], task: SearchTask) -> dict:
     deps: Deps = state["deps"]
     doc_ids = [doc.doc_id for doc in docs]
     plan = await deps.planner.plan(req.question, docs) if req.planner and any(d.tables for d in docs) else None
     opts = SearchOptions(retrievers=tuple(dict.fromkeys(req.retrievers)), rerank=req.rerank, threshold=req.threshold,
-                         coverage=req.coverage, mmr=req.mmr, top_k=req.top_k)
+                         coverage=req.coverage, mmr=req.mmr, top_k=req.top_k, instruction=task.instruction)
     result = await deps.retrieval.search(req.question, doc_ids, opts, plan.scope if plan else None)
     return {
         "route": plan.route if plan else "search",
         "route_detail": plan.detail if plan else "",
+        "search_task_kind": task.kind,
         "sql": [s.card() for s in plan.sources] if plan else [],
         "terms": result.terms,
         "hits": result.hits,

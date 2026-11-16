@@ -236,6 +236,14 @@ details.reasoning div { white-space: pre-wrap; border-left: 2px solid var(--bord
 .toggle:hover { background: var(--hover); color: var(--text); }
 .toggle:has(input:checked) { border-color: color-mix(in srgb, var(--accent) 45%, transparent); background: var(--accent-soft); color: var(--accent); }
 .toggle:has(input:focus-visible) { outline: 2px solid var(--accent); outline-offset: 2px; }
+/* Search task: a chip like the toggles around a plain select */
+.task-pick { gap: 2px; padding-right: 4px; cursor: default; }
+.task-pick::before { display: none; }
+.task-pick select { height: 26px; max-width: 170px; padding: 0 4px; border: none; border-radius: 999px; background: transparent; color: var(--text); font: inherit; font-size: 13px; cursor: pointer; }
+.task-pick select:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
+.task-pick option, .task-pick optgroup { background: var(--panel); color: var(--text); }
+.task-note { flex: 0 1 240px; min-width: 0; font-size: 12px; line-height: 1.3; color: var(--warn); }
+.task-note[hidden] { display: none; }
 
 /* side panel: sources, memory, audit */
 .sources { border-left: 1px solid var(--border); background: var(--panel); display: flex; flex-direction: column; min-height: 0; }
@@ -261,6 +269,17 @@ details.reasoning div { white-space: pre-wrap; border-left: 2px solid var(--bord
 .mem-text { font-size: 13.5px; line-height: 1.5; }
 .mem-del { position: absolute; top: 7px; right: 6px; }
 .mem-empty { padding: 22px 16px; border: 1.5px dashed var(--border-strong); border-radius: 10px; text-align: center; font-size: 13px; color: var(--muted); }
+/* Search tasks panel: built-in cards (read-only), the add form, the user's own cards with Edit and Delete */
+.task-head { margin-top: 4px; font-size: 12px; font-weight: 600; letter-spacing: 0.3px; text-transform: uppercase; color: var(--muted); }
+.task .src-doc { overflow-wrap: anywhere; }
+.task-text { margin-top: 4px; font-size: 13px; line-height: 1.5; overflow-wrap: anywhere; }
+.task-form { display: flex; flex-direction: column; gap: 6px; }
+.task-form .mem-input { flex: none; width: 100%; }
+.task-form .error { font-size: 12.5px; }
+.task-actions { display: flex; flex-wrap: wrap; align-items: center; gap: 4px; margin-top: 4px; }
+.task .task-actions { margin-left: -10px; }
+.task .task-actions .link { height: 28px; color: var(--accent); }
+.task .task-actions .link.danger { color: var(--bad); }
 /* "Saved to memory" chips above an answer */
 .mem-chips { display: flex; flex-direction: column; align-items: flex-start; gap: 6px; margin-bottom: 10px; }
 .mem-chip { display: inline-flex; align-items: center; gap: 8px; max-width: 100%; padding: 3px 4px 3px 10px; border: 1px solid color-mix(in srgb, var(--accent) 35%, transparent); border-radius: 10px; background: var(--accent-soft); font-size: 13px; --icon: var(--i-bookmark); }
@@ -290,6 +309,7 @@ details.audit summary::-webkit-details-marker { display: none; }
 /* Phones: the status pill shrinks to its dot so the account menu fits; the text stays for screen readers. */
 @media (max-width: 640px) {
   #status-text { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
+  .composer-bar { flex-wrap: wrap; }
 }
 
 /* ---------- sign-in page and account menu (multi-user) ---------- */

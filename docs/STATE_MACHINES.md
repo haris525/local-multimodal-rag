@@ -106,11 +106,11 @@ Places where a new status value meets a default branch:
 | [ingest/registry.py:272](../services/ingest/src/ingest/registry.py#L272) | `requeue` names its sources (ready, failed), checked against `NEXT` | not requeued until `NEXT` allows it | handled |
 | [ingest/registry.py:195-197](../services/ingest/src/ingest/registry.py#L195-L197) | the supersede names its sources, checked against `NEXT` | not superseded until `NEXT` allows it | handled |
 | [ingest/registry.py:212](../services/ingest/src/ingest/registry.py#L212) | `DocStatus(row["status"])` | a CHECK on `status` refuses an unknown value; the schema upgrade turns an old unknown value into `failed` | handled |
-| [app.js:123](../services/gateway/static/app.js#L123), [app.js:209](../services/gateway/static/app.js#L209) | only `queued` and `processing` are pending | a new in-progress status polls every 15 s and settles the upload message early | open |
-| [app.js:169-171](../services/gateway/static/app.js#L169-L171), [rag/api.py:141](../services/rag/src/rag/api.py#L141) | usable when `ready` or `n_chunks > 0` | any status with an old index is usable | open |
+| [app.js:130](../services/gateway/static/app.js#L130), [app.js:216](../services/gateway/static/app.js#L216) | only `queued` and `processing` are pending | a new in-progress status polls every 15 s and settles the upload message early | open |
+| [app.js:176-178](../services/gateway/static/app.js#L176-L178), [rag/api.py:177](../services/rag/src/rag/api.py#L177) | usable when `ready` or `n_chunks > 0` | any status with an old index is usable | open |
 | [rag/turn.py:63-99](../services/rag/src/rag/turn.py#L63-L99) | `match` with `assert_never` | a new intent kind raises instead of running a document search | handled |
 | [app.js:5-11](../services/gateway/static/app.js#L5-L11) | route labels | a test checks that every route rag reports has a label | handled |
-| [app.js:571-595](../services/gateway/static/app.js#L571-L595) | unknown SSE event ignored | silently dropped | open (low): rag cannot send an unknown event |
+| [app.js:578-602](../services/gateway/static/app.js#L578-L602) | unknown SSE event ignored | silently dropped | open (low): rag cannot send an unknown event |
 | [admin.js:56-60](../services/gateway/static/admin.js#L56-L60) | 204, 202 and 502 understood for a delete | a 202 is followed until the deletion ends | handled |
 
 ## 3. The machines
@@ -243,7 +243,7 @@ States:
 |---|---|---|---|---|
 | Locked | deleting, disabled, no sessions | live | live | key active |
 | IngestPurged | deleting | tombstone; rows, points, files, cached model replies gone | live | key active |
-| ThreadsPurged | deleting | tombstone | tombstone; threads, messages, memories gone | key active |
+| ThreadsPurged | deleting | tombstone | tombstone; threads, messages, memories, search tasks gone | key active |
 | AuditShredded | deleting | tombstone | tombstone | key tombstone, legacy owner closed |
 | Deleted | row and throttle row gone | tombstone | tombstone | key tombstone |
 | Stuck | deleting, `deletion_error` set (502 with `failed_step`) | any prefix of the above | | |
@@ -255,7 +255,7 @@ Transitions:
 |---|---|---|---|
 | any live state | Locked | `DELETE /v1/admin/users/{id}` | [auth/api.py:431-438](../services/auth/src/auth/api.py#L431-L438), [auth/services.py:109-111](../services/auth/src/auth/services.py#L109-L111) |
 | Locked | IngestPurged | `DELETE /internal/users/{id}` on ingest: tombstone and rows in one transaction, then Qdrant points by user filter, then files, then the owner's cached model replies (M23; a failure is a 502, so auth tries again) | [ingest/api.py:289-305](../services/ingest/src/ingest/api.py#L289-L305), [ingest/registry.py:288-300](../services/ingest/src/ingest/registry.py#L288-L300) |
-| IngestPurged | ThreadsPurged | threads purge, one transaction | [threads/api.py:167-170](../services/threads/src/threads/api.py#L167-L170), [threads/store.py:340-356](../services/threads/src/threads/store.py#L340-L356) |
+| IngestPurged | ThreadsPurged | threads purge, one transaction (search tasks too; after a rollback, the next start of threads deletes the tasks an earlier threads left) | [threads/api.py:223-226](../services/threads/src/threads/api.py#L223-L226), [threads/store.py:433-450](../services/threads/src/threads/store.py#L433-L450) |
 | ThreadsPurged | AuditShredded | audit purge, one transaction | [audit/api.py:111-114](../services/audit/src/audit/api.py#L111-L114), [audit/store.py:308-330](../services/audit/src/audit/store.py#L308-L330) |
 | AuditShredded | Deleted | auth deletes the row (sessions cascade) and the name's throttle row | [auth/services.py:118](../services/auth/src/auth/services.py#L118), [auth/store.py:284-296](../services/auth/src/auth/store.py#L284-L296) |
 | any step | Stuck | a step answers an error or is unreachable | [auth/services.py:113-117](../services/auth/src/auth/services.py#L113-L117), [auth/api.py:524-525](../services/auth/src/auth/api.py#L524-L525) |
@@ -267,7 +267,7 @@ Transitions:
 stateDiagram-v2
     state "Locked (deleting, disabled, no sessions)" as Locked
     state "Ingest purged (tombstone, rows, points, files, cached replies)" as Ingest
-    state "Threads purged (tombstone, threads, memories)" as Threads
+    state "Threads purged (tombstone, threads, memories, search tasks)" as Threads
     state "Audit shredded (key tombstone, legacy owner closed)" as Audit
     state "Stuck in deleting (502 with failed_step)" as Stuck
     [*] --> Locked : admin DELETE (confirm, not self, not last admin)
@@ -470,7 +470,7 @@ inside the completing transaction).
   one SQLite file); rag reads it.
 - Storage: `registry.db` table `documents`, schema v5 ([ingest/registry.py](../services/ingest/src/ingest/registry.py)):
   `status` with `CHECK (status IN ('queued','processing','ready','failed','deleting'))`, built from
-  `DocStatus` ([contracts.py:20-29](../libs/common/src/rag_common/contracts.py#L20-L29)); `run_id` and
+  `DocStatus` ([contracts.py:21-30](../libs/common/src/rag_common/contracts.py#L21-L30)); `run_id` and
   `lease_until`, the claim on the row, with `CHECK (status <> 'processing' OR run_id IS NOT NULL)`;
   `claimed_by`, who holds the claim (the worker's id, or `ingest-api`); `attempts`,
   `n_chunks`, `progress`, `error`, `tables`, `owner_id`, `generation`, `storage_id`; `document_generations`
@@ -758,7 +758,7 @@ the one GPU).
 | From | To | Trigger | Where |
 |---|---|---|---|
 | Unowned | Adopted | ingest: rows, then files moved, then points (refused while the worker runs unless `force`) | [ingest/api.py:327-347](../services/ingest/src/ingest/api.py#L327-L347) |
-| Unowned | Adopted | threads: threads and memories in one transaction (a duplicate memory stays unowned) | [threads/store.py:358-374](../services/threads/src/threads/store.py#L358-L374) |
+| Unowned | Adopted | threads: threads and memories in one transaction (a duplicate memory stays unowned) | [threads/store.py:452-468](../services/threads/src/threads/store.py#L452-L468) |
 | Unowned | Adopted | audit: `meta.legacy_owner` set once; another user gets 409 | [audit/store.py:332-356](../services/audit/src/audit/store.py#L332-L356) |
 | Adopted | Closed or gone | the adopting account is purged (audit tombstone; ingest and threads rows deleted with the owner) | [audit/store.py:323-324](../services/audit/src/audit/store.py#L323-L324) |
 
@@ -790,14 +790,14 @@ does.
 
 - Entity: one conversation. Owners: threads (storage), rag (appends and compaction), the UI (creation).
 - Storage: `threads.db` `threads` (`summary`, `summary_upto`, `doc_ids`), `messages`
-  ([threads/store.py:35-54](../services/threads/src/threads/store.py#L35-L54)).
+  ([threads/store.py:48-67](../services/threads/src/threads/store.py#L48-L67)).
 
 | From | To | Trigger | Guard | Where |
 |---|---|---|---|---|
-| none | Empty | `POST /api/threads` from the UI before the first chat request | owner not tombstoned | [app.js:546-553](../services/gateway/static/app.js#L546-L553), [threads/store.py:179-189](../services/threads/src/threads/store.py#L179-L189) |
-| Empty, Active, Summarized | Active or Summarized | rag appends the user and assistant messages, `doc_ids` replaced | issued by rag; owner not tombstoned | [rag/api.py:183-185](../services/rag/src/rag/api.py#L183-L185), [threads/store.py:229-250](../services/threads/src/threads/store.py#L229-L250) |
-| Active, Summarized | Summarized | background `maintain` folds older turns | `summary_upto` only grows | [rag/conversation.py:151-170](../services/rag/src/rag/conversation.py#L151-L170), [threads/store.py:262-267](../services/threads/src/threads/store.py#L262-L267) |
-| any | Deleted | user delete, account purge | owner | [threads/store.py:217-220](../services/threads/src/threads/store.py#L217-L220), [threads/store.py:340-356](../services/threads/src/threads/store.py#L340-L356) |
+| none | Empty | `POST /api/threads` from the UI before the first chat request | owner not tombstoned | [app.js:553-560](../services/gateway/static/app.js#L553-L560), [threads/store.py:218-228](../services/threads/src/threads/store.py#L218-L228) |
+| Empty, Active, Summarized | Active or Summarized | rag appends the user and assistant messages, `doc_ids` replaced | issued by rag; owner not tombstoned | [rag/api.py:251-253](../services/rag/src/rag/api.py#L251-L253), [threads/store.py:268-289](../services/threads/src/threads/store.py#L268-L289) |
+| Active, Summarized | Summarized | background `maintain` folds older turns | `summary_upto` only grows | [rag/conversation.py:155-174](../services/rag/src/rag/conversation.py#L155-L174), [threads/store.py:301-306](../services/threads/src/threads/store.py#L301-L306) |
+| any | Deleted | user delete, account purge | owner | [threads/store.py:256-259](../services/threads/src/threads/store.py#L256-L259), [threads/store.py:433-450](../services/threads/src/threads/store.py#L433-L450) |
 
 ```mermaid
 stateDiagram-v2
@@ -819,12 +819,12 @@ stateDiagram-v2
 Failure modes (both open):
 
 1. **low:** a thread stays Empty when the first chat request fails before streaming (409 "documents not
-   ready yet", 404 unknown documents, [rag/api.py:136-143](../services/rag/src/rag/api.py#L136-L143)); the
-   UI created it first and only forgets it on a thread 404 ([app.js:565-570](../services/gateway/static/app.js#L565-L570)).
+   ready yet", 404 unknown documents, [rag/api.py:172-179](../services/rag/src/rag/api.py#L172-L179)); the
+   UI created it first and only forgets it on a thread 404 ([app.js:572-577](../services/gateway/static/app.js#L572-L577)).
 2. **low:** `doc_ids` keeps ids that were later deleted or superseded. On open, the UI keeps only usable
    ids, and when none is left it keeps whatever is currently selected
-   ([app.js:652-654](../services/gateway/static/app.js#L652-L654)); the next answer then overwrites the
-   thread's `doc_ids` with that unrelated selection ([threads/store.py:245-247](../services/threads/src/threads/store.py#L245-L247)).
+   ([app.js:659-661](../services/gateway/static/app.js#L659-L661)); the next answer then overwrites the
+   thread's `doc_ids` with that unrelated selection ([threads/store.py:284-286](../services/threads/src/threads/store.py#L284-L286)).
 
 The summary pointer itself is a good explicit rule: `set_summary` refuses to move backwards, so a late,
 stale compaction cannot overwrite a newer one.
@@ -838,14 +838,14 @@ gone.
 - Entity: one remembered fact. Owners: threads (storage), rag (router and background extraction), the UI
   (Memory panel, undo chips).
 - Storage: `threads.db` `memories` (`source` 'user' or 'auto' with no CHECK, `thread_id` with no foreign
-  key, `UNIQUE (user_id, norm)`) ([threads/store.py:55-65](../services/threads/src/threads/store.py#L55-L65)).
+  key, `UNIQUE (user_id, norm)`) ([threads/store.py:68-78](../services/threads/src/threads/store.py#L68-L78)).
 
 | From | To | Trigger | Where |
 |---|---|---|---|
-| none | Auto or User | router save (User for an explicit remember request), background extraction (Auto), Memory panel and undo of a forget (User) | [rag/intent.py:242-299](../services/rag/src/rag/intent.py#L242-L299), [rag/conversation.py:166-168](../services/rag/src/rag/conversation.py#L166-L168), [app.js:455-456](../services/gateway/static/app.js#L455-L456), [threads/store.py:281-307](../services/threads/src/threads/store.py#L281-L307) |
-| Auto, User | same id, new text; User stays User | contradiction replaced in place | [threads/store.py:309-331](../services/threads/src/threads/store.py#L309-L331) |
-| Auto | Gone | evicted: the oldest Auto at the cap (50) | [threads/store.py:294-300](../services/threads/src/threads/store.py#L294-L300) |
-| Auto, User | Gone | forget in chat, delete in the panel, undo of a save, account purge | [threads/store.py:333-336](../services/threads/src/threads/store.py#L333-L336) |
+| none | Auto or User | router save (User for an explicit remember request), background extraction (Auto), Memory panel and undo of a forget (User) | [rag/intent.py:242-299](../services/rag/src/rag/intent.py#L242-L299), [rag/conversation.py:170-172](../services/rag/src/rag/conversation.py#L170-L172), [app.js:462-463](../services/gateway/static/app.js#L462-L463), [threads/store.py:320-346](../services/threads/src/threads/store.py#L320-L346) |
+| Auto, User | same id, new text; User stays User | contradiction replaced in place | [threads/store.py:348-370](../services/threads/src/threads/store.py#L348-L370) |
+| Auto | Gone | evicted: the oldest Auto at the cap (50) | [threads/store.py:333-339](../services/threads/src/threads/store.py#L333-L339) |
+| Auto, User | Gone | forget in chat, delete in the panel, undo of a save, account purge | [threads/store.py:372-375](../services/threads/src/threads/store.py#L372-L375) |
 
 ```mermaid
 stateDiagram-v2
@@ -865,9 +865,9 @@ stateDiagram-v2
 Failure modes (both open):
 
 1. **low:** deleting a thread leaves `memories.thread_id` pointing at it (no foreign key; the delete at
-   [threads/store.py:217-220](../services/threads/src/threads/store.py#L217-L220) does not touch memories).
+   [threads/store.py:256-259](../services/threads/src/threads/store.py#L256-L259) does not touch memories).
 2. **low:** undoing a forget re-adds the item with `source: "user"`
-   ([app.js:455-456](../services/gateway/static/app.js#L455-L456)), so an automatic memory becomes
+   ([app.js:462-463](../services/gateway/static/app.js#L462-L463)), so an automatic memory becomes
    permanent (never evicted).
 
 Approach: **implicit.** Open: add `CHECK (source IN ('user','auto'))`, set `thread_id = NULL` when a
@@ -920,7 +920,7 @@ a recall with documents selected and no reference to the user becomes `documents
 request that also asks a question becomes `documents` (197-198). The memory part is applied first
 (54-58), then: memory kinds answer directly (63-66), `assistant` (67-76), `history` (77-86, or
 falls through on `NEED_SEARCH`), no documents selected (90-94), otherwise single-shot (with the planner
-when a document has tables, [rag/chat.py:106](../services/rag/src/rag/chat.py#L106)), deep research
+when a document has tables, [rag/chat.py:320](../services/rag/src/rag/chat.py#L320)), deep research
 (97-99) or an exhaustive answer (M24) for a request's mode `exhaustive`.
 Stateless calls skip routing and memory (59-60).
 
@@ -975,11 +975,11 @@ Approach: **implicit,** with `match intent.kind` and `assert_never` over the `Li
 
 ### M12. Chat event stream
 
-- Entity: one `/v1/chat` response. Owners: rag (producer, [rag/api.py:227-260](../services/rag/src/rag/api.py#L227-L260))
-  and five consumers: [app.js:571-599](../services/gateway/static/app.js#L571-L599),
+- Entity: one `/v1/chat` response. Owners: rag (producer, [rag/api.py:247-280](../services/rag/src/rag/api.py#L247-L280))
+  and five consumers: [app.js:578-606](../services/gateway/static/app.js#L578-L606),
   [scripts/smoke_test.py:62-82](../scripts/smoke_test.py#L62-L82),
   [scripts/memory_smoke.py:42-64](../scripts/memory_smoke.py#L42-L64),
-  [scripts/multiuser_smoke.py:311-332](../scripts/multiuser_smoke.py#L311-L332) (parser at 111-122),
+  [scripts/multiuser_smoke.py:314-335](../scripts/multiuser_smoke.py#L314-L335) (parser at 111-122),
   [eval/src/rag_eval/client.py:50-72](../eval/src/rag_eval/client.py#L50-L72).
 - Storage: the order of events on the wire; afterwards `meta.interrupted`, `meta.error`, `meta.notices` and
   `meta.finish_reason` on the saved message (rag/api.py, `_persist`).
@@ -987,20 +987,20 @@ Approach: **implicit,** with `match intent.kind` and `assert_never` over the `Li
 Status: **explicit**. The protocol is written down once in `rag_common/chat_events.py`
 ([chat_events.py:22-60](../libs/common/src/rag_common/chat_events.py#L22-L60)): the `ChatEvent` enum, the phases, and `NEXT`, the events each phase
 allows and the phase they lead to; `Order` follows a stream through it. rag yields only `ChatEvent`
-members, and `_sse` turns an unknown name into an `error` event ([rag/api.py:228-261](../services/rag/src/rag/api.py#L228-L261)). One
+members, and `_sse` turns an unknown name into an `error` event ([rag/api.py:340-349](../services/rag/src/rag/api.py#L340-L349)). One
 reader, `read_chat` ([chat_events.py:150-177](../libs/common/src/rag_common/chat_events.py#L150-L177)), collects an answer, checks the order and
 reports which terminal event arrived; eval and the three live scripts use it, and count a cut stream, an
 `error` event or events out of order as a failed answer. The web UI keeps its own reader and its
-"interrupted" message ([app.js:571-599](../services/gateway/static/app.js#L571-L599)). The paragraph below is the order `NEXT`
+"interrupted" message ([app.js:578-606](../services/gateway/static/app.js#L578-L606)). The paragraph below is the order `NEXT`
 encodes.
 
 Order the producer emits: `memory` events (thread chats) ([rag/turn.py:64-65](../services/rag/src/rag/turn.py#L64-L65));
 optionally one `token` with the memory notes **before** `sources` ([rag/turn.py:95-96](../services/rag/src/rag/turn.py#L95-L96));
-`step` events in deep mode ([rag/agent.py:246-260](../services/rag/src/rag/agent.py#L246-L260))
+`step` events in deep mode ([rag/agent.py:245-259](../services/rag/src/rag/agent.py#L245-L259))
 and in exhaustive mode (`sections`, `map`, `reduce`; M24); exactly one
 `sources`; `reasoning` and `token` events; one `done`
-([rag/chat.py:91-92](../services/rag/src/rag/chat.py#L91-L92)). An exception after the stream began
-becomes one `error` event and no `done` ([rag/api.py:253-256](../services/rag/src/rag/api.py#L253-L256)).
+([rag/chat.py:111-112](../services/rag/src/rag/chat.py#L111-L112)). An exception after the stream began
+becomes one `error` event and no `done` ([rag/api.py:273-276](../services/rag/src/rag/api.py#L273-L276)).
 A client disconnect gets no event; the exchange is saved with `interrupted: true` (250-252, 257-260).
 
 **Notices.** A `notice` event (`{code, message}`) may come at any point
@@ -1048,13 +1048,13 @@ Failure modes:
 1. **low: a cut stream taken for a complete answer.** Handled: `read_chat` reports `terminal` (`done`,
    `error` or none) and a `failure`; `smoke_test`, `memory_smoke` (which also fails a run whose answers
    ended in `error`), `multiuser_smoke` and eval use it. The web UI tracks the terminal event itself
-   ([app.js:539](../services/gateway/static/app.js#L539),
-   [app.js:596-599](../services/gateway/static/app.js#L596-L599)).
+   ([app.js:546](../services/gateway/static/app.js#L546),
+   [app.js:603-606](../services/gateway/static/app.js#L603-L606)).
 2. **low: event names and order written out in several places.** An added event would be dropped silently
    by every client, and an undocumented order (such as "token before sources") would drift. Handled: the
    names and the order are `ChatEvent` and `NEXT`; a test runs every branch of `respond` and deep research
    (with a replayed graph) and checks each stream against `NEXT`, also after the wire and back. Open (low):
-   the UI drops an unknown event silently ([app.js:571-595](../services/gateway/static/app.js#L571-L595));
+   the UI drops an unknown event silently ([app.js:578-602](../services/gateway/static/app.js#L578-L602));
    the producer cannot send one.
 
 Approach: **explicit.** A `ChatEvent` enum and an order table in `libs/common`
@@ -1221,7 +1221,7 @@ stateDiagram-v2
 Failure modes:
 
 1. **low:** a chat authorized before an account is disabled keeps working until it ends, background
-   compaction and memory extraction included ([rag/api.py:189-192](../services/rag/src/rag/api.py#L189-L192)),
+   compaction and memory extraction included ([rag/api.py:257-262](../services/rag/src/rag/api.py#L257-L262)),
    because rag mints fresh assertions from the context. Deletion is covered by the tombstones in ingest and
    threads; disabling is not. Open.
 
@@ -1240,8 +1240,8 @@ marker the same way they refuse tombstones if that matters.
 | received | proxied to auth | `/api/auth/*`, `/api/admin/*` (sign-in limited to 10 a minute, burst 5) | [default.conf.template:101-132](../services/gateway/default.conf.template#L101-L132) |
 | received | auth_request | any other `/api/*` | [default.conf.template:136-141](../services/gateway/default.conf.template#L136-L141), [default.conf.template:83-98](../services/gateway/default.conf.template#L83-L98) |
 | auth_request | proxied with `X-Identity` | 204 | [default.conf.template:147](../services/gateway/default.conf.template#L147) |
-| auth_request | 401 JSON | 401 | [default.conf.template:197-200](../services/gateway/default.conf.template#L197-L200) |
-| auth_request | 403 JSON with the reason | 403 and `X-Auth-Detail` | [default.conf.template:34-38](../services/gateway/default.conf.template#L34-L38), [default.conf.template:201-204](../services/gateway/default.conf.template#L201-L204) |
+| auth_request | 401 JSON | 401 | [default.conf.template:207-210](../services/gateway/default.conf.template#L207-L210) |
+| auth_request | 403 JSON with the reason | 403 and `X-Auth-Detail` | [default.conf.template:34-38](../services/gateway/default.conf.template#L34-L38), [default.conf.template:211-214](../services/gateway/default.conf.template#L211-L214) |
 | auth_request | 500 | any other status or a timeout (10 s) | [default.conf.template:95](../services/gateway/default.conf.template#L95) |
 
 ```mermaid
@@ -1270,7 +1270,7 @@ Failure modes:
 
 1. **low:** the MustChange state crosses the gateway as free text: auth raises "password change required"
    ([auth/api.py:128](../services/auth/src/auth/api.py#L128)), nginx copies it into the body, and the UI
-   compares the exact string ([app.js:79](../services/gateway/static/app.js#L79)). Rewording it silently
+   compares the exact string ([app.js:82](../services/gateway/static/app.js#L82)). Rewording it silently
    stops the redirect to the password form. Open.
 2. **low:** the 120 s admin timeout against a long account purge. Handled: see M2 failure mode 2.
 
@@ -1281,17 +1281,17 @@ Approach: **implicit.** Open: send a code (`X-Auth-Code: password_change_require
 
 - Entity: the chat area of one browser tab. Owner: gateway UI. Storage: `state.busy`, `state.threadId`
   and the `#t=` hash ([app.js:14-23](../services/gateway/static/app.js#L14-L23),
-  [app.js:620-623](../services/gateway/static/app.js#L620-L623)), and the local `finished` flag in `ask`.
+  [app.js:627-630](../services/gateway/static/app.js#L627-L630)), and the local `finished` flag in `ask`.
 
 | From | To | Trigger | Guard | Where |
 |---|---|---|---|---|
-| New | Creating | send | not busy | [app.js:793-799](../services/gateway/static/app.js#L793-L799), [app.js:546-553](../services/gateway/static/app.js#L546-L553) |
-| Creating, InThread | Streaming | chat request accepted | | [app.js:554-571](../services/gateway/static/app.js#L554-L571) |
-| Streaming | InThread | `done`, `error`, or the stream ends | | [app.js:587-607](../services/gateway/static/app.js#L587-L607) |
-| Streaming | New | thread 404 on the chat request | | [app.js:568](../services/gateway/static/app.js#L568) |
-| InThread | InThread | open another chat | refused while busy | [app.js:620-637](../services/gateway/static/app.js#L620-L637) |
+| New | Creating | send | not busy | [app.js:811-817](../services/gateway/static/app.js#L811-L817), [app.js:553-560](../services/gateway/static/app.js#L553-L560) |
+| Creating, InThread | Streaming | chat request accepted | | [app.js:561-578](../services/gateway/static/app.js#L561-L578) |
+| Streaming | InThread | `done`, `error`, or the stream ends | | [app.js:594-614](../services/gateway/static/app.js#L594-L614) |
+| Streaming | New | thread 404 on the chat request | | [app.js:575](../services/gateway/static/app.js#L575) |
+| InThread | InThread | open another chat | refused while busy | [app.js:627-644](../services/gateway/static/app.js#L627-L644) |
 | InThread | Streaming | *Retry* on an answer that failed or was interrupted (asks the same question again, after restoring that turn's documents, mode and Think from the request or the saved meta) | not busy | app.js, `retryButton`, `restoreTurn` |
-| InThread | New | New chat, delete the open chat, bad link | not busy (New chat and delete are refused while an answer streams) | [app.js:729-740](../services/gateway/static/app.js#L729-L740), [app.js:869](../services/gateway/static/app.js#L869) |
+| InThread | New | New chat, delete the open chat, bad link | not busy (New chat and delete are refused while an answer streams) | [app.js:999-1006](../services/gateway/static/app.js#L999-L1006), [app.js:1008-1014](../services/gateway/static/app.js#L1008-L1014) |
 
 ```mermaid
 stateDiagram-v2
@@ -1318,7 +1318,7 @@ Failure modes:
    saved to the old thread). Handled: New chat, and deleting the open chat, wait while an answer streams
    (the New chat buttons are disabled), and a chat that finishes loading after another was opened, or
    after a question was sent, is dropped (`state.view`,
-   [app.js:645-682](../services/gateway/static/app.js#L645-L682); `services/gateway/tests/ui.test.mjs`).
+   [app.js:652-689](../services/gateway/static/app.js#L652-L689); `services/gateway/tests/ui.test.mjs`).
 2. **low:** an Empty thread is left when the first request fails, see M8 failure mode 1. Open.
 
 Approach: **implicit;** `busy` is checked in every handler that changes the chat, and a `view` counter
@@ -1328,8 +1328,8 @@ drops stale loads.
 
 - Entity: the document list and the selection of one browser tab. Owner: gateway UI. Storage:
   `state.docs` (server copy), `state.selected` saved as `localStorage["selected:<user_id>"]`
-  ([app.js:69](../services/gateway/static/app.js#L69), [app.js:159](../services/gateway/static/app.js#L159)),
-  `state.pollTimer` (2 s while anything is queued or processing, else 15 s, [app.js:123-124](../services/gateway/static/app.js#L123-L124)),
+  ([app.js:72](../services/gateway/static/app.js#L72), [app.js:166](../services/gateway/static/app.js#L166)),
+  `state.pollTimer` (2 s while anything is queued or processing, else 15 s, [app.js:130-131](../services/gateway/static/app.js#L130-L131)),
   `state.lastUpload` (the document ids of the last upload), `uploads` (files waiting to be sent while an
   upload is on its way).
 
@@ -1353,11 +1353,11 @@ Failure modes (all open):
 
 1. **low:** between a supersede (or a delete in another tab) and the next poll, the selection holds an id
    that no longer exists; a question in that window gets 404 "unknown documents"
-   ([rag/api.py:136-138](../services/rag/src/rag/api.py#L136-L138)). The new version is never selected in
-   its place ([app.js:116-117](../services/gateway/static/app.js#L116-L117) only prunes).
+   ([rag/api.py:172-174](../services/rag/src/rag/api.py#L172-L174)). The new version is never selected in
+   its place ([app.js:130-131](../services/gateway/static/app.js#L130-L131) only prunes).
 2. **low:** `settleUploadMsg` maps file names to statuses and, because the list is newest first
    ([ingest/registry.py:203](../services/ingest/src/ingest/registry.py#L203)), the map keeps the oldest
-   document of each name ([app.js:208](../services/gateway/static/app.js#L208)); a re-upload's "queued"
+   document of each name ([app.js:215](../services/gateway/static/app.js#L215)); a re-upload's "queued"
    line is removed as soon as the older version is ready.
 3. **low:** the usable rule and the pending statuses are copies of server rules (see the default-branch
    table in section 2).
@@ -1374,7 +1374,7 @@ follow `superseded_by` if M5 adds it.
 ### M19. UI side panel
 
 - Entity: the right-hand panel. Owner: gateway UI. Storage: `#sources[hidden]`, `panel.mode` (the panel's
-  title) and `panel.token` ([app.js:292-305](../services/gateway/static/app.js#L292-L305)).
+  title) and `panel.token` ([app.js:299-312](../services/gateway/static/app.js#L299-L312)).
 
 ```mermaid
 stateDiagram-v2
@@ -1486,7 +1486,7 @@ shown as a gateway error (M2 failure mode 2), both handled. Approach: render the
 `smoke_test.py`: upload ([scripts/smoke_test.py:39-48](../scripts/smoke_test.py#L39-L48)), wait until
 every returned id is `ready` or `failed` within a budget (48-59), ask (62-82), then delete every returned
 id unless `--keep` (125-131). `multiuser_smoke.py` retries a delete that answers 502 three times
-([scripts/multiuser_smoke.py:541-552](../scripts/multiuser_smoke.py#L541-L552)) and waits with a deadline
+([scripts/multiuser_smoke.py:544-555](../scripts/multiuser_smoke.py#L544-L555)) and waits with a deadline
 (564-575).
 
 ```mermaid
@@ -1923,7 +1923,7 @@ services' own classes and asserts the handled behavior.
 | Candidate | Why it is not listed as a machine |
 |---|---|
 | Multi-user readiness (`/internal/capabilities`, `CAPABILITY_SERVICES`) | Every service answers a constant `multi_user: 1`; auth only gates account creation on it ([auth/services.py:90-95](../services/auth/src/auth/services.py#L90-L95)) |
-| Service readiness (`/readyz`, the status dot in the header) | Recomputed on every probe, no stored state ([rag_common/service.py:107-111](../libs/common/src/rag_common/service.py#L107-L111), [app.js:95-108](../services/gateway/static/app.js#L95-L108)) |
+| Service readiness (`/readyz`, the status dot in the header) | Recomputed on every probe, no stored state ([rag_common/service.py:124-128](../libs/common/src/rag_common/service.py#L124-L128), [app.js:102-115](../services/gateway/static/app.js#L102-L115)) |
 | Key rotation (`scripts/init_secrets.py --force`) | All keys are replaced together and every service restarts; sessions survive in `auth.db` |
 | Planner route (`sql`, `filter`, `search`) | A pure decision inside one call with explicit fallbacks to `search` ([rag/planner.py:98-121](../services/rag/src/rag/planner.py#L98-L121)); covered in M11 |
 | Sources budget and citation numbering | Pure functions over one answer |

@@ -66,10 +66,10 @@ flowchart LR
 
 | Where | What you see |
 |---|---|
-| Top bar | The app's name, the *Memory* and *Audit log* buttons, your username (a menu with *Change password*, *API tokens*, *Users* for admins, and *Sign out*), the dark-mode toggle (dark is the default; your choice is remembered in this browser), and a status dot that turns green with *all services ready* |
+| Top bar | The app's name, the *Memory*, *Search tasks* and *Audit log* buttons, your username (a menu with *Change password*, *API tokens*, *Users* for admins, and *Sign out*), the dark-mode toggle (dark is the default; your choice is remembered in this browser), and a status dot that turns green with *all services ready* |
 | Left | Two tabs. *Documents*: drag files in, watch them process, tick up to 10 to search; a document's warnings show under its name, a long one in two lines with *More* (hover for the full text). *Chats*: your saved conversations |
-| Centre | The chat. Under the question box are the *Think*, *Deep search* and *Read all* toggles ([section 5](#5-think-deep-search-and-read-all)) |
-| Right | A panel that opens when needed: the sources behind an answer, your memories, or the audit log |
+| Centre | The chat. Under the question box are the *Think*, *Deep search* and *Read all* toggles and the *Search task* picker ([section 5](#5-think-deep-search-and-read-all)) |
+| Right | A panel that opens when needed: the sources behind an answer, your memories, your search tasks, or the audit log |
 
 ## 2. The big picture
 
@@ -377,7 +377,7 @@ The diagram reads in three rows: understand the question, find the best passages
 
    | Search | What it finds | How many |
    |---|---|---|
-   | Meaning (dense vectors) | passages that mean what you asked, even in other words | 40 |
+   | Meaning (dense vectors) | passages that mean what you asked, even in other words; the question is turned into numbers after a short instruction, the *search task* ([section 5](#5-think-deep-search-and-read-all)) | 40 |
    | Keywords (BM25) | passages that share your important words | 40 |
    | Exact terms (grep) | codes, IDs, numbers and quoted phrases exactly as you typed them; runs only when the question contains such terms | 20 |
    | Pictures (image vectors) | figures whose pixels match the question | 10 |
@@ -442,8 +442,8 @@ tool calls", or "The image of source [2] could not be loaded".
 Before it gives up, the app tries once more on its own: a model reply cut at its length limit is asked
 again with more room, and a busy or slow model gets a second try after a short wait. If the answer still
 fails, or the connection drops, the answer shows the error with a *Retry* button that asks the same
-question again, with the documents, *Deep search* and *Think* settings it was first asked with (also in a
-chat you open later).
+question again, with the documents, *Deep search* and *Think* settings and the search task it was first asked
+with (also in a chat you open later).
 
 ### What the footer numbers mean
 
@@ -453,6 +453,7 @@ Under each answer is a footer line, and a *Show sources* button.
 |---|---|
 | `N sources`, then each document name with its count in brackets | how many numbered sources the model received, and how many came from each document |
 | route | how the app searched: `hybrid search`, `SQL`, `SQL filter + search` or `deep search`. Messages answered without a search show labels such as `from this chat` or `saved to memory` |
+| `search task: NAME` | appears when the question was searched with a search task other than *General* |
 | `retrieval N s` | seconds spent finding the sources: embedding the question, searching, reranking and selecting |
 | `answer N s` | seconds the model spent writing (including its reasoning when *Think* is on) |
 | `invalid citations: N, N` | appears only when the model cited a number that matches no source |
@@ -586,6 +587,29 @@ final answer.
 
 Every toggle makes answers slower. Start with the default and switch one on when an answer falls short.
 
+### Search tasks: how the question is searched
+
+Before the meaning search, the question is turned into numbers (an embedding) after a short instruction that
+says what kind of passages to look for. The *Search task* picker under the question box chooses that
+instruction. It changes which passages are found, not how the answer is written, and it does not make
+answers slower.
+
+| Search task | Instruction | Good for |
+|---|---|---|
+| *General* (the default) | "Given a question about the user's documents, retrieve passages with the facts needed to answer it" (the administrator can change it) | most questions |
+| *Multi-step research* | "Given a multi-hop question, retrieve documents that can help answer the question" | questions that chain facts across several passages |
+| *Exact lookup* | none: the bare question | short, keyword-like questions |
+| your own | what you write | a kind of document you ask about often |
+
+You can add your own in the *Search tasks* panel: a name of up to 40 characters and an instruction of up to 300,
+on one line. For example: "Contracts", with "Given a question about an agreement, retrieve the clauses that
+answer it". Your tasks are private: only you can see or use them, and they are deleted with your account. Like
+memories, they never hold a password or key: one is refused (talking about passwords is fine).
+
+Each answer keeps the search task it was asked with: *Retry* uses it again, and reopening a chat picks the task of
+its last answer. A task you deleted since is replaced by *General*, and a note next to the picker says so. Every search of a *Deep search* uses the task too. *Read all* reads everything instead of
+searching, so it ignores the task. Keyword, exact-term and picture searches and the reranker are not affected.
+
 ## 6. Chats and memory
 
 **Chats.** Your first question in a new chat creates a saved conversation (a thread). The `threads`
@@ -668,7 +692,7 @@ when containers are stopped or rebuilt.
 | `models` | the AI model files (about 25 GB, downloaded once during setup) | `llm`, `models`, `ingest-worker` (all read only) |
 | `ingest-data` | original files, figure images, the DuckDB table files and chunk texts for exact-word search, in one folder per account; the document list with each document's owner and the job queue (`registry.db`); and the cache of the model's descriptions and summaries, per account (`llm_cache.db`) | `ingest-api`, `ingest-worker`; `sql` reads only the tables folder, read only |
 | `qdrant-data` | the search index: each chunk's text, location, embeddings and owner, and the keyword index | `qdrant` |
-| `threads-data` | `threads.db`: every user's chats, their summaries, and long-term memories, each marked with its owner | `threads` |
+| `threads-data` | `threads.db`: every user's chats, their summaries, long-term memories and own search tasks, each marked with its owner | `threads` |
 | `audit-data` | `audit.db`: the audit log, with each user's events and their encryption keys | `audit` |
 | `auth-data` | `auth.db`: accounts, password hashes (never the passwords), sessions and API tokens | `auth` |
 
@@ -817,6 +841,7 @@ the sign-in service or the answering service signs them, so no other part of the
 | Vector database | A database built to find, quickly, the stored embeddings closest to the embedding of a question | Qdrant; it also keeps each chunk's text, location and the keyword index |
 | BM25 | A classic keyword-ranking formula: a passage scores higher when it contains your words, especially rare ones, adjusted for the passage's length | Run by Qdrant with English word stemming, so "prices" also matches "price" |
 | Hybrid search | Running meaning search and keyword search together and combining the results, because each finds things the other misses | Four searches (meaning, keywords, exact terms, pictures) plus the best passages per document |
+| Search task | A short instruction placed before the question when it is turned into numbers, saying what kind of passages to find | *General*, *Multi-step research*, *Exact lookup*, or one you write ([section 5](#5-think-deep-search-and-read-all)) |
 | Reranker | A model that reads the question and one passage together and scores how well the passage answers it. More accurate than the first searches, but slower | Qwen3-Reranker-0.6B, score from 0 to 1, run on a shortlist |
 | RRF (reciprocal rank fusion) | A way to merge several ranked lists using only the positions: passages near the top of several lists come out first | Each list adds weight / (60 + rank); picture matches count half |
 | MMR (maximal marginal relevance) | A way to pick passages that are relevant but not repetitive: each next pick weighs its relevance against how similar it is to what is already picked | Relevance weighted 0.7, similarity 0.3; used after every document got its best passage |
@@ -833,7 +858,7 @@ the sign-in service or the answering service signs them, so no other part of the
 | Docker container | An isolated box that runs one program with everything it needs, separate from the rest of the computer | Each of the eleven services runs in its own container |
 | Docker volume | A folder that Docker manages and keeps when containers are stopped, rebuilt or removed | Six volumes hold the models, the accounts and everyone's data ([section 7](#7-where-your-data-lives-and-why-its-private)) |
 | nginx | A widely used web server | The gateway: it serves the page and forwards `/api` requests |
-| SQLite | A small database stored in a single file, with no server of its own | The job queue (`registry.db`), chats and memories (`threads.db`), the audit log (`audit.db`) and the accounts (`auth.db`) |
+| SQLite | A small database stored in a single file, with no server of its own | The job queue (`registry.db`), chats, memories and search tasks (`threads.db`), the audit log (`audit.db`) and the accounts (`auth.db`) |
 | DuckDB | A database stored in a file and built for adding up and filtering tables quickly | One file per document holds its tables, so questions about totals and counts can be answered with SQL |
 | Session | Proof, kept by your browser as a cookie, that you signed in, so you do not type your password on every click | Ends after 12 hours unused, 7 days after sign-in, or when you sign out |
 | API token | A long random password for scripts, which acts as you | Created under your username > *API tokens*, shown once; used by the smoke tests and the evaluation |

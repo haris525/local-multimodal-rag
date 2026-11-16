@@ -1,10 +1,11 @@
 """Request and response models that cross service boundaries."""
 
+import unicodedata
 from enum import StrEnum
 from typing import Annotated, Any, Literal
 
 from fastapi import Path as PathParam
-from pydantic import BaseModel, Field, model_validator
+from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
 
 from rag_common.identity import USER_ID
 
@@ -37,12 +38,55 @@ class DocType(StrEnum):
     IMAGE = "image"
 
 
+# --- search tasks: the instruction a question is embedded with --------------------------------
+
+MAX_INSTRUCTION = 300
+MAX_SEARCH_TASK_NAME = 40
+# A chat or search request's search_task: a preset id of rag (general, multi-step, exact) or a custom task's id
+SEARCH_TASK = r"^[a-z0-9][a-z0-9-]{0,39}$"
+SEARCH_TASK_ID = r"^[0-9a-f]{32}$"  # a custom task's id
+_NOT_IN_A_LINE = ("Cc", "Cs", "Zl", "Zp")  # control characters, lone surrogates, line and paragraph separators
+
+
+def one_line(value: str, what: str, max_length: int) -> str:
+    """`value` in NFC, leading and trailing spaces trimmed. ValueError, in plain words, when it is not a single line
+    of text or is longer than `max_length` characters. rag, threads and models all check with this."""
+    text = unicodedata.normalize("NFC", value).strip()
+    if any(unicodedata.category(c) in _NOT_IN_A_LINE for c in text):
+        raise ValueError(f"the {what} must be a single line of text, without line breaks, tabs or control characters")
+    if len(text) > max_length:
+        raise ValueError(f"the {what} must be at most {max_length} characters, not {len(text)}")
+    return text
+
+
+def instruction_text(value: str) -> str:
+    """A search task's instruction, checked and cleaned by one_line. Empty means none: the bare question."""
+    return one_line(value, "instruction", MAX_INSTRUCTION)
+
+
 # --- models service -------------------------------------------------------------------------
 
 
 class EmbedTextRequest(BaseModel):
+    # unknown fields are refused, so a renamed field never falls back to a default unnoticed
+    model_config = ConfigDict(extra="forbid")
+
     texts: list[str] = Field(min_length=1, max_length=256)
     role: Literal["query", "document"] = "document"
+    # role query only: the instruction the texts are embedded with (instruction_text). None: the models service's
+    # default (MODELS_QUERY_INSTRUCTION); empty: no instruction, the bare text.
+    instruction: str | None = Field(default=None, max_length=4 * MAX_INSTRUCTION)
+
+    @field_validator("instruction")
+    @classmethod
+    def _instruction(cls, value: str | None) -> str | None:
+        return None if value is None else instruction_text(value)
+
+    @model_validator(mode="after")
+    def _query_only(self) -> "EmbedTextRequest":
+        if self.instruction is not None and self.role != "query":
+            raise ValueError("an instruction is for role query only; documents are embedded without one")
+        return self
 
 
 class EmbedImageRequest(BaseModel):
@@ -61,6 +105,9 @@ class EmbedImageRequest(BaseModel):
 class EmbedResponse(BaseModel):
     vectors: list[list[float]]
     dim: int
+    # text queries: the instruction the models service applied ("" for none), so a caller can check it was used;
+    # absent for documents and images
+    instruction: str | None = None
 
 
 class RerankRequest(BaseModel):
@@ -292,3 +339,42 @@ class MemoryCreate(BaseModel):
     text: str = Field(min_length=3, max_length=500)
     source: Literal["user", "auto"] = "user"
     thread_id: str | None = None
+
+
+class SearchTaskItem(BaseModel):
+    """A user's own search task: a name for the UI and the instruction the question is embedded with."""
+
+    task_id: str
+    name: str
+    instruction: str
+    created_at: str
+    updated_at: str
+
+
+class SearchTaskWrite(BaseModel):
+    """A custom search task as the user writes it (adding or editing): a name of 1 to 40 characters and an
+    instruction of 1 to 300, each a single line (one_line). The name, shown in the picker, needs a letter or digit
+    and holds no invisible formatting characters (Unicode category Cf: zero-width, direction marks, tags)."""
+
+    name: str = Field(max_length=4 * MAX_SEARCH_TASK_NAME)
+    instruction: str = Field(max_length=4 * MAX_INSTRUCTION)
+
+    @field_validator("name")
+    @classmethod
+    def _name(cls, value: str) -> str:
+        text = one_line(value, "name", MAX_SEARCH_TASK_NAME)
+        if not text:
+            raise ValueError("the name must not be empty")
+        if any(unicodedata.category(c) == "Cf" for c in text):
+            raise ValueError("the name must not hold invisible formatting characters (zero-width or direction marks)")
+        if not any(unicodedata.category(c)[0] in "LN" for c in text):
+            raise ValueError("the name must hold at least one letter or digit")
+        return text
+
+    @field_validator("instruction")
+    @classmethod
+    def _instruction(cls, value: str) -> str:
+        text = instruction_text(value)
+        if not text:
+            raise ValueError("the instruction must not be empty (the built-in Exact lookup task embeds the bare question)")
+        return text

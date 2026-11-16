@@ -33,7 +33,7 @@ class FakeGateway:
         self.calls: list[tuple] = []
 
     def ask(self, question, doc_ids, mode="deep", think=False, agent=None, deep_think=False, fanout=False,
-            research_calls=None, python=None) -> Turn:
+            research_calls=None, python=None, search_task=None) -> Turn:
         with self.lock:
             self.now += 1
             self.peak = max(self.peak, self.now)

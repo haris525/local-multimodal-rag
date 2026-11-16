@@ -113,8 +113,10 @@ def schedule(items: list[Item], variants: list[Variant], repeats: int, seed: int
 
 def run(gateway: Gateway, items: list[Item], doc_ids: dict[str, str], mode: str, repeats: int, variants: list[Variant],
         seed: int, sink: Callable[[dict], None] | None = None, progress: Callable[[str], None] = print,
-        clock: Callable[[], float] = time.monotonic, concurrency: int = 1) -> dict[str, list[dict]]:
-    """Run the interleaved schedule; returns {variant label: run records}. Answer thinking is always off.
+        clock: Callable[[], float] = time.monotonic, concurrency: int = 1,
+        search_task: str | None = None) -> dict[str, list[dict]]:
+    """Run the interleaved schedule; returns {variant label: run records}. Answer thinking is always off, and every
+    variant asks with the same `search_task` (when given).
 
     Requests are sent in the schedule's order; with concurrency above 1 up to that many are in flight
     (rag_eval.dispatch), so records arrive in the order they finish: `order` is each record's place in the
@@ -128,7 +130,7 @@ def run(gateway: Gateway, items: list[Item], doc_ids: dict[str, str], mode: str,
         _, _, item, v = job
         return gateway.ask(item.question, [doc_ids[name] for name in item.docs], mode=mode, think=False,
                            agent=v.agent, deep_think=v.deep_think, fanout=v.fanout, research_calls=v.research_calls,
-                           python=v.python)
+                           python=v.python, search_task=search_task)
 
     def done(k: int, job: tuple[int, int, Item, Variant], turn: Turn, others: int) -> None:
         nonlocal finished
@@ -242,7 +244,8 @@ def _load_sentence(c: dict) -> str:
 
 def combined_markdown(c: dict) -> str:
     meta, labels = c["meta"], [v["label"] for v in c["variants"]]
-    lines = [f"# Benchmark of {len(labels)} variants ({meta['set']}, mode {meta['mode']})", ""]
+    task = f", search task {meta['search_task']}" if meta.get("search_task") else ""
+    lines = [f"# Benchmark of {len(labels)} variants ({meta['set']}, mode {meta['mode']}{task})", ""]
     for name, v in c["verdicts"].items():
         lines.append(f"**Verdict, {name} ({v['questions']} questions):** {v['text']}")
         lines.append("")

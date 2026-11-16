@@ -166,12 +166,13 @@ class Gateway:
 
     def ask(self, question: str, doc_ids: list[str], mode: str = "deep", think: bool = False,
             agent: str | None = None, deep_think: bool = False, fanout: bool = False,
-            research_calls: int | None = None, python: bool = False) -> Turn:
+            research_calls: int | None = None, python: bool = False, search_task: str | None = None) -> Turn:
         """One stateless answer (no thread_id). `agent` selects a deep-search arm the rag registers (langgraph,
         deepagents, deepagents_stock or an optional one, passed through as given) and `deep_think` turns on thinking in deep search's
         plan and verify steps (`think` is the answer's thinking). `fanout` runs researchers on reserved budgets and
-        `research_calls` sets deep search's research budget; `python` offers the run_python tool. Each is sent only
-        when set; a rag that does not know a field ignores it."""
+        `research_calls` sets deep search's research budget; `python` offers the run_python tool; `search_task`
+        names the instruction the question is embedded with (a preset id, or the id of one of the token user's own
+        search tasks). Each is sent only when set; a rag that does not know a field ignores it."""
         body: dict = {"question": question, "doc_ids": doc_ids, "mode": mode, "think": think}
         if agent:
             body["agent"] = agent
@@ -183,6 +184,8 @@ class Gateway:
             body["research_calls"] = research_calls
         if python:
             body["python"] = True
+        if search_task:
+            body["search_task"] = search_task
         started = time.perf_counter()
         try:
             with self.api.stream("POST", "/chat", json=body) as response:

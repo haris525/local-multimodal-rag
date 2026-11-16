@@ -124,7 +124,7 @@ class LeakyQdrant:
 
 
 class FakeModels:
-    async def embed_query(self, text):
+    async def embed_query(self, text, instruction):
         return [1.0, 0.0]
 
     async def embed_image_query(self, text):

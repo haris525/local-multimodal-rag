@@ -13,10 +13,10 @@ from dataclasses import dataclass
 from typing import Literal
 
 from langchain_openai import ChatOpenAI
-from pydantic import BaseModel, Field, field_validator
+from pydantic import BaseModel, Field, PrivateAttr, field_validator
 
 from rag_common.chat_events import ChatEvent
-from rag_common.contracts import MAX_SELECTED_DOCS, THREAD_ID, DocId, DocumentInfo
+from rag_common.contracts import MAX_SELECTED_DOCS, SEARCH_TASK, THREAD_ID, DocId, DocumentInfo
 
 from rag.clients import IngestClient, LLMClient, SandboxClient, ServiceError, SqlClient
 from rag.config import Settings
@@ -25,6 +25,7 @@ from rag.notices import notice
 from rag.planner import Plan, Planner
 from rag.prompts import Source, build_messages, build_sources, parse_citations, rewrite_messages
 from rag.retrieval import Retrieval, SearchOptions
+from rag.search_tasks import SearchTask
 from rag.tokens import count_tokens, image_count, message_tokens
 
 Event = tuple[ChatEvent, dict]  # the order is rag_common.chat_events.NEXT
@@ -54,6 +55,11 @@ class ChatRequest(BaseModel):
     # deep mode only: `python` asks for the run_python tool (rag.sandbox; every arm has it) when RAG_DEEP_PYTHON is
     # request, or declines it when it is on; with RAG_DEEP_PYTHON=off, `python: true` is a 422
     python: bool | None = None
+    # the instruction the question is embedded with (rag.search_tasks): a preset id (general, multi-step, exact) or
+    # the id of one of the user's custom tasks; None is general, anything else a 422. Exhaustive mode ignores it
+    # without resolving it.
+    search_task: str | None = Field(default=None, pattern=SEARCH_TASK)
+    _task: SearchTask | None = PrivateAttr(default=None)
 
     @field_validator("agent")
     @classmethod
@@ -61,6 +67,20 @@ class ChatRequest(BaseModel):
         from rag import arms  # at validation time: the arms import this module
 
         return arms.check(value)
+
+    @property
+    def task(self) -> SearchTask | None:
+        """The search task rag.api resolved for this turn (use_task); None until then, which searches as General."""
+        return self._task
+
+    def use_task(self, task: SearchTask) -> None:
+        self._task = task
+
+
+def search_options(req: ChatRequest, **options) -> SearchOptions:
+    """Options for one of this turn's searches. Every search of a turn (single-shot, each deep-research search, a
+    fan-out researcher's) embeds the question with the turn's search task."""
+    return SearchOptions(instruction=req.task.instruction if req.task else None, **options)
 
 
 def deep_agent(s: Settings, req: ChatRequest) -> str:
@@ -300,7 +320,7 @@ async def single_shot(deps: Deps, req: ChatRequest, docs: list[DocumentInfo], co
     plan = await deps.planner.plan(question, docs) if any(d.tables for d in docs) else Plan()
     timings["plan_ms"] = round((time.perf_counter() - t) * 1000)
 
-    result = await deps.retrieval.search(question, req.doc_ids, SearchOptions(), plan.scope)
+    result = await deps.retrieval.search(question, req.doc_ids, search_options(req), plan.scope)
     timings.update({k: round(v) for k, v in result.timings.items()})
     neighbours = await deps.retrieval.neighbours(result.candidates)
     images = figure_slots(deps.s, [(c.payload.doc_id, c.payload.asset) for c in result.candidates])

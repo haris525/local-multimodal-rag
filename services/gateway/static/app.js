@@ -25,6 +25,9 @@ const state = {
   reindexing: new Set(),  // documents whose reindex request is on its way: their Retry and Reindex wait
   notesOpen: new Set(),  // documents whose long warning the user opened with More
   names: new Map(),  // document id -> name, from the lists, saved chats and the saved selection (usableIds)
+  presets: [],  // the built-in search tasks (GET /api/search-tasks/presets, from rag)
+  tasks: [],  // the user's own search tasks (GET /api/search-tasks, from threads)
+  taskLists: { presets: false, tasks: false },  // whether each list loaded at its last try (taskGone)
 };
 
 function load(key, fallback) {
@@ -78,7 +81,11 @@ async function api(path, options = {}, flags = {}) {
     let detail = response.statusText;
     try {
       const body = await response.json();
-      detail = typeof body.detail === "string" ? body.detail : JSON.stringify(body.detail);
+      detail = typeof body.detail === "string" ? body.detail
+        // a request the server's checks refused (422): their own words, without the "Value error" prefix
+        : Array.isArray(body.detail) && body.detail.length && body.detail.every((d) => typeof d?.msg === "string")
+          ? body.detail.map((d) => d.msg.replace(/^Value error, /, "")).join("; ")
+          : JSON.stringify(body.detail);
     } catch { /* not JSON */ }
     if (response.status === 403 && detail === "password change required") toLogin();
     throw new Error(detail || `HTTP ${response.status}`);
@@ -718,7 +725,7 @@ function addNotice(view, data) {
 }
 
 // Asks the same question again in the open chat, for an answer that failed or was interrupted, with the
-// documents (those still usable), mode and Think setting it was first asked with.
+// documents (those still usable), mode, Think setting and search task it was first asked with.
 function retryButton(question, turn = {}) {
   return h("button", { class: "link retry", type: "button", title: "Ask this question again",
     onclick: () => { if (!state.busy && question) { restoreTurn(turn); ask(question); } } }, "Retry");
@@ -737,12 +744,19 @@ function restoreTurn(turn) {
     $("#exhaustive").checked = turn.mode === "exhaustive";
   }
   if (typeof turn.think === "boolean") $("#think").checked = turn.think;
+  // a turn from before search tasks was asked with General; a task deleted since is asked as General (pickTask)
+  pickTask(typeof turn.search_task === "string" ? turn.search_task : "general");
 }
 
 // The answer mode the composer's toggles ask for. Deep search and Read all exclude each other (init wires them).
 function chatMode() {
   if ($("#exhaustive").checked) return "exhaustive";
   return $("#deep").checked ? "deep" : "single";
+}
+
+// The search task the composer's picker asks for (General until the lists load).
+function chatTask() {
+  return $("#search-task").value || "general";
 }
 
 function failure(text, question, turn) {
@@ -764,6 +778,10 @@ function renderFooter(view, info, sources) {
   const perDoc = Object.entries(info.per_doc || {}).map(([name, n]) => `${name}: ${n}`).join(", ");
   const searched = !(NO_SEARCH_ROUTES.has(info.route) && !sources.length);
   const parts = [searched ? `${sources.length} sources${perDoc ? ` (${perDoc})` : ""}` : null, ROUTE_LABEL[info.route] || info.route];
+  // the search task, when it is not General and the answer searched (Read all embeds no question)
+  if (searched && info.route !== "exhaustive" && info.search_task && info.search_task !== "general") {
+    parts.push(`search task: ${taskLabel(info.search_task)}`);
+  }
   if (info.timings?.total_ms) parts.push(`retrieval ${(info.timings.total_ms / 1000).toFixed(1)} s`);
   if (info.timings?.generate_ms) parts.push(`answer ${(info.timings.generate_ms / 1000).toFixed(1)} s`);
   if (info.invalid_citations?.length) parts.push(`invalid citations: ${info.invalid_citations.join(", ")}`);
@@ -797,7 +815,7 @@ function showHistory(detail) {
     for (const event of meta.memory || []) addMemoryChips(view, event, false);
     renderAnswer(view, msg.content || "", meta.sources || []);
     for (const note of meta.notices || []) addNotice(view, note);
-    const turn = { doc_ids: meta.doc_ids, mode: meta.mode, think: meta.think };
+    const turn = { doc_ids: meta.doc_ids, mode: meta.mode, think: meta.think, search_task: meta.search_task };
     if (meta.interrupted) view.answer.append(failure("This answer was interrupted before it finished.", question, turn));
     else if (meta.error) view.answer.append(failure(`Error: ${meta.error}`, question, turn));
     renderFooter(view, meta, meta.sources || []);
@@ -818,7 +836,7 @@ async function ask(question) {
 
   state.busy = true;
   updateSend();
-  const turn = { doc_ids: [...state.selected], mode: chatMode(), think: $("#think").checked };
+  const turn = { doc_ids: [...state.selected], mode: chatMode(), think: $("#think").checked, search_task: chatTask() };
   const activity = startActivity(view, turn);
   let text = "";
   let sources = [];
@@ -851,6 +869,7 @@ async function ask(question) {
         thread_id: state.threadId,
         think: turn.think,
         mode: turn.mode,
+        search_task: turn.search_task,
       }),
     });
     if (!response.ok) {
@@ -862,6 +881,12 @@ async function ask(question) {
         // as it is now (the new version of a replaced file)
         await refreshDocs();
         detail = "a selected document was deleted or replaced by a new version meanwhile. Check the ticked documents and ask again.";
+      }
+      if (response.status === 422 && String(detail).startsWith("unknown search task")) {
+        // deleted since the lists were loaded (in another tab, say): the reload puts the picker back on General
+        // and says so next to it
+        await loadSearchTasks();
+        detail = "the search task was deleted meanwhile, perhaps in another tab. Check the Search task picker and ask again.";
       }
       throw new Error(typeof detail === "string" ? detail : JSON.stringify(detail));
     }
@@ -888,7 +913,7 @@ async function ask(question) {
         finished = true;
         activity.stop();
         render();
-        renderFooter(view, { ...info, ...data }, sources);
+        renderFooter(view, { ...info, ...data, search_task: turn.search_task }, sources);
       } else if (event === "error") {
         finished = true;
         throw new Error(data.message);
@@ -959,6 +984,9 @@ async function openThread(id, { fromLink = false } = {}) {
     renderDocs();
     hideSources();
     showHistory(detail);
+    // follow-ups ask with the search task of the chat's last answer (General for a chat from before them)
+    const last = [...detail.messages].reverse().find((m) => m.role === "assistant");
+    pickTask(typeof last?.meta?.search_task === "string" ? last.meta.search_task : "general");
     renderThreads();
   } catch (err) {
     if (view !== state.view) return;
@@ -1042,6 +1070,204 @@ async function showMemory() {
     ...(items.length ? [] : [h("div", { class: "mem-empty" }, "Nothing remembered yet. Mention a preference in a chat, or add one above.")]));
 }
 
+/* ---------- search tasks ---------- */
+
+// A search task is the instruction the question is embedded with before the search (docs/design/search-tasks.md).
+// The built-in ones come from rag, the user's own from threads. The picker next to Think sends one with each
+// question, and every answer keeps the one it was asked with, so Retry asks with it again.
+const TASK_NAME_MAX = 40;
+const TASK_TEXT_MAX = 300;
+const TASK_ID = /^[0-9a-f]{32}$/;
+// Until the list loads (or when it cannot), General alone; its instruction is the server's setting, unknown here.
+const GENERAL = { id: "general", name: "General", description: "The default, for most questions.", instruction: null };
+
+const builtInTasks = () => (state.presets.length ? state.presets : [GENERAL]);
+
+function hasTask(id) {
+  return builtInTasks().some((t) => t.id === id) || state.tasks.some((t) => t.task_id === id);
+}
+
+// Known to be gone: the list the id belongs to loaded and lacks it. When that list did not load, nothing is known,
+// so the id is kept and rag answers (a 422 for a task that is really gone).
+function taskGone(id) {
+  if (hasTask(id)) return false;
+  return TASK_ID.test(id) ? state.taskLists.tasks : state.taskLists.presets;
+}
+
+function taskNote(words) {
+  const note = $("#search-task-note");
+  note.textContent = words;
+  note.hidden = !words;
+}
+
+const MOVED_TO_GENERAL = "The search task picked before is no longer listed, so the picker is on General.";
+
+function clearMovedNote() {
+  if ($("#search-task-note").textContent === MOVED_TO_GENERAL) taskNote("");
+}
+
+// Sets the picker to a task (a turn's, a chat's), or to General with a note when that task is known to be gone.
+function pickTask(id) {
+  const gone = taskGone(id);
+  if (gone) taskNote(MOVED_TO_GENERAL);
+  else clearMovedNote();
+  setPicker(gone ? "general" : id);
+}
+
+// A task the lists do not show (they did not load) still gets an option, so the picker can hold it.
+function setPicker(id) {
+  const pick = $("#search-task");
+  pick.querySelector("optgroup.unlisted")?.remove();
+  if (!hasTask(id)) {
+    pick.append(h("optgroup", { label: "Not loaded", class: "unlisted" },
+      h("option", { value: id }, TASK_ID.test(id) ? "One of yours (list not loaded)" : id)));
+  }
+  pick.value = id;
+}
+
+// The task's name; a custom task that is not listed (deleted since, or the list did not load) is never guessed.
+function taskLabel(id) {
+  const task = builtInTasks().find((t) => t.id === id) || state.tasks.find((t) => t.task_id === id);
+  if (task) return task.name;
+  return TASK_ID.test(id) ? "one of yours that is no longer listed" : id;
+}
+
+// Loads both lists and redraws the picker; returns what could not be loaded (in words), or "". A list that did not
+// load is said next to the picker too.
+async function loadSearchTasks() {
+  const [presets, tasks] = await Promise.allSettled([api("/search-tasks/presets"), api("/search-tasks")]);
+  state.taskLists = { presets: presets.status === "fulfilled", tasks: tasks.status === "fulfilled" };
+  if (presets.status === "fulfilled") state.presets = presets.value;
+  if (tasks.status === "fulfilled") state.tasks = tasks.value;
+  const moved = renderTaskPicker();
+  const problem = [presets.status === "rejected" && `the built-in search tasks (${presets.reason.message})`,
+    tasks.status === "rejected" && `your search tasks (${tasks.reason.message})`].filter(Boolean).join(" and ");
+  taskNote([problem && `Could not load ${problem}; questions go with the task picked.`, moved && MOVED_TO_GENERAL]
+    .filter(Boolean).join(" "));
+  return problem;
+}
+
+// The picker keeps its choice unless that task is known to be gone (taskGone); then it moves to General and
+// returns true.
+function renderTaskPicker() {
+  const pick = $("#search-task");
+  const current = pick.value || "general";
+  pick.replaceChildren(
+    h("optgroup", { label: "Built-in" }, ...builtInTasks().map((t) => h("option", { value: t.id, title: t.description }, t.name))),
+    ...(state.tasks.length ? [h("optgroup", { label: "Yours" },
+      ...state.tasks.map((t) => h("option", { value: t.task_id, title: t.instruction }, t.name)))] : []));
+  const gone = taskGone(current);
+  setPicker(gone ? "general" : current);
+  return gone;
+}
+
+const cleanLine = (text) => text.normalize("NFC").trim();
+
+// What the server checks (rag_common.contracts.one_line), checked first and said in plain words; null when fine.
+function taskProblem(name, instruction) {
+  const length = (text) => [...text].length;  // characters, as the server counts them
+  if (!name) return "Give the search task a name.";
+  if (length(name) > TASK_NAME_MAX) return `The name can be at most ${TASK_NAME_MAX} characters long; it has ${length(name)}.`;
+  if (/\p{Cf}/u.test(name)) return "Leave invisible characters (zero-width spaces, direction marks) out of the name.";
+  if (!/[\p{L}\p{N}]/u.test(name)) return "The name needs at least one letter or digit.";
+  if (!instruction) return "Write the instruction your questions are searched with.";
+  if (length(instruction) > TASK_TEXT_MAX) {
+    return `The instruction can be at most ${TASK_TEXT_MAX} characters long; it has ${length(instruction)}.`;
+  }
+  if (/[\p{Cc}\u2028\u2029]/u.test(name + instruction)) return "Use one line of text, without line breaks or tabs.";
+  return null;
+}
+
+// The form that adds a task, or edits one in its card (with Cancel). Saving reloads the panel and the picker.
+function taskForm(task = null, cancel = null) {
+  const name = h("input", { class: "mem-input", type: "text", maxlength: String(TASK_NAME_MAX), "aria-label": "Name",
+    placeholder: "Name, for example Contracts" });
+  const text = h("input", { class: "mem-input", type: "text", maxlength: String(TASK_TEXT_MAX), "aria-label": "Instruction",
+    placeholder: "Instruction, for example: Given a question about an agreement, retrieve the clauses that answer it" });
+  name.value = task?.name || "";
+  text.value = task?.instruction || "";
+  const message = h("div", { class: "error", role: "alert" });
+  message.hidden = true;
+  const say = (words) => { message.textContent = words; message.hidden = false; };
+  const save = h("button", { class: "primary", type: "submit" }, task ? "Save" : "Add");
+  const form = h("form", {
+    class: "task-form",
+    onsubmit: async (e) => {
+      e.preventDefault();
+      const body = { name: cleanLine(name.value), instruction: cleanLine(text.value) };
+      const problem = taskProblem(body.name, body.instruction);
+      if (problem) return say(problem);
+      save.disabled = true;
+      try {
+        await api(task ? `/search-tasks/${task.task_id}` : "/search-tasks", { method: task ? "PUT" : "POST",
+          headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) });
+      } catch (err) {  // the limit (409), a deleted task (404), a check the page missed (422)
+        save.disabled = false;
+        return say(`Could not save the search task: ${err.message}`);
+      }
+      showSearchTasks();
+    },
+  }, name, text, h("div", { class: "task-actions" }, save,
+    cancel ? h("button", { class: "link", type: "button", onclick: cancel }, "Cancel") : null), message);
+  return form;
+}
+
+function presetCard(p) {
+  return h("div", { class: "src task" },
+    h("div", { class: "src-head" }, h("span", { class: "src-doc" }, p.name), h("span", { class: "badge" }, "built-in")),
+    h("div", { class: "src-loc" }, p.description),
+    p.instruction == null ? null
+      : h("div", { class: "task-text" }, p.instruction ? `Instruction: ${p.instruction}` : "No instruction: the bare question."),
+    p.measured ? h("div", { class: "src-loc" }, `Measured: ${p.measured}`) : null);
+}
+
+function taskCard(t) {
+  const message = h("div", { class: "error", role: "alert" });
+  message.hidden = true;
+  const card = h("div", { class: "src task" },
+    h("div", { class: "src-head" }, h("span", { class: "src-doc" }, t.name)),
+    h("div", { class: "task-text" }, t.instruction),
+    h("div", { class: "src-loc" }, `added ${when(t.created_at)}${t.updated_at !== t.created_at ? `, edited ${when(t.updated_at)}` : ""}`),
+    h("div", { class: "task-actions" },
+      h("button", { class: "link", type: "button", onclick: () => {
+        const form = taskForm(t, () => form.replaceWith(card));
+        card.replaceWith(form);
+      } }, "Edit"),
+      h("button", { class: "link danger", type: "button", onclick: async () => {
+        if (!confirm(`Delete the search task "${t.name}"? Answers that used it are kept; asked again, they search with General.`)) return;
+        try {
+          await api(`/search-tasks/${t.task_id}`, { method: "DELETE" });
+        } catch (err) {
+          message.textContent = `Could not delete: ${err.message}`;
+          message.hidden = false;
+          return;
+        }
+        showSearchTasks();
+      } }, "Delete")),
+    message);
+  return card;
+}
+
+async function showSearchTasks() {
+  const list = $("#sources-list");
+  const token = openPanel("Search tasks");
+  list.replaceChildren(h("div", { class: "muted" }, "Loading..."));
+  const problem = await loadSearchTasks();
+  if (!panelShows(token)) return;
+  list.replaceChildren(...[
+    h("div", { class: "muted mem-help" }, "A search task is the instruction your question is searched with. It changes "
+      + "which passages are found, not how the answer is written. Pick one next to Think, Deep search and Read all; each "
+      + "answer keeps the one it was asked with."),
+    problem ? h("div", { class: "error" }, `Could not load ${problem}.`) : null,
+    h("div", { class: "task-head" }, "Built-in"),
+    ...builtInTasks().map(presetCard),
+    h("div", { class: "task-head" }, "Yours"),
+    taskForm(),
+    ...state.tasks.map(taskCard),
+    state.tasks.length ? null : h("div", { class: "mem-empty" }, "No search tasks of your own yet. Add one above."),
+  ].filter(Boolean));
+}
+
 /* ---------- wiring ---------- */
 
 // An administrator reset this account's password. Shown at every sign-in until the user dismisses it: changing
@@ -1095,6 +1321,8 @@ async function init() {
   $("#sources-close").addEventListener("click", hideSources);
   $("#audit-open").addEventListener("click", showAudit);
   $("#memory-open").addEventListener("click", showMemory);
+  $("#tasks-open").addEventListener("click", showSearchTasks);
+  $("#search-task").addEventListener("change", clearMovedNote);
   $("#tab-docs").addEventListener("click", () => showTab("docs"));
   $("#tab-chats").addEventListener("click", () => showTab("chats"));
   $("#chat-new").addEventListener("click", newChat);
@@ -1112,7 +1340,9 @@ async function init() {
     if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); $("#composer").requestSubmit(); }
   });
   refreshStatus();
+  const tasks = loadSearchTasks();  // before a linked chat opens, so its answers name their search tasks
   await refreshDocs();
+  await tasks;
   const linked = location.hash.match(/^#t=([0-9a-f]{32})$/);
   if (linked) openThread(linked[1], { fromLink: true });
   refreshThreads();

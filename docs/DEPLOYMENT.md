@@ -1062,6 +1062,73 @@ docker compose up -d --no-deps ingest-api ingest-worker
 docker compose logs ingest-worker | grep "re-queued"
 ```
 
+### 4.22 Update: search tasks (threads schema v3)
+
+This update ([CHANGELOG](../CHANGELOG.md); ARCHITECTURE sections 7.2 and 7.7; design:
+[design/search-tasks.md](design/search-tasks.md)) lets each question choose the instruction it is embedded with
+before the meaning search: a *Search task* picker next to *Think*, three built-in tasks (General, Multi-step
+research, Exact lookup) and each user's own, managed in the *Search tasks* panel.
+
+General's instruction changes with this update, from `Given a question, retrieve passages that answer it` to
+`Given a question about the user's documents, retrieve passages with the facts needed to answer it`. The new one was
+chosen by a measured experiment ([benchmarks/embedding-models-2026-11-15.md](benchmarks/embedding-models-2026-11-15.md)):
+- **Retrieval:** better recall@10 after reranking on held-out halves of two public multi-hop sets (+0.9 and +1.9
+  points), and the same on the example documents.
+- **End to end:** not significantly different on the local and hard benchmark sets.
+
+Some answers can therefore differ after the update. To keep the old instruction, set
+`RAG_QUERY_INSTRUCTION=Given a question, retrieve passages that answer it` in `.env`.
+
+**Data changes:** `threads.db` goes from schema v2 to v3 when the new `threads` starts: one transaction that adds
+the `search_tasks` table and keeps every row. Back up first. Documents and the search index are untouched: only
+the question's side of the search changes, so there is no reindex.
+
+Rebuild `models`, `threads`, `rag` and `gateway`. Start `models` before `rag`: the new `rag` sends the instruction
+with every question and checks that `models` applied it; the earlier `models` ignores it, so questions would fail
+with "models does not apply search tasks" until `models` is updated. `ingest`, `sql`, `audit`, `auth` and `sandbox`
+change only through `libs/common`: a refused request (422) now names the field and the reason without echoing the
+value sent. Rebuild them too, in step 4.
+
+```bash
+cd /opt/local-rag
+# 1. back up every volume (section 6.2), then keep the current images for a rollback
+for i in models rag threads gateway auth audit ingest sql sandbox; do docker tag local-rag/$i:dev local-rag/$i:previous; done
+# 2. update the code and build the images while the old services keep running
+git pull --ff-only
+docker compose build models threads rag gateway auth audit ingest-api ingest-worker sql sandbox
+# 3. models first: it reloads its embedders and reranker, a few minutes; plan it for a quiet moment
+docker compose up -d --no-deps models
+# 4. then threads (it upgrades threads.db at start), rag and the gateway, and the services that share libs/common
+docker compose up -d --no-deps threads rag gateway
+docker compose up -d --no-deps auth audit ingest-api ingest-worker sql sandbox
+docker compose --profile eval build eval               # only if you run eval in Docker
+```
+
+Then check:
+
+1. `docker compose logs threads rag models | grep -i error` shows nothing new.
+2. `docker compose exec threads python -c "import sqlite3; print(sqlite3.connect('/data/threads.db').execute('PRAGMA user_version').fetchone())"`
+   prints `(3,)`.
+3. Sign in: the *Search task* picker under the question box lists General, Multi-step research and Exact lookup.
+   Add a task in *Search tasks* (top bar), pick it, and ask a question: the answer's footer shows
+   `search task: <its name>`. Your chats and memories are as before.
+
+| Setting | Default | What it sets |
+|---|---|---|
+| `RAG_QUERY_INSTRUCTION` | `Given a question about the user's documents, retrieve passages with the facts needed to answer it` | General's instruction; empty embeds the bare question. One line, at most 300 characters, or rag does not start. Query side only: set it in `.env` and recreate `rag` (`docker compose up -d --no-deps rag`), no reindex |
+| `THREADS_MAX_SEARCH_TASKS` | 50 | custom search tasks per user; adding one past it is refused with a message that says so |
+
+`MODELS_QUERY_INSTRUCTION` stays as the fallback for a caller that sends no instruction; rag always sends one. The
+reranker's instruction does not change. If you set `MODELS_QUERY_INSTRUCTION`, copy it to `RAG_QUERY_INSTRUCTION`,
+because rag now always sends General's instruction. If `rag` reports "models does not apply search tasks", the
+running `models` is the earlier one: rebuild and restart it (step 3).
+
+Rollback: restore the backup from step 1, as at the end of section 4.11, which loses what was written since. To
+keep the chats and memories written since, put back the `previous` images of the four services instead (section
+4.9): the earlier `threads` ignores the `search_tasks` table and keeps working with a v3 `threads.db`. It does not
+delete a user's search tasks when it deletes the account; the next start of the new `threads` deletes them (the
+log says `deleted the search tasks of accounts deleted before`).
+
 ## 5. Network exposure
 
 > **Keep the gateway port on 127.0.0.1** (`GATEWAY_BIND`, the default). Give other computers access
@@ -1551,7 +1618,7 @@ Events (`auth.*` and `admin.*` are written by the `auth` service):
 
 ```
 document.uploaded | rejected | deleted | reindex_requested | ready | failed | superseded
-thread.deleted    memory.added | updated | deleted    chat.answered | failed
+thread.deleted    memory.added | updated | deleted    search_task.added | updated | deleted    chat.answered | failed
 auth.login_succeeded | login_failed | locked | logout | password_changed | token_created | token_revoked
 auth.account_created | password_reset_by_admin | security_notice_dismissed | disabled_by_admin
 auth.enabled_by_admin | role_changed

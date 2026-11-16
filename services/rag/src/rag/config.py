@@ -5,6 +5,8 @@ from typing import Literal
 from pydantic import Field, PrivateAttr, field_validator, model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
+from rag_common.contracts import instruction_text
+
 
 class Settings(BaseSettings):
     model_config = SettingsConfigDict(env_prefix="RAG_", env_file=".env", extra="ignore")
@@ -23,6 +25,9 @@ class Settings(BaseSettings):
     public_keys_file: Path = Path("/run/secrets/identity_public_keys")
     qdrant_api_key_file: Path | None = Path("/run/secrets/qdrant_api_key")  # Qdrant refuses requests without it
 
+    # the General search task's instruction (rag.search_tasks): the question is embedded after it; empty embeds the
+    # bare question. Query side only, so changing it needs no reindex.
+    query_instruction: str = "Given a question about the user's documents, retrieve passages with the facts needed to answer it"
     # retrieval depth per retriever
     dense_k: int = 40
     bm25_k: int = 40
@@ -235,6 +240,14 @@ class Settings(BaseSettings):
                              f"RAG_SANDBOX_TIMEOUT_S ({self.sandbox_timeout_s:g}): it also covers the wait and the "
                              "transfer")
         return self
+
+    @field_validator("query_instruction")
+    @classmethod
+    def _one_line(cls, value: str) -> str:
+        try:
+            return instruction_text(value)
+        except ValueError as exc:
+            raise ValueError(f"RAG_QUERY_INSTRUCTION: {exc}") from None
 
     @field_validator("qdrant_api_key_file", mode="before")
     @classmethod

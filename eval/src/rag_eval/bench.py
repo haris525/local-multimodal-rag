@@ -220,9 +220,10 @@ def record(item: Item, repeat: int, turn: Turn, doc_ids: dict[str, str]) -> dict
 
 def run(gateway: Gateway, items: list[Item], doc_ids: dict[str, str], mode: str, think: bool, repeats: int,
         agent: str | None, sink: Callable[[dict], None] | None = None, progress: Callable[[str], None] = print,
-        deep_think: bool = False, clock: Callable[[], float] = time.monotonic, concurrency: int = 1) -> list[dict]:
-    """Ask every item `repeats` times (all items, then again), stateless; returns the run records in the order
-    they finished. After each run, `progress` gets one line: where the run is, this answer, the running pass rate
+        deep_think: bool = False, clock: Callable[[], float] = time.monotonic, concurrency: int = 1,
+        search_task: str | None = None) -> list[dict]:
+    """Ask every item `repeats` times (all items, then again), stateless, with `search_task` when given; returns the
+    run records in the order they finished. After each run, `progress` gets one line: where the run is, this answer, the running pass rate
     and the time left. With concurrency above 1, up to that many requests are in flight (rag_eval.dispatch) and
     each record also carries `order`, its dispatch position, and `in_flight`, the other requests running when it
     was sent."""
@@ -233,7 +234,7 @@ def run(gateway: Gateway, items: list[Item], doc_ids: dict[str, str], mode: str,
     def ask(job: tuple[int, int, Item]) -> Turn:
         it = job[2]
         return gateway.ask(it.question, [doc_ids[name] for name in it.docs], mode=mode, think=think, agent=agent,
-                           deep_think=deep_think)
+                           deep_think=deep_think, search_task=search_task)
 
     def done(k: int, job: tuple[int, int, Item], turn: Turn, others: int) -> None:
         nonlocal passed
@@ -358,6 +359,7 @@ def markdown(report: dict, items: list[Item]) -> str:
              f"{'fanout: sent; ' if meta.get('fanout') else ''}"
              f"{'research_calls: ' + str(meta['research_calls']) + '; ' if meta.get('research_calls') else ''}"
              f"{'python: sent; ' if meta.get('python') else ''}"
+             f"{'search_task: ' + meta['search_task'] + '; ' if meta.get('search_task') else ''}"
              f"set {meta['set_digest']}; {meta['started']} to {meta['finished']}"
              f"{'; INCOMPLETE (interrupted)' if meta.get('incomplete') else ''}.",
              f"Environment: {environment_line(meta.get('environment') or {})}{load_note(meta)}.",
@@ -513,7 +515,8 @@ def compare(a: dict, b: dict, metric: str = "correct") -> dict:
             for tag in item.get("tags", []):
                 tags.setdefault(tag, []).append(item["id"])
     notes = []
-    for key in ("set_digest", "mode", "think", "deep_think", "fanout", "research_calls", "python", "repeats"):
+    for key in ("set_digest", "mode", "think", "deep_think", "fanout", "research_calls", "python", "search_task",
+                "repeats"):
         if a["meta"].get(key) != b["meta"].get(key):
             notes.append(f"{key} differs: {a['meta'].get(key)} vs {b['meta'].get(key)}")
     load_a, load_b = a["meta"].get("concurrency") or 1, b["meta"].get("concurrency") or 1
@@ -536,7 +539,7 @@ def compare(a: dict, b: dict, metric: str = "correct") -> dict:
     return {
         "kind": "compare", "metric": metric, "a": a["meta"]["variant"], "b": b["meta"]["variant"],
         "settings": {side: {k: rep["meta"].get(k) for k in ("agent", "mode", "think", "deep_think", "fanout",
-                                                              "research_calls", "python", "repeats")}
+                                                              "research_calls", "python", "search_task", "repeats")}
                      for side, rep in (("a", a), ("b", b))},
         "environment": {"a": env_a, "b": env_b},
         **{k: overall[k] for k in ("questions", "wins", "losses", "ties", "win_ids", "loss_ids")},
@@ -555,7 +558,7 @@ def _settings(s: dict) -> str:
     return (f"agent {s.get('agent') or '(not sent)'}, mode {s.get('mode')}, think {'on' if s.get('think') else 'off'}, "
             f"deep think {'on' if s.get('deep_think') else 'off'}, fan-out {'on' if s.get('fanout') else 'off'}, "
             f"research calls {s.get('research_calls') or 'rag setting'}, python {'on' if s.get('python') else 'off'}, "
-            f"{s.get('repeats')} repeats")
+            f"search task {s.get('search_task') or 'general (not sent)'}, {s.get('repeats')} repeats")
 
 
 def environment_line(env: dict) -> str:

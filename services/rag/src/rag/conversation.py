@@ -14,7 +14,7 @@ from dataclasses import dataclass, field
 
 import httpx
 
-from rag_common.contracts import MemoryItem, NewMessage, ThreadContext, ThreadMessage
+from rag_common.contracts import MemoryItem, NewMessage, SearchTaskItem, ThreadContext, ThreadMessage
 from rag_common.logging import log_fields
 from rag_common.secrets import looks_secret, redact_secrets
 
@@ -139,6 +139,10 @@ class ThreadsClient:
         response = await self.http.delete(f"/v1/memories/{memory_id}")
         if response.status_code not in (204, 404):  # already gone is fine
             await response_json(response)  # raises ServiceError
+
+    async def search_task(self, task_id: str) -> SearchTaskItem:
+        """One of the caller's custom search tasks (rag.search_tasks); ServiceError 404 for any other id."""
+        return SearchTaskItem(**await response_json(await self.http.get(f"/v1/search-tasks/{task_id}")))
 
 
 async def load(threads: ThreadsClient, thread_id: str | None, history: list[dict]) -> Conversation:

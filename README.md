@@ -17,7 +17,8 @@ on this machine; diagrams also appear when saved chats are reopened.
   Qwen3-Reranker-0.6B.
 - **Retrieval:** dense vectors, native BM25, exact-match grep and image vectors, fused with reciprocal
   rank fusion, reranked, then per-document coverage and maximal marginal relevance over the up to 10
-  documents you select.
+  documents you select. A search task, chosen per question, sets the instruction the question is embedded
+  with: three built in, or your own.
 - **Structured data:** every sheet and PDF table is also a SQL table; a planner chooses SQL, SQL-filtered
   search or plain search, and SQL runs in a read-only sandbox.
 - **Deep search:** a LangGraph ReAct agent (plan, use tools, verify) for multi-document and

@@ -13,7 +13,8 @@ class Settings(BaseSettings):
     device: str = "cuda"
     log_level: str = "INFO"
 
-    query_instruction: str = "Given a question, retrieve passages that answer it"
+    # for a query sent without an instruction; rag always sends its search task's (RAG_QUERY_INSTRUCTION for General)
+    query_instruction: str = "Given a question about the user's documents, retrieve passages with the facts needed to answer it"
     image_query_instruction: str = "Find images, figures or charts that help answer the question"
     rerank_instruction: str = "Given a question about the user's documents, judge whether the passage helps answer it"
 

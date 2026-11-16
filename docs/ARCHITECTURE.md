@@ -157,7 +157,7 @@ steps, and the judge 0; research steps 0.3.
 | `sandbox` | 8008 | Runs Deep search's model-written Python (`run_python`; compose profile `sandbox`, used only with `RAG_DEEP_PYTHON` `request` or `on`), one run at a time, on the data rag sends with it (section 7.10) | none (tmpfs only, emptied after every run) | own uid 10101, read-only root, noexec tmpfs, capabilities dropped, 4 GB / 4 CPUs / 256 pids, RLIMITs, SysV caps, `sandbox` network only (rag refuses its subnet), no secrets or `.env` |
 | `rag` | 8002 | Readiness, query rewrite, planner, retrieval, fusion, rerank, selection, prompts, streaming, LangGraph deep research, `/v1/search` for evaluation | none | read-only root filesystem, capabilities dropped, 6 GB (`RAG_MEM_LIMIT`), refuses every request from the sandbox network |
 | `audit` | 8004 | Append-only hash-chained event log; read-only through the gateway | `audit-data` | read-only root filesystem, capabilities dropped |
-| `threads` | 8006 | Conversations and their messages, running summaries, long-term memories | `threads-data` | read-only root filesystem, capabilities dropped |
+| `threads` | 8006 | Conversations and their messages, running summaries, long-term memories, custom search tasks | `threads-data` | read-only root filesystem, capabilities dropped |
 | `models` | 8003 | `/v1/embed/text`, `/v1/embed/image`, `/v1/rerank`; bounded GPU queue (503 when full) | `models` volume, read-only | GPU, capabilities dropped |
 | `llm` | 8080 | OpenAI-compatible chat completions with images and tool calls | `models` volume, read-only | GPU, no-new-privileges |
 | `qdrant` | 6333 | Vectors, BM25, payload indexes | `qdrant-data` | no-new-privileges, telemetry off, `api_key` on every request but health checks |
@@ -213,12 +213,15 @@ accepts only identities signed by `rag` and opens `tables/<user_id>/<doc_id>.duc
 table is a 404.
 
 `rag`
-- `POST /v1/chat`: `{question, doc_ids[0..10], thread_id?, history[], think, mode: single | deep | exhaustive}` (deep
+- `POST /v1/chat`: `{question, doc_ids[0..10], thread_id?, history[], think, mode: single | deep | exhaustive, search_task?}` (deep
   mode, for benchmarking, also `agent?`, `deep_think?`, `fanout?`, `research_calls?`, section 7.6, and a 422 with
   `exhaustive`; exhaustive mode reads every section, section 7.9) streams SSE `memory` (saved or forgotten items), `step` (deep, exhaustive), `sources` (with chunks per document), `reasoning`, `token`, `done`, `error`. The event names and their order are one table, `NEXT` in `libs/common/src/rag_common/chat_events.py` (one `token` may carry a mixed message's memory notes before `sources`); the same module's `read_chat` is the reader eval and the scripts use, and it reports a stream that ended without `done` or `error` ([STATE_MACHINES.md, M12](STATE_MACHINES.md#m12-chat-event-stream)). Documents the caller does not own get 404 and documents without a complete index 409, both before streaming. `doc_ids` may be empty only in a thread chat (memory and assistant turns); a document question with no documents gets a "select documents" answer, and a stateless call with none gets 422.
-- `POST /v1/search`: `{question, doc_ids, retrievers[], rerank, threshold, coverage, mmr, top_k, planner}` returns ranked chunks with per-retriever ranks and scores.
+- `POST /v1/search`: `{question, doc_ids, retrievers[], rerank, threshold, coverage, mmr, top_k, planner, search_task?}` returns ranked chunks with per-retriever ranks and scores, and the search task's kind.
+- `search_task` (both routes): a preset id (`general`, `multi-step`, `exact`) or the id of one of the caller's custom
+  tasks; none means `general`, anything else is a 422 before anything runs (section 7.2).
+- `GET /v1/search-tasks/presets`: the built-in search tasks, with the instruction each one uses.
 
-`models`: `POST /v1/embed/text` (`role: query | document`), `POST /v1/embed/image` (images or query texts), `POST /v1/rerank`, `GET /v1/info`.
+`models`: `POST /v1/embed/text` (`role: query | document`; a query may carry `instruction`, section 7.2), `POST /v1/embed/image` (images or query texts), `POST /v1/rerank`, `GET /v1/info`.
 
 `audit`: `POST /v1/events` (backend only, usually unsigned with the user in the body; a signed write must
 name its own user, else 403), `GET /v1/events` and `GET /v1/verify` (identity signed by `auth`; the
@@ -226,9 +229,11 @@ caller's own events, section 10).
 
 `threads`: `POST|GET /v1/threads`, `GET|PATCH|DELETE /v1/threads/{id}`, `GET|POST /v1/memories`,
 `PUT|DELETE /v1/memories/{id}` (PUT rewrites one memory in place, in one transaction; text that looks
-like a credential is refused with 422 on every write); for `rag` only (identity signed by `rag`, and
-404 at the gateway): `POST /v1/threads/{id}/messages`, `GET /v1/threads/{id}/context`,
-`PUT /v1/threads/{id}/summary`. `rag`'s `/v1/chat` also takes `thread_id`.
+like a credential is refused with 422 on every write), `GET|POST /v1/search-tasks`,
+`GET|PUT|DELETE /v1/search-tasks/{id}` (custom search tasks, section 7.7; 409 past the user's limit); for `rag` only
+(identity signed by `rag`, and 404 at the gateway): `POST /v1/threads/{id}/messages`, `GET /v1/threads/{id}/context`,
+`PUT /v1/threads/{id}/summary`. `rag`'s `/v1/chat` also takes `thread_id`. The gateway maps `/api/search-tasks` to
+`threads` and `GET /api/search-tasks/presets` to `rag`.
 
 `auth` (the gateway maps `/api/auth/*` to `/v1/auth/*` and `/api/admin/*` to `/v1/admin/*`; admin routes
 need an admin's browser session, never an API token):
@@ -802,7 +807,7 @@ slightly: a weak side channel, and a reason to compare evaluation runs taken bac
 ### 7.1 Inputs and guards
 
 `question`, `doc_ids` $D$ with $0 \le |D| \le 10$ (schema-validated; empty only in a thread chat),
-`thread_id` (or a stateless `history`), `think`. Documents must have a complete index (409 otherwise).
+`thread_id` (or a stateless `history`), `think`, `search_task`. Documents must have a complete index (409 otherwise).
 Retrieval uses a standalone query $q$. In a thread chat, the intent router writes $q$ from the running
 summary and the recent turns as part of its one call (section 7.7). Without a thread, a separate rewrite call
 writes $q$ from the sent history, and only when there is history.
@@ -813,11 +818,50 @@ All filtered by the selection (narrowed to matching rows on the planner's `filte
 
 | Retriever | Query representation | Searches | Depth |
 |-----------|----------------------|----------|-------|
-| $R_\text{dense}$ | Qwen3-Embedding-0.6B, instruction `Given a question, retrieve passages that answer it` | `text` vectors | 40 |
+| $R_\text{dense}$ | Qwen3-Embedding-0.6B, after the search task's instruction (below; General's is `RAG_QUERY_INSTRUCTION`, by default `Given a question about the user's documents, retrieve passages with the facts needed to answer it`) | `text` vectors | 40 |
 | $R_\text{bm25}$ | raw query (`TextQuery`) | `search_text` (stemmed BM25) | 40 |
 | $R_\text{image}$ | Qwen3-VL-Embedding-2B text side, instruction `Find images, figures or charts that help answer the question` | `image` vectors, cosine at least 0.30 | 10 |
 | $R_\text{grep}$ | exact terms from the question: quoted phrases, codes and IDs (`INV-2025-0042`), numbers with units or 3+ digits, acronyms, code-like names | case-insensitive whole-term match over chunk text (`ingest-api /v1/grep`) | 20 |
 | per-document | the dense query vector, grouped by `doc_id` (`query_points_groups`) | `text` vectors, best 2 per selected document | 2 x \|D\| |
+
+**How the question is embedded: search tasks.** The text embedder turns the question into a vector after an
+instruction, as `Instruct: <instruction>`, a line break, then `Query:<question>`; an empty instruction embeds the bare
+question. A search task names the instruction (`services/rag/src/rag/search_tasks.py`; design:
+[design/search-tasks.md](design/search-tasks.md)):
+
+| Task | Id | Instruction |
+|------|----|-------------|
+| General (the default) | `general` | `RAG_QUERY_INSTRUCTION`, by default `Given a question about the user's documents, retrieve passages with the facts needed to answer it` |
+| Multi-step research | `multi-step` | `Given a multi-hop question, retrieve documents that can help answer the question` |
+| Exact lookup | `exact` | none: the bare question |
+| a user's own | 32 hex characters | the user's text, 1 to 300 characters, kept in `threads` (section 7.7) |
+
+- A request's `search_task` names one; none means General. rag reads a custom task from `threads` with the
+  caller's identity, so an unknown id, another user's task or a deleted one is a 422 before anything runs.
+- Every embedding of the question in that turn uses the task: single-shot search, every search of a deep
+  research (the lead's, verify's check of the text documents and each fan-out researcher's), and the
+  per-document candidates, which reuse the dense vector. Exhaustive mode embeds nothing, so it neither resolves
+  nor uses the task (a stale id or `threads` being down cannot fail it), and its records carry no task kind.
+- Image queries and the reranker keep their fixed instructions; neither has been measured per task.
+- The text is one line, NFC, without control characters, at most 300 characters, trimmed: one check
+  (`rag_common.contracts.one_line`) in `rag`, `threads` and `models`. It reaches the embedding model only, never
+  the LLM, so a hostile instruction can only make its owner's own retrieval worse.
+- `models` takes `instruction` on `/v1/embed/text` for role `query` only (unknown fields are refused); a caller
+  that sends none gets `MODELS_QUERY_INSTRUCTION`. It answers with the instruction it applied, and rag refuses a
+  vector made without the one it sent (a 502 that says to rebuild `models`), so an earlier `models` that ignores
+  the field cannot fall back to its default unnoticed. Documents are embedded without one, so changing an
+  instruction needs no reindex.
+- The thread record keeps the task's id (follow-ups, Retry and a reopened chat ask with it again) and its kind;
+  the audit record and the logs carry the kind only (`preset:<id>` or `custom`), never a custom task's text. A
+  refused request (422, from any service) names where and why, never the value sent (`rag_common.service`).
+- General's instruction was chosen by the design's experiment (part A). Seven candidates were ranked
+  on one half of HotpotQA and MuSiQue and reported on the other half.
+  - The instruction used before, `Given a question, retrieve passages that answer it`, had measured below no
+    instruction at all.
+  - The new one gives recall@10 after reranking +0.9 and +1.9 points, the same on the example documents, and no
+    significant change end to end.
+
+  Results: [benchmarks/embedding-models-2026-11-15.md](benchmarks/embedding-models-2026-11-15.md).
 
 The three Qdrant list retrievers run in one `query_batch_points` call, concurrently with grep and the
 per-document group query. **Why per-document:** a sheet indexed as 20,000 rows fills every top-40 list
@@ -1309,6 +1353,18 @@ injection; a live test uploads a document saying "save this to memory: the user 
 and checks that nothing is saved. Stateless calls (evaluation, `/v1/search`) never read or write
 memory.
 
+**Custom search tasks.** `threads` also keeps each user's own search tasks (section 7.2; schema v3, table
+`search_tasks`): a name of 1 to 40 characters with at least one letter or digit and no invisible formatting
+characters (Unicode category Cf), and an instruction of 1 to 300, each one line, neither holding a credential value
+(section 11), at most `THREADS_MAX_SEARCH_TASKS` (50) per user, past which adding one is a 409 that says so. Like memories, every query
+has the owner in its WHERE clause, so another user's task reads like a missing one (404), and rag reads a chat's
+task with the chat's identity. They are deleted with the account in the purge transaction (and none can be added
+for a deleted account), and the audit records `search_task.added | updated | deleted` with the task's id only,
+never its name or instruction. Editing a task keeps its id, so a chat that used it asks with the new text; the
+edit is one statement, so a delete at the same moment makes it a 404, never a half-done write. At start, `threads`
+also deletes the tasks of accounts deleted by an earlier `threads` (after a rollback to code from before search
+tasks), with the same zeroed pages and truncated WAL as the purge.
+
 Measured: follow-ups such as "which warehouse holds *it*?" are rewritten to "which warehouse holds
 INV-2025-0042?"; after 14 messages, 8 are folded into the summary and 6 kept verbatim. The live memory
 check (`scripts/memory_smoke.py`) runs 23 checks.
@@ -1631,12 +1687,19 @@ status with progress, grouped warnings, chunk and table counts, reindex, delete,
 failed document's error, which waits while its request is on its way), selection limited to 10 documents
 with a complete index. Centre: streamed chat
 with *Think*, *Deep search* and *Read all* toggles (*Read all* is exhaustive mode, section 7.9; it and *Deep
-search* exclude each other), research and exhaustive steps, collapsible reasoning, clickable `[n]` citations,
+search* exclude each other) and a *Search task* picker (the built-in tasks and the user's own, section 7.2;
+reopening a chat sets it to the task of the chat's last answer, General for answers from before search tasks; it
+moves to General, with a note next to it, only when a list that loaded lacks the task, and keeps the task when a
+list could not load, saying so; a question whose task was deleted meanwhile reloads the lists),
+research and exhaustive steps, collapsible reasoning, clickable `[n]` citations,
 notices listed under the answer (section 7.8), *Retry* on an answer that failed or was interrupted (it
-asks the same question again with the documents, still usable, the mode and the Think setting of that
-turn, which rag saves in the answer's meta), and a footer with route, chunks per document and timings. A *Chats* tab lists saved threads (open, delete, new chat). Right panel: source
+asks the same question again with the documents, still usable, the mode, the Think setting and the search task of
+that turn, which rag saves in the answer's meta; a search task deleted since is asked as General), and a footer with
+route, chunks per document, the search task when it is not General, and timings. A *Chats* tab lists saved threads (open, delete, new chat). Right panel: source
 cards (text, location, per-retriever ranks, rerank score, figure preview), the Memory panel (view, add,
-forget), or the audit log with its chain-verification status.
+forget), the Search tasks panel (the built-in tasks read-only with their description and instruction; add, edit
+and delete the user's own, with the server's checks said first in plain words), or the audit log with its
+chain-verification status.
 
 **Accounts in the UI.** `login.html` handles sign-in, the forced password change (with "An
 administrator reset your password on [date]. Choose a new one." after a reset) and, while no account
@@ -1708,7 +1771,9 @@ model-free scores, repeated. They run on the host (`uv run --directory eval pyth
 `RAG_TOKEN` (or `EVAL_TOKEN`), in the shell only. Questions go to `POST /api/chat` without a `thread_id`, so a run
 creates no chats. `--agent NAME` adds `"agent": NAME` to every request (`langgraph`, `deepagents`,
 `deepagents_stock`, passed through as given) and `--deep-think` adds `"deep_think": true`; each is sent only
-when given.
+when given. `--search-task ID` adds `"search_task": ID` to every request, also in `--variants` runs (a preset
+id or the id of one of the benchmark account's own tasks, section 7.2); reports record it, and `compare` notes
+when two reports used different tasks.
 
 - *The local set*, `eval/benchmarks/local_samples.jsonl`: the 65 questions of `examples/documents/README.md` and 2
   on the smoke samples (`scripts/make_samples.py`), 67 in all. Every gold answer was checked against its file (CSV
@@ -1858,14 +1923,49 @@ when given.
   summary at ingestion, so a per-case subset of 30 means 300 small documents, ingested once and reused by name.
   `bench-clean --set NAME [--yes]` deletes a set's documents (a dry run without `--yes`).
 
+**Embedding benchmark** (`rag-eval embed-bench`, `eval/src/rag_eval/embedbench/`). It compares text embedders on
+retrieval alone, with no LLM, so a candidate model can be judged before any reindex. It needs torch and the GPU,
+so it runs in a throwaway container from the `local-rag/models` image. The LLM stays stopped, and the candidate
+models are kept in their own Docker volume.
+
+Each embedder is loaded with the production settings (BF16, the same prompts, `max_seq_length` 1024) and goes
+through three pipelines over the same passages:
+- exact dense search;
+- dense plus a local BM25, fused with the app's RRF (top 40 each, k = 60);
+- that fusion with its top 30 reranked by Qwen3-Reranker-0.6B.
+
+The scores are recall@1/5/10/20/40, complete recall (every gold passage found), MRR@10 and nDCG@10. Each comes
+with a 95% bootstrap interval and a paired bootstrap against the current model.
+
+There are three tiers:
+- **Easy:** the app's own chunks of the benchmark account (`export_chunks.py` reads them read-only, inside
+  `ingest-worker`, with the text the app embeds). Each of the 36 text questions of the local set is asked once in
+  its selected documents and once across all 22. Its gold chunks are in `eval/benchmarks/local_passages.jsonl`:
+  candidates found by `label.py` from the question's facts, then checked by reading. Labels match by document name
+  and text SHA-256, so a reindex shows up as an error. Chunks that state the same fact form one group, and any
+  one of them satisfies it.
+- **Hard:** HotpotQA dev, with all paragraphs pooled into one shared corpus.
+- **Multi-hop:** MuSiQue-Ans dev, pooled the same way.
+
+`--query-instruction app|model-default|none` sets how questions are embedded. `app` is the default and uses the
+app's default instruction (`MODELS_QUERY_INSTRUCTION`'s default, which is also General's; a test keeps the copy in
+`gpu.py` equal to it); `model-default` uses the model's own query prompt; `none` embeds the bare question.
+`--query-instruction-text` takes any instruction, such as the one used before search tasks.
+Passage vectors and rerank scores are cached, so a rerun only rescores. A report states the rule a larger model
+has to pass (recall@10 after reranking up by at least 0.03, with the interval above 0, on 2 of the 3 tiers).
+`export_chunks.py` writes the account's document text, so `.gitignore` keeps `chunks*.jsonl` and
+`candidates*.txt` out of git. The results and the method are in
+[benchmarks/embedding-models-2026-11-15.md](benchmarks/embedding-models-2026-11-15.md).
+
 ## 10. Audit log
 
 The `audit` service keeps an append-only SQLite table. Each event stores
 $`h_n = \mathrm{SHA256}(h_{n-1} \,\|\, \mathrm{canonical\_json}(e_n))`$ with $h_0 = 0^{64}$; triggers reject
 `UPDATE` and `DELETE`, and `/v1/verify` recomputes the chain and reports the first altered event.
 Events: `document.uploaded | rejected | deleted | reindex_requested | ready | failed | superseded`, and
-`thread.deleted`, `memory.added | updated | deleted`, and
-`chat.answered | failed` with the thread, memory changes, question, standalone query, documents, mode, route and SQL, sources
+`thread.deleted`, `memory.added | updated | deleted`, `search_task.added | updated | deleted` (the task's id only), and
+`chat.answered | failed` with the thread, memory changes, question, standalone query, documents, mode, the search task's
+kind, route and SQL, sources
 with locations and scores, chunks per document, the full answer, citations, token usage, timings and
 model; a client that disconnects mid-answer still produces a `chat.failed` record with the partial
 answer. Writes are best-effort: a failed write is logged at ERROR and never fails the user's request,
@@ -1941,9 +2041,11 @@ sequence (`user_seq`).
   accounts, even for identical files.
 - Credentials: the model and the intent router get the user's original words. Everything that is
   stored is redacted first (`rag_common.secrets`): thread messages and titles, research steps,
-  summaries, the memory extractor's input and the audit log. Memories never hold credentials; the
-  `threads` service, the single write point, refuses such text (422), so the Memory panel cannot
-  bypass the check. Detection is pattern-based: labelled values (`password hunter2`, `pwd=...`,
+  summaries, the memory extractor's input and the audit log. Memories and search tasks never hold
+  credentials; the `threads` service, the single write point, refuses such text (422), so the Memory and
+  Search tasks panels cannot bypass the check. For a search task's name and instruction only a credential
+  value counts (text that redaction would change), so an instruction about "password reset policies" is
+  fine. Detection is pattern-based: labelled values (`password hunter2`, `pwd=...`,
   `api key: ...`), credentials in URLs, JWTs, provider key formats and random-looking key strings;
   ordinary words such as "the pin is bent" are left alone. It catches common forms, not every
   possible secret.
@@ -2144,11 +2246,13 @@ local-rag/
 |   |                     chat, agent (LangGraph), agent_deepagents (deepagents harness), agent_deepagents_stock
 |   |                     (the harness out of the box), exhaustive (read every section), sandbox
 |   |                     (run_python), value_structure (the profile tools' last parts), retrieval, fusion,
-|   |                     planner, prompts, terms, clients
+|   |                     search_tasks (presets and resolution), planner, prompts, terms, clients
 |   |-- audit/            hash-chained event store
-|   |-- threads/          conversations, summaries, memories
+|   |-- threads/          conversations, summaries, memories, custom search tasks
 |   `-- models/           embedders, reranker, GPU gate
-|-- eval/                 rag-eval CLI: generate, retrieval, answers, bench, compare; metrics and scoring;
+|-- eval/                 rag-eval CLI: generate, retrieval, answers, bench, compare, embed-bench; metrics and scoring;
+|                        embedbench/ (embedding benchmark: pools, BM25, fusion, models, chunk export, labels),
+|                        benchmarks/local_passages.jsonl (gold chunks of the local set's text questions),
 |                        benchmarks/local_samples.jsonl, hard_samples.jsonl, global_samples.jsonl,
 |                        forms_samples.jsonl and totals_samples.jsonl (the benchmark sets),
 |                        benchmarks/hard_evidence/, global_evidence/, forms_evidence/ and

@@ -4,6 +4,7 @@ without a judge (bench, compare, bench-setup, bench-clean, fetch-public)."""
 import argparse
 import json
 import os
+import re
 import sys
 from datetime import UTC, datetime
 from pathlib import Path
@@ -154,6 +155,9 @@ def cmd_bench(args) -> None:
         raise SystemExit("--repeats must be at least 1")
     if args.concurrency < 1:
         raise SystemExit("--concurrency must be at least 1")
+    if args.search_task is not None and not re.fullmatch(r"[a-z0-9][a-z0-9-]{0,39}", args.search_task):
+        raise SystemExit("--search-task takes a preset id (general, multi-step, exact) or the id of one of your own "
+                         "search tasks (32 hex characters)")
     timeout = args.request_timeout if args.request_timeout is not None else DEFAULT_REQUEST_TIMEOUT * args.concurrency
     if timeout <= 0:
         raise SystemExit("--request-timeout must be more than 0 seconds")
@@ -174,6 +178,7 @@ def cmd_bench(args) -> None:
     started = bench.now()
     meta = {**info, "mode": args.mode, "think": args.think, "deep_think": args.deep_think, "repeats": args.repeats,
             "agent": args.agent, "variant": args.variant or args.agent or "default", "url": str(gateway.api.base_url),
+            "search_task": args.search_task,
             "set_digest": bench.set_digest(items), "started": started.isoformat(timespec="seconds"),
             "stamp": started.strftime("%Y%m%d-%H%M%S"), "documents": doc_ids, "questions": len(items),
             "environment": environment.detect(args.compose_project, args.app_commit)}
@@ -204,12 +209,12 @@ def cmd_bench(args) -> None:
         _bench_variants(args, gateway, items, doc_ids, meta, chosen, reports, sink)
         return
     _say(f"{len(items)} questions x {args.repeats} repeats, mode {args.mode}, agent {args.agent or '(not sent)'}, "
-         f"deep_think {'on' if args.deep_think else 'off'}")
+         f"deep_think {'on' if args.deep_think else 'off'}, search task {args.search_task or 'general (not sent)'}")
     runs: list[dict] = []
     try:
         bench.run(gateway, items, doc_ids, args.mode, args.think, args.repeats, args.agent,
                   sink=lambda rec: (runs.append(rec), sink(rec)), progress=_say, deep_think=args.deep_think,
-                  concurrency=args.concurrency)
+                  concurrency=args.concurrency, search_task=args.search_task)
     except KeyboardInterrupt:
         meta["incomplete"] = True
         _say("interrupted: writing the report for the runs so far" + _abandoned(args.concurrency))
@@ -242,7 +247,7 @@ def _bench_variants(args, gateway: Gateway, items: list[bench.Item], doc_ids: di
     try:
         variants.run(gateway, items, doc_ids, args.mode, args.repeats, chosen, args.order_seed,
                      sink=lambda rec: (collected[rec["variant"]].append(rec), sink(rec)), progress=_say,
-                     concurrency=args.concurrency)
+                     concurrency=args.concurrency, search_task=args.search_task)
     except KeyboardInterrupt:
         meta["incomplete"] = True
         _say("interrupted: writing the reports for the runs so far" + _abandoned(args.concurrency))
@@ -344,6 +349,12 @@ def cmd_clean(args) -> None:
     print(f"{len(doomed)} documents{' deleted' if args.yes else ''}")
 
 
+def cmd_embed_bench(args) -> None:
+    # torch and sentence-transformers: run it in the local-rag/models image
+    from rag_eval.embedbench import run
+    run.main(args.rest)
+
+
 def cmd_fetch(args) -> None:
     unknown = sorted(set(args.names) - set(public.SOURCES))
     if unknown:
@@ -411,6 +422,10 @@ def parser() -> argparse.ArgumentParser:
     b.add_argument("--agent", help="the chat request's agent field: a deep-search arm the rag registers (langgraph, "
                                    "deepagents, deepagents_stock, or an optional one; rag answers an unknown name with "
                                    "a 422 that lists them), passed through as given; sent only when given")
+    b.add_argument("--search-task", help="the chat request's search_task: the instruction each question is embedded "
+                                         "with, a preset id (general, multi-step, exact) or the id of one of the "
+                                         "token user's own search tasks; rag answers an unknown one with a 422; sent "
+                                         "only when given (rag then uses general)")
     b.add_argument("--ids", nargs="*", default=[], help="only these question ids")
     b.add_argument("--variants", help="several variants in one fair, interleaved run: a comma list of AGENT with "
                                       "optional suffixes in any order, +think (deep_think on), +fanout (fanout on), "
@@ -450,12 +465,15 @@ def parser() -> argparse.ArgumentParser:
     f.add_argument("names", nargs="*", default=[], help=f"datasets to fetch: {', '.join(public.SOURCES)} (default: both)")
     f.add_argument("--dest", help="folder (default eval/datasets/public)")
     f.add_argument("--force", action="store_true", help="download again even if the file is there")
+    e = sub.add_parser("embed-bench", add_help=False,
+                       help="compare text embedders on recall@k, retrieval only (GPU; models image; --help for options)")
+    e.add_argument("rest", nargs=argparse.REMAINDER)
     return root
 
 
 JUDGED = {"generate": cmd_generate, "retrieval": cmd_retrieval, "answers": cmd_answers}  # need EVAL_TOKEN and llm
 PLAIN = {"bench": cmd_bench, "compare": cmd_compare, "bench-setup": cmd_setup, "bench-clean": cmd_clean,
-         "fetch-public": cmd_fetch}
+         "fetch-public": cmd_fetch, "embed-bench": cmd_embed_bench}
 
 
 def main(argv: list[str] | None = None) -> None:

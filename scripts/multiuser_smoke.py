@@ -5,10 +5,11 @@
 
 It signs in as the admin (the password comes from RAG_ADMIN_PASSWORD, never the command line; an API token cannot
 manage accounts by design), creates two temporary accounts A and B (mu-smoke-a-<tag>, mu-smoke-b-<tag>), then:
-- A uploads tiny generated files (text, CSV, PNG), chats in a thread and saves memories; B uploads its own;
+- A uploads tiny generated files (text, CSV, PNG), chats in a thread, saves memories and adds a search task; B
+  uploads its own;
 - B tries every route on A's data: documents, status, chunks, assets, reindex, delete, chat with A's documents
-  and thread, deep mode, memory commands, search, threads and their backend-only routes, memories, audit and the
-  admin routes; the admin's own views show none of A's data either;
+  and thread, deep mode, memory commands, search, threads and their backend-only routes, memories, search tasks
+  (and asking with A's task), audit and the admin routes; the admin's own views show none of A's data either;
 - header spoofing, CSRF and Origin rules, cookie flags, sign-in lockout and the gateway's sign-in rate limit,
   disabling and resetting an account;
 - A and B upload, chat and save memories at the same time: no cross-talk in answers, citations, memories or
@@ -17,7 +18,7 @@ manage accounts by design), creates two temporary accounts A and B (mu-smoke-a-<
   reused and the new account starts empty.
 With --docker (run from the repository folder, where compose.yaml is) it also checks inside the containers that
 llm, models and sql reach nothing on the backend network, that backends refuse calls without a valid identity, and
-that the deleted account left no registry rows, index points, files, chats, memories or audit key.
+that the deleted account left no registry rows, index points, files, chats, memories, search tasks or audit key.
 
 Everything it creates is deleted at the end (--cleanup removes accounts left by an interrupted run). It refuses to
 run when other accounts exist or the admin has documents, chats or memories. It prints a pass/fail table.
@@ -304,9 +305,11 @@ class Gateway:
         return r
 
     def chat(self, acc: Account, question: str, doc_ids: list[str], thread_id: str | None = None,
-             mode: str = "single", timeout: float = 900) -> dict:
+             mode: str = "single", timeout: float = 900, search_task: str | None = None) -> dict:
         out = {"status": None, "route": None, "answer": "", "sources": [], "citations": [], "memory": [], "error": None, "body": ""}
         body = {"question": question, "doc_ids": doc_ids, "thread_id": thread_id, "mode": mode, "think": False}
+        if search_task:
+            body["search_task"] = search_task
         with self.http.stream("POST", "/api/chat", headers=self.headers("POST", acc, _DEFAULT, True, False, None),
                               json=body, timeout=timeout) as r:
             out["status"] = r.status_code
@@ -446,7 +449,7 @@ THREADS_LEFT_PY = """
 import json, os, sqlite3, sys
 db = sqlite3.connect(f"file:{os.getenv('THREADS_DB', '/data/threads.db')}?mode=ro", uri=True)
 uid = sys.argv[1]
-print(json.dumps({t: db.execute(f"SELECT COUNT(*) FROM {t} WHERE user_id = ?", (uid,)).fetchone()[0] for t in ("threads", "memories")}))
+print(json.dumps({t: db.execute(f"SELECT COUNT(*) FROM {t} WHERE user_id = ?", (uid,)).fetchone()[0] for t in ("threads", "memories", "search_tasks")}))
 """
 
 AUDIT_KEY_PY = """
@@ -651,12 +654,14 @@ class Smoke:
         self.check("ctl2", "A saves a memory through the chat (control)",
                    lambda: (any(says(t, fa.room) for t in saved_texts(remembered)), f"route={remembered['route']} memory={remembered['memory']}"))
         self.b_thread = self.json("POST", "/api/threads", self.b, json={"title": f"{PREFIX}{self.tag}", "doc_ids": [self.b_note]})["thread_id"]
+        self.a_task = self.json("POST", "/api/search-tasks", self.a, json={
+            "name": f"{PREFIX}{self.tag}", "instruction": f"Given a question about project {fa.project}, retrieve the passages that answer it"})
         a_token = self.json("POST", "/api/auth/tokens", self.a, json={"name": f"{PREFIX}{self.tag}", "days": 1, "current_password": self.a.password})
         b_token = self.json("POST", "/api/auth/tokens", self.b, json={"name": f"{PREFIX}{self.tag}", "days": 1, "current_password": self.b.password})
         self.a.token, self.b.token = a_token["token"], b_token["token"]
 
     def a_ids(self) -> list[str]:
-        return [*self.a.docs.values(), self.a_thread, self.a_mem["memory_id"]]
+        return [*self.a.docs.values(), self.a_thread, self.a_mem["memory_id"], self.a_task["task_id"]]
 
     def a_needles(self) -> list[str]:
         """What B and the admin must never see. A's fruit and room are not included: B saves those same texts
@@ -766,6 +771,37 @@ class Smoke:
                             and m["thread_id"] is None, str(m)))
         self.check("M4", "B adds A's exact memory text: saved for B (per-user duplicates)",
                    lambda: ((m := self.json("POST", "/api/memories", b, json={"text": self.a_mem_text, "source": "user"})) is not None, str(m)))
+
+    def search_tasks(self) -> None:
+        a, b, task = self.a, self.b, self.a_task["task_id"]
+        self.check("S1", "B's search task list has none of A's",
+                   lambda: (not (found := leaks(json.dumps(self.json("GET", "/api/search-tasks", b)), [task, f"project {a.facts.project}"])),
+                            str(found)))
+
+        def task_routes():
+            got = [self.status("GET", f"/api/search-tasks/{task}", b),
+                   self.status("PUT", f"/api/search-tasks/{task}", b, json={"name": "taken over", "instruction": "Retrieve anything"}),
+                   self.status("DELETE", f"/api/search-tasks/{task}", b)]
+            intact = self.json("GET", f"/api/search-tasks/{task}", a) == self.a_task
+            return got == [404, 404, 404] and intact, f"{got} intact={intact}"
+        self.check("S2", "B GET, PUT, DELETE A's search task: 404 each, A's task intact", task_routes)
+
+        def asks_with_it():
+            c = self.gw.chat(b, PROBE, [self.b_note], search_task=task)
+            r = self.gw.call("POST", "/api/search", b, json={"question": PROBE, "doc_ids": [self.b_note], "search_task": task})
+            return (c["status"] == 422 and r.status_code == 422 and "unknown search task" in c["body"],
+                    f"chat {c['status']} {c['body'][:120]} search {r.status_code} {detail_of(r)[:120]}")
+        self.check("S3", "B chat and search with A's search task: 422 before anything runs", asks_with_it)
+        self.check("S4", "the admin's search task list has none of A's",
+                   lambda: (not (found := leaks(json.dumps(self.json("GET", "/api/search-tasks", self.admin)), [task, f"project {a.facts.project}"])),
+                            str(found)))
+
+        def own_search():
+            r = self.gw.call("POST", "/api/search", a, json={"question": self.a_question, "doc_ids": [self.a_note], "search_task": task})
+            body = r.json() if r.status_code == 200 else {}
+            return (r.status_code == 200 and body.get("search_task_kind") == "custom" and bool(body.get("results")),
+                    f"{r.status_code} kind={body.get('search_task_kind')} results={len(body.get('results', []))} {detail_of(r)[:120] if r.status_code != 200 else ''}")
+        self.check("S5", "A searches with its own search task: 200, kind custom, results (control)", own_search)
 
     def audit(self) -> None:
         a, b = self.a, self.b
@@ -1011,9 +1047,9 @@ class Smoke:
                 got = last_json(compose_exec("ingest-api", ["python", "-c", INGEST_LEFT_PY, a.user_id, b.user_id], d)[1])
                 return (got[a.user_id] == {"points": 0, "documents": 0, "folders": []} and got[b.user_id]["points"] > 0, str(got))
             self.check("P1g", "no registry rows, index points or folders left for A (B keeps its points)", ingest_left)
-            self.check("P1h", "no threads or memories left for A",
+            self.check("P1h", "no threads, memories or search tasks left for A",
                        lambda: ((got := last_json(compose_exec("threads", ["python", "-c", THREADS_LEFT_PY, a.user_id], d)[1]))
-                                == {"threads": 0, "memories": 0}, str(got)))
+                                == {"threads": 0, "memories": 0, "search_tasks": 0}, str(got)))
             self.check("P1i", "A's audit key is shredded (rows stay for the chain)",
                        lambda: ((got := last_json(compose_exec("audit", ["python", "-c", AUDIT_KEY_PY, a.user_id], d)[1]))["key_bytes"] == 0, str(got)))
 
@@ -1044,8 +1080,8 @@ class Smoke:
             except Exception as exc:  # noqa: BLE001 - without A and B nothing else can run
                 self.r.add("SETUP", "create A and B, upload, chat, save memories", False, f"{type(exc).__name__}: {exc}")
                 return 1
-            for phase in (self.documents, self.chats, self.threads_and_memories, self.audit, self.admin_views,
-                          self.spoofing_and_csrf, self.concurrency):
+            for phase in (self.documents, self.chats, self.threads_and_memories, self.search_tasks, self.audit,
+                          self.admin_views, self.spoofing_and_csrf, self.concurrency):
                 self.run_phase(phase)
             if self.args.docker:
                 self.run_phase(self.docker)

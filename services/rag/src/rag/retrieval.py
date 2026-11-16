@@ -60,6 +60,9 @@ class SearchOptions:
     coverage: bool = True
     mmr: bool = True
     top_k: int | None = None  # None: grow with the selection size
+    # the turn's search task (rag.search_tasks): the instruction the question is embedded with, for dense search
+    # and the per-document candidates alike. None: General (RAG_QUERY_INSTRUCTION); empty: the bare question.
+    instruction: str | None = None
 
 
 @dataclass
@@ -142,8 +145,9 @@ class Retrieval:
         async def none():
             return None
 
+        instruction = self.s.query_instruction if opts.instruction is None else opts.instruction
         dense_vec, image_vec = await asyncio.gather(
-            self.models.embed_query(question) if "dense" in use else none(),
+            self.models.embed_query(question, instruction) if "dense" in use else none(),
             self.models.embed_image_query(question) if "image" in use else none(),
         )
         timings["embed_ms"] = (time.perf_counter() - start) * 1000

@@ -180,6 +180,16 @@ server {
             rewrite ^/api/(.*)$ /v1/$1 break;
             proxy_pass $threads;
         }
+        # Search tasks: the user's own in threads; the built-in ones (read-only) come from rag.
+        location = /api/search-tasks/presets {
+            limit_except GET { deny all; }
+            rewrite ^ /v1/search-tasks/presets break;
+            proxy_pass $rag;
+        }
+        location /api/search-tasks {
+            rewrite ^/api/(.*)$ /v1/$1 break;
+            proxy_pass $threads;
+        }
         location = /api/audit {          # read-only: services write over the backend network
             limit_except GET { deny all; }
             rewrite ^ /v1/events break;

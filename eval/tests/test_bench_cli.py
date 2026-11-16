@@ -236,6 +236,29 @@ def test_deep_think_agent_values_repeats_default_and_environment_reach_the_repor
         cli.main(["bench", "--set", bench_set, "--url", gateway.url])
 
 
+def test_a_search_task_is_sent_with_every_question_and_reaches_the_reports_and_the_comparison(gateway, tmp_path, capsys):
+    bench_set = _local_set(tmp_path, gateway)
+    reports = tmp_path / "reports"
+    common = ["--set", bench_set, "--url", gateway.url, "--repeats", "1", "--reports", str(reports)]
+    cli.main(["bench", *common, "--variant", "general"])
+    cli.main(["bench", *common, "--variant", "multi", "--search-task", "multi-step"])
+    assert [c.get("search_task") for c in gateway.chats] == [None, None, "multi-step", "multi-step"]  # sent when given
+    multi = json.loads(next(reports.glob("bench-multi-*.json")).read_text(encoding="utf-8"))
+    assert multi["meta"]["search_task"] == "multi-step"
+    assert "search_task: multi-step;" in next(reports.glob("bench-multi-*.md")).read_text(encoding="utf-8")
+    capsys.readouterr()
+    cli.main(["compare", str(next(reports.glob("bench-general-*.json"))), str(next(reports.glob("bench-multi-*.json"))),
+              "--reports", str(reports)])
+    out = capsys.readouterr().out
+    assert "search_task differs: None vs multi-step" in out and "search task multi-step" in out
+    cli.main(["bench", *common, "--variants", "deepagents,langgraph", "--search-task", "f" * 32])
+    assert {c.get("search_task") for c in gateway.chats[4:]} == {"f" * 32}
+    assert "search task " + "f" * 32 in next(reports.glob("bench-combined-*.md")).read_text(encoding="ascii")
+    for bad in ("Multi Step", "x" * 41, "../presets"):
+        with pytest.raises(SystemExit, match="--search-task takes a preset id"):
+            cli.main(["bench", *common, "--search-task", bad])
+
+
 def test_fanout_and_calls_variants_send_their_fields_and_reach_the_reports(gateway, tmp_path):
     bench_set = _local_set(tmp_path, gateway)
     reports = tmp_path / "reports"

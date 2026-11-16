@@ -42,6 +42,9 @@ eval/datasets/public/
 eval/datasets/bench-*.json
 eval/reports/*
 !eval/reports/.gitkeep
+# embed-bench exports (export_chunks.py, label.py) hold the full text of an account's documents
+chunks*.jsonl
+candidates*.txt
 
 # ---------------------------------------------------------------------------
 # Python

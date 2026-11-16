@@ -197,8 +197,17 @@ class ModelsClient:
 
         return await retry_once(call, what=what, backoff_s=self.retry.backoff_s, log=log)
 
-    async def embed_query(self, text: str) -> list[float]:
-        return (await self._post("/v1/embed/text", {"texts": [text], "role": "query"}, "query embedding"))["vectors"][0]
+    async def embed_query(self, text: str, instruction: str) -> list[float]:
+        """The question's vector, embedded after `instruction` (its search task's; empty: the bare question).
+        ServiceError when models does not say it applied that instruction (an earlier models ignores it)."""
+        body = {"texts": [text], "role": "query", "instruction": instruction}
+        data = await self._post("/v1/embed/text", body, "query embedding")
+        if data.get("instruction") != instruction:
+            log_fields(log, "models did not apply the search task's instruction", logging.ERROR,
+                       applied="missing" if data.get("instruction") is None else "different")
+            raise ServiceError(502, "models does not apply search tasks (it did not embed the question with the "
+                                    "instruction sent); rebuild and restart models")
+        return data["vectors"][0]
 
     async def embed_documents(self, texts: list[str]) -> list[list[float]]:
         return (await self._post("/v1/embed/text", {"texts": texts, "role": "document"}, "text embedding"))["vectors"]

@@ -46,14 +46,13 @@ from rag_common.profiling import detect
 from rag_common.retry import TRANSIENT_STATUS
 
 from rag.chat import (ChatRequest, Deps, Event, deep_python, deep_think, figure_slots, nothing_found, per_document,
-                      source_budget, stream_answer)
+                      search_options, source_budget, stream_answer)
 from rag.config import Settings
 from rag.conversation import Conversation
 from rag.fusion import Candidate
 from rag.notices import notice
 from rag.planner import schema_cards
 from rag.prompts import Source, location, source_cost, sql_source
-from rag.retrieval import SearchOptions
 from rag.sandbox import close as close_sandbox
 from rag.sandbox import run_python_tool
 from rag.tokens import TOOLS_PREAMBLE_TOKENS, count_tokens, message_tokens, truncate_tokens
@@ -234,7 +233,7 @@ def _key(tool: str, **args) -> str:
 def search_tool(ctx: ToolContext) -> StructuredTool:
     async def search(query: str) -> tuple[str, list[int]]:
         async def run():
-            result = await ctx.deps.retrieval.search(query, ctx.req.doc_ids, SearchOptions(top_k=5))
+            result = await ctx.deps.retrieval.search(query, ctx.req.doc_ids, search_options(ctx.req, top_k=5))
             return ctx.found(ctx.book.add_candidates(result.candidates))
         return await ctx.once(_key("search", query=query), run)
     return _tool(search, "Hybrid search (meaning, keywords, exact terms, figures) over the selected documents.")
@@ -779,7 +778,7 @@ def text_searcher(ctx: ToolContext) -> TextSearch:
     text_ids = list(text_documents(ctx.docs))
 
     async def text_search(query: str) -> tuple[str, list[int]]:
-        result = await ctx.deps.retrieval.search(query, text_ids, SearchOptions(top_k=5))
+        result = await ctx.deps.retrieval.search(query, text_ids, search_options(ctx.req, top_k=5))
         return ctx.found(ctx.book.add_candidates(result.candidates))
     return text_search
 

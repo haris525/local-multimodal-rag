@@ -60,10 +60,13 @@ def info() -> ModelsInfo:
     return ModelsInfo(**enc.names, text_dim=text_dim, image_dim=image_dim)
 
 
-@app.post("/v1/embed/text")
+@app.post("/v1/embed/text", response_model_exclude_none=True)
 async def embed_text(body: EmbedTextRequest) -> EmbedResponse:
-    vectors = await _run(_encoders().embed_text, body.texts, body.role)
-    return EmbedResponse(vectors=vectors, dim=len(vectors[0]))
+    """Queries answer with the instruction they were embedded with, so rag can check its search task was used."""
+    enc = _encoders()
+    vectors = await _run(enc.embed_text, body.texts, body.role, body.instruction)
+    applied = enc.query_instruction(body.instruction) if body.role == "query" else None
+    return EmbedResponse(vectors=vectors, dim=len(vectors[0]), instruction=applied)
 
 
 @app.post("/v1/embed/image")
